@@ -1,109 +1,218 @@
 <div align="center">
 
-<img src="docs/design/app-icon.svg" width="96" height="96" alt="WakieAI logo">
+<img src="docs/design/app-icon.svg" width="104" height="104" alt="WakieAI">
 
 # WakieAI
 
-**One tier's price. Every subscription, at full usage.**
+### One tier's price. Every subscription, at full usage.
 
-A Mac menu-bar app that keeps your logged-in AI subscriptions (Claude, Codex, Antigravity) warm, tracks each account's usage and reset windows in one dashboard, and wakes your Mac on schedule to refresh sessions — so the right account is always ready when you are.
+A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked, and ready** — one dashboard for every account's usage and reset windows, and a Mac that wakes itself on schedule to refresh sessions while you sleep.
 
-`Status: design & spec` · PRD + interactive UI mockups complete · implementation next
+<br>
+
+![Status](https://img.shields.io/badge/status-design%20%26%20spec-F6B23C?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-macOS%20→%20iOS-0B1120?style=flat-square&logo=apple&logoColor=white)
+![Built with](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0B1120?style=flat-square&logo=dart&logoColor=white)
+![Providers](https://img.shields.io/badge/Claude·Codex·Antigravity-5FD39A?style=flat-square)
+
+<br>
+
+<img src="docs/design/screenshots/dashboard.png" width="880" alt="WakieAI dashboard">
 
 </div>
 
----
+<br>
 
-## Why
+> [!NOTE]
+> **Project status — design & spec.** This repo currently holds the [product spec](docs/PRD.md) and a complete, click-through [UI prototype](docs/design/). Engineering starts from Phase 0 (see [Roadmap](#roadmap)). Screenshots below are from the working mockups.
 
-Power users get more out of AI by running **several cheaper subscriptions/accounts** instead of one $200 top tier. The catch is that juggling them is tedious — which account has budget left, when each rolling window resets, and when to switch. You end up opening every CLI or web app to check.
+<br>
 
-WakieAI is a **multi-account AI usage orchestrator**: a background app on your Mac cycles through your logged-in AI CLIs, reads each account's session/weekly usage, and shows it in one glass dashboard — then wakes the machine on a schedule to keep sessions fresh and nudges you when it's time to act.
+## Contents
 
-## What it does
+- [Overview](#overview) · [Screens](#screens) · [Features](#features) · [How it works](#how-it-works)
+- [Supported providers](#supported-providers) · [Roadmap](#roadmap) · [Getting started](#getting-started)
+- [Privacy & security](#privacy--security) · [FAQ](#faq) · [Non-goals](#non-goals) · [Repository](#repository)
 
-- **Unified dashboard** — every account's session % + weekly % and reset times in one place, with live status pills.
-- **Warm on schedule** — the Mac wakes from sleep (`pmset` + a LaunchAgent helper) to start/refresh sessions, then goes back to sleep.
-- **Right-account nudges** — notifications for "running low", "just reset", "reconnect needed" — each with a one-tap fix.
-- **Per-account actions** — **Update** (start a session + refresh that account) and global **Refresh all** (read status only).
-- **Multi-account by design** — several accounts per provider, isolated via each CLI's config-home (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HOME`).
+<br>
 
-## What it does *not* do
+## Overview
 
-- ❌ Reset or bypass quotas — it only **starts** the rolling window; usage is still spent.
-- ❌ Proxy your credentials — it rides on each CLI's **official login**, nothing more.
-- ❌ Store or transmit prompts/responses — credentials and content stay **local to your Mac**.
+Power users get more out of AI by running **several cheaper subscriptions** instead of one $200 top tier. The catch is that juggling them is tedious — which account still has budget, when each rolling window resets, and when to switch. You end up opening every CLI or web app just to check.
+
+**WakieAI is a multi-account AI usage orchestrator.** A background app on your Mac cycles through your logged-in AI CLIs (Claude, Codex, Antigravity), reads each account's session and weekly usage, and lays it out in one dashboard. It wakes the machine from sleep on a schedule to keep sessions fresh, and nudges you the moment an account runs low or needs a reconnect — each nudge with a one-tap fix.
+
+The result: **one tier's price, every subscription at full usage** — without babysitting any of them.
+
+<br>
+
+## Screens
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/design/screenshots/onboarding.png" alt="Onboarding"><br><sub><b>Onboarding</b> — sign in, auto-detect accounts</sub></td>
+    <td width="50%" align="center"><img src="docs/design/screenshots/empty.png" alt="Empty state"><br><sub><b>Empty state</b> — nothing in orbit yet</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="docs/design/screenshots/error.png" alt="Needs attention"><br><sub><b>Needs attention</b> — expired / offline states</sub></td>
+    <td width="50%" align="center"><img src="docs/design/screenshots/add-account.png" alt="Add account"><br><sub><b>Add account</b> — per-provider, isolated slot</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="docs/design/screenshots/notifications.png" alt="Notifications"><br><sub><b>Notifications</b> — morning summary + one-tap fixes</sub></td>
+    <td width="50%" align="center"><img src="docs/design/screenshots/menubar.png" alt="Menu-bar icon"><br><sub><b>Menu-bar icon</b> — idle / working / attention</sub></td>
+  </tr>
+</table>
+
+> Every screen is a live mockup in [`docs/design/`](docs/design/) — open any `.html` in a browser. The onboarding → dashboard flow is wired end-to-end and clickable.
+
+<br>
+
+## Features
+
+- 🛰️ **Unified dashboard** — session % + weekly % and reset times for every account, with live status pills.
+- ⏰ **Warm on schedule** — the Mac wakes from sleep (`pmset` + a LaunchAgent helper) to start/refresh sessions, then sleeps again.
+- 🔔 **Right-account nudges** — "running low", "just reset", "reconnect needed" — each notification ships a one-tap action.
+- ⚡ **Per-account actions** — **Update** (start a session + refresh that account) and global **Refresh all** (read status only).
+- 👥 **Multi-account by design** — many accounts per provider, isolated via each CLI's config home (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HOME`).
+- 🔒 **Local-first** — credentials, prompts, and responses never leave your Mac.
+
+<br>
 
 ## How it works
 
 ```
-Phase 0–1   [ Mac menu-bar app ] ── cycles local CLIs ──▶ [ claude / codex / agy × accounts ]
-              engine + dashboard                            credentials · prompts = local only
+Phase 0–1   ┌─────────────────────────┐   cycles local CLIs    ┌──────────────────────────────┐
+            │   Mac menu-bar app       │ ─────────────────────▶ │ claude / codex / agy accounts │
+            │   engine + dashboard     │                        │ credentials · prompts = local │
+            └─────────────────────────┘                        └──────────────────────────────┘
 
-Phase 2     [ iPhone app ] ◀── Supabase relay ──▶ [ Mac app ]     (commands + status metadata only)
+Phase 2     ┌──────────────┐   Supabase relay (commands +   ┌──────────────┐
+            │  iPhone app  │ ◀────  status metadata only) ──▶ │   Mac app    │
+            └──────────────┘                                  └──────────────┘
 ```
 
-The Mac app is both the **engine** (detect → wake → scrape usage → start session → notify) and the **dashboard**. Credentials, prompts and responses never leave the machine. In Phase 2 a phone becomes a remote control over a Supabase relay that carries only commands and status metadata — never secrets.
+The Mac app is both the **engine** — detect → wake → scrape usage → start session → notify — and the **dashboard**. Every scrape reads status by driving each CLI's `/usage`-style command (which costs no quota); only *starting* a session consumes a little, so it uses the cheapest model.
+
+In **Phase 2**, a phone becomes a remote control over a Supabase relay that carries only commands (a fixed enum) and status metadata — never credentials or content.
+
+<br>
 
 ## Supported providers
 
-| Provider (CLI) | Start session | Usage / reset | Multi-account |
-| --- | --- | --- | --- |
-| **Claude** (`claude`) | `-p` | `/usage` + `/stats` | `CLAUDE_CONFIG_DIR` |
-| **Codex** (`codex`) | `exec` | `/status` + `/usage daily` | `CODEX_HOME` / `--profile` |
-| **Antigravity** (`agy`) | `-p` | `/usage` (weekly · 5h) | `HOME` sandbox |
+| Provider (CLI) | Start session | Usage / reset | Multi-account | Auth |
+| --- | --- | --- | --- | --- |
+| **Claude** (`claude`) | `-p` | `/usage` + `/stats` | `CLAUDE_CONFIG_DIR` | claude.ai |
+| **Codex** (`codex`) | `exec` | `/status` + `/usage daily` | `CODEX_HOME` / `--profile` | ChatGPT |
+| **Antigravity** (`agy`) | `-p` | `/usage` (weekly · 5h) | `HOME` sandbox | Google |
 
-> Grok is intentionally out of scope (shared weekly pool, no 5h window, usage not exposed via CLI).
+> **Grok** is intentionally out of scope — a shared weekly pool with no 5-hour window, and usage isn't exposed via its CLI, so it doesn't fit the product's core.
 
-## Design
-
-The visual language is **dark frosted glass** — translucent floating panels, hairline borders, tabular-mono numbers, a single amber accent plus semantic colors (green / amber / red). The mark is an "orbit": a white ring around an amber core (an awakened star).
-
-Interactive mockups live in [`docs/design/`](docs/design/) — open any `.html` in a browser. The onboarding → dashboard flow is wired click-through:
-
-| Screen | File |
-| --- | --- |
-| Onboarding · sign in | [onboarding-step1.html](docs/design/onboarding-step1.html) |
-| Onboarding · detect accounts | [onboarding-step2.html](docs/design/onboarding-step2.html) |
-| Onboarding · schedule | [onboarding-step3.html](docs/design/onboarding-step3.html) |
-| Add account | [add-account.html](docs/design/add-account.html) |
-| Dashboard · healthy | [dashboard-mockup.html](docs/design/dashboard-mockup.html) |
-| Dashboard · needs attention | [dashboard-error.html](docs/design/dashboard-error.html) |
-| Dashboard · empty state | [dashboard-empty.html](docs/design/dashboard-empty.html) |
-| Menu-bar icon states | [menubar-icon.html](docs/design/menubar-icon.html) |
-| Notifications | [notifications.html](docs/design/notifications.html) |
+<br>
 
 ## Roadmap
 
-| Phase | Deliverable |
-| --- | --- |
-| **0** | Mac core — auto-detect accounts, scrape `/usage`, menu-bar dashboard, on-demand session start |
-| **1** | Sleep-wake (`pmset` + LaunchAgent dark wake), schedules, macOS notifications, add-account UX |
-| **2** | Supabase relay + iPhone app (remote dashboard/control) + push notifications |
-| **3** | Hardening, multi-account scale, auto-login guidance, Windows/Android exploration |
+- [ ] **Phase 0 — Mac core.** Auto-detect accounts · scrape `/usage` · menu-bar dashboard · on-demand session start.
+- [ ] **Phase 1 — Automation.** Sleep-wake (`pmset` + LaunchAgent dark wake) · schedules · macOS notifications · add-account UX.
+- [ ] **Phase 2 — Remote.** Supabase relay + iPhone app (remote dashboard/control) + push notifications.
+- [ ] **Phase 3 — Hardening.** Multi-account scale · auto-login guidance · Windows/Android exploration.
+- [x] **Phase −1 — Spec & design.** [PRD](docs/PRD.md) + full click-through UI prototype.
 
-## Tech stack (planned)
+<br>
 
-- **Mac app** — Flutter (macOS menu bar) + a bundled LaunchAgent helper
-- **Shared core** — Dart package (account models, provider adapters, status logic)
-- **Phone app** (Phase 2) — Flutter (iOS/Android)
-- **Relay** (Phase 2) — Supabase (Postgres + Realtime + Auth + RLS)
+## Getting started
+
+> [!IMPORTANT]
+> The app isn't built yet. Today you can explore the **interactive prototype**.
+
+**Explore the prototype**
+
+```bash
+git clone https://github.com/JohnLee/WakeyAI.git
+cd WakeyAI
+open docs/design/onboarding-step1.html   # start of the wired flow → dashboard
+```
+
+Or open any single screen in [`docs/design/`](docs/design/) directly in a browser.
+
+**Once built (planned)**
+
+Install the WakieAI Mac app → sign in with Apple/Google → your already-logged-in AI accounts are detected automatically. No re-login, no API keys. Two apps and you're done (Mac now; iPhone in Phase 2).
+
+**Planned repo layout**
+
+```
+packages/core     # Dart — account models, provider adapters, status logic
+apps/mac          # Flutter macOS menu-bar app + LaunchAgent helper
+apps/phone        # Flutter iOS/Android remote (Phase 2)
+```
+
+<br>
+
+## Privacy & security
+
+- **Local-only by default.** CLI OAuth tokens and all prompt/response content stay on your Mac, in each CLI's own config home and the macOS keychain.
+- **No credential proxy.** WakieAI drives each provider's *official* login — it never sees or forwards your passwords.
+- **No content leaves the device.** Prompts and responses are never stored or transmitted.
+- **Phase-2 relay is metadata-only.** It carries usage numbers, pairing info, and a **fixed command enum** (no arbitrary execution) — protected by row-level security and TLS. The blast radius of a compromised relay is limited to {start session · wake · read status}.
+
+<br>
+
+## FAQ
+
+<details>
+<summary><b>Does WakieAI reset or extend my quota?</b></summary><br>
+No. It <i>starts</i> the rolling usage window and reads how much is left — usage is still consumed normally. It never resets, extends, or bypasses limits.
+</details>
+
+<details>
+<summary><b>Does it need my passwords or API keys?</b></summary><br>
+No. It rides on each CLI's existing subscription login. There are no API keys and no credentials to hand over.
+</details>
+
+<details>
+<summary><b>Is this against provider Terms of Service?</b></summary><br>
+WakieAI runs each provider's official CLI on your own machine, under your own login — it is not a proxy or a shared service. Automated, periodic prompting fitting each provider's ToS is an explicit assumption we monitor; adapters can be paused if a provider's terms change.
+</details>
+
+<details>
+<summary><b>Does my Mac have to stay on?</b></summary><br>
+No — it schedules a wake from sleep to do its work, then sleeps again. It needs to be plugged in and in a logged-in sleep state (keychain unlocked, the macOS default).
+</details>
+
+<details>
+<summary><b>Do I need the phone app?</b></summary><br>
+No. The Mac app is fully standalone (Phase 0–1). The iPhone app (Phase 2) is an optional remote control and doesn't work without the Mac.
+</details>
+
+<br>
+
+## Non-goals
+
+- ❌ Resetting or bypassing quotas — it only *starts* the window.
+- ❌ Proxying credentials or making calls on your behalf.
+- ❌ Storing or transmitting prompt/response content.
+- ❌ Teams / org / SSO, Grok, and provider API-key tracks (for now).
+
+<br>
 
 ## Repository
 
 ```
 WakeyAI/
-├── CLAUDE.md            # engineering behavior guidelines
+├── CLAUDE.md              # engineering behavior guidelines
 ├── docs/
-│   ├── PRD.md           # product requirements (source of truth)
-│   └── design/          # interactive UI mockups + logo
+│   ├── PRD.md             # product requirements — source of truth
+│   └── design/            # interactive UI mockups, logo, app icon, screenshots
 └── README.md
 ```
 
-## Privacy
-
-Credentials (CLI OAuth tokens) and all prompt/response content are **local-only**, held in each CLI's own config home and the macOS keychain. The Phase-2 relay stores only usage metadata, commands (a fixed enum — no arbitrary execution), and pairing info, protected by row-level security and TLS.
+<br>
 
 ---
 
-<div align="center"><sub>Owner: John · wakieDemo1@gmail.com · see <a href="docs/PRD.md">PRD</a> for full detail</sub></div>
+<div align="center">
+<sub>Built by John · <a href="mailto:wakieDemo1@gmail.com">wakieDemo1@gmail.com</a> · Full detail in the <a href="docs/PRD.md">PRD</a></sub>
+<br>
+<sub>© 2026 · All rights reserved · License TBD</sub>
+</div>
