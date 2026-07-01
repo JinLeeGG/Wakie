@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--amber:#ffc465;--t1:#f3f4f7;--t2:#a9aeb8;--t3:#6a7080;--ok:#5fd39a;
+    --glass:rgba(22,24,32,.55);--hair:rgba(255,255,255,.09);--hair2:rgba(255,255,255,.14);
+    --mono:'JetBrains Mono',monospace;--sans:'Instrument Sans',sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--sans);color:var(--t1);-webkit-font-smoothing:antialiased;
+    display:grid;place-items:center;overflow:hidden;
+    background:radial-gradient(50% 45% at 12% 8%,rgba(56,140,160,.30),transparent 60%),
+      radial-gradient(55% 50% at 92% 18%,rgba(150,110,235,.26),transparent 62%),
+      radial-gradient(60% 55% at 70% 100%,rgba(255,170,70,.18),transparent 60%),
+      radial-gradient(50% 50% at 30% 90%,rgba(60,90,200,.20),transparent 60%),
+      linear-gradient(160deg,#0a0c12,#070810 60%,#05060b)}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.048;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .modal{width:452px;background:var(--glass);-webkit-backdrop-filter:blur(60px) saturate(180%);backdrop-filter:blur(60px) saturate(180%);
+    border:1px solid var(--hair2);border-radius:20px;overflow:hidden;position:relative;
+    box-shadow:0 40px 100px -24px rgba(0,0,0,.7),0 8px 30px -10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);
+    animation:rise .45s cubic-bezier(.16,1,.3,1) both}
+  .modal::before{content:"";position:absolute;inset:0 0 auto 0;height:120px;background:linear-gradient(180deg,rgba(255,255,255,.055),transparent);pointer-events:none;z-index:0}
+  @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;position:relative;z-index:1}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand svg.logo{width:20px;height:20px;display:block}
+  .brand .tt{font-size:17px;font-weight:600}
+  .x{color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    padding:10px;margin:-10px;background:none;border:none;transition:color .12s;flex:none}
+  .x:hover{color:var(--t1)}
+  .x:active{transform:scale(.88);transition-duration:.06s}
+  .x svg{width:16px;height:16px;display:block}
+  .body{padding:4px 22px 22px;position:relative;z-index:1}
+  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;color:var(--t3);text-transform:uppercase;margin:20px 2px 11px}
+  .provs{display:flex;flex-direction:column;gap:11px}
+  .prov{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:12px;cursor:pointer;
+    border:1px solid var(--hair);background:rgba(255,255,255,.03);transition:border-color .15s,background .15s}
+  .prov:hover{background:rgba(255,255,255,.055)}
+  .prov.sel{border-color:rgba(255,196,101,.45);background:rgba(255,196,101,.07)}
+  .prov .badge{width:35px;height:35px;border-radius:11px;display:grid;place-items:center;flex:none}
+  .badge.claude{background:rgba(217,119,87,.16)} .badge.codex{background:rgba(255,255,255,.08)} .badge.anti{background:rgba(120,150,240,.15)}
+  .badge img,.badge svg{width:20px;height:20px;display:block}
+  .prov .nm{font-size:14.5px;font-weight:600}
+  .prov .pv{font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-top:2px}
+  .prov .rad{margin-left:auto;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--hair2);flex:none;display:grid;place-items:center}
+  .prov.sel .rad{border-color:var(--amber)}.prov.sel .rad::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--amber)}
+  .field{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.03)}
+  .field input{flex:1;background:none;border:0;outline:0;color:var(--t1);font-family:var(--sans);font-size:14.5px}
+  .field input::placeholder{color:var(--t3)}
+  .field .tag{font-family:var(--mono);font-size:11px;color:var(--t3)}
+  .info{display:flex;gap:9px;margin:16px 2px 4px;font-size:12px;color:var(--t2);line-height:1.5}
+  .info .ic{color:var(--t3);flex:none;margin-top:1px}
+  .info b{color:var(--t1);font-weight:500}
+  .actions{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+  .primary{width:100%;padding:13px;border-radius:12px;border:none;
+    background:var(--amber);color:#0a0c12;font-family:var(--sans);font-weight:700;font-size:14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 2px 10px -4px rgba(255,196,101,.2);transition:opacity .15s,transform .12s,box-shadow .15s}
+  .primary:hover{opacity:.92;transform:translateY(-1px);box-shadow:0 4px 16px -6px rgba(255,196,101,.3)}
+  .primary:active{transform:translateY(0);transition-duration:.06s}
+  .cancel{background:none;border:0;color:var(--t3);font-family:var(--mono);font-size:12px;cursor:pointer;padding:4px}
+</style></head>
+<body>
+  <div class="modal">
+    <header>
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>
+        <div class="tt">Add account</div>
+      </div>
+      <button class="x" aria-label="Close" onclick="history.back()">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="body">
+      <div class="lbl">Provider</div>
+      <div class="provs">
+        <div class="prov sel">
+          <div class="badge claude"><img src="https://cdn.simpleicons.org/anthropic/d98b6a" alt=""></div>
+          <div><div class="nm">Claude</div><div class="pv">claude.ai · plan</div></div>
+          <div class="rad"></div>
+        </div>
+        <div class="prov">
+          <div class="badge codex"><svg viewBox="0 0 24 24" fill="#e9ebee"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></div>
+          <div><div class="nm">Codex</div><div class="pv">chatgpt · plan</div></div>
+          <div class="rad"></div>
+        </div>
+        <div class="prov">
+          <div class="badge anti"><img src="https://cdn.simpleicons.org/googlegemini/8ab0ff" alt=""></div>
+          <div><div class="nm">Antigravity</div><div class="pv">gemini · plan</div></div>
+          <div class="rad"></div>
+        </div>
+      </div>
+
+      <div class="lbl">Label</div>
+      <div class="field">
+        <input value="Personal" placeholder="e.g. Personal, Work, main">
+        <span class="tag">claude · personal</span>
+      </div>
+
+      <div class="info"><span class="ic">🔒</span><div>Sign-in completes in <b>your browser on this Mac</b>. Each account gets an <b>isolated slot</b>, and credentials stay on this Mac only.</div></div>
+
+      <div class="actions">
+        <button class="primary" onclick="location.href='dashboard-mockup.html'">Sign in with browser <span>→</span></button>
+        <button class="cancel" onclick="history.back()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</body></html>

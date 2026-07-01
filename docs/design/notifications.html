@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WakeyAI — Notifications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --t1:#f3f4f7;--t2:#a9aeb8;--t3:#6a7080;
+    --amber:#f6b23c;--ok:#5fd39a;--crit:#ff7a85;
+    --mono:'JetBrains Mono',ui-monospace,monospace;--sans:'Instrument Sans',system-ui,sans-serif;
+    --hair:rgba(255,255,255,.09);--hair-2:rgba(255,255,255,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    font-family:var(--sans);color:var(--t1);-webkit-font-smoothing:antialiased;min-height:100vh;
+    padding:60px 24px 90px;display:flex;flex-direction:column;align-items:center;
+    background:
+      radial-gradient(50% 45% at 12% 8%, rgba(56,140,160,.30), transparent 60%),
+      radial-gradient(55% 50% at 92% 18%, rgba(150,110,235,.26), transparent 62%),
+      radial-gradient(60% 55% at 70% 100%, rgba(255,170,70,.18), transparent 60%),
+      radial-gradient(50% 50% at 30% 90%, rgba(60,90,200,.20), transparent 60%),
+      linear-gradient(160deg,#0a0c12,#070810 60%,#05060b);
+    background-attachment:fixed;
+  }
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .wrap{width:100%;max-width:720px;position:relative;z-index:1}
+  .rise{animation:rise .65s cubic-bezier(.2,.85,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:13px;display:flex;align-items:center;gap:9px}
+  .eyebrow .lg{width:19px;height:19px;display:block}
+  h1{font-size:33px;font-weight:600;letter-spacing:-.015em;line-height:1.05}
+  .sub{margin-top:11px;font-size:15px;color:var(--t2);line-height:1.55;max-width:54ch}
+
+  .sec{margin-top:42px}
+  .sec-h{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+  .sec-h .chip{font-size:9.5px;padding:2px 8px;border-radius:99px;border:1px solid var(--hair);color:var(--t2);letter-spacing:.12em}
+  .chip.ok{color:var(--ok);border-color:rgba(95,211,154,.3);background:rgba(95,211,154,.07)}
+  .chip.warn{color:var(--amber);border-color:rgba(246,178,60,.3);background:rgba(246,178,60,.07)}
+  .chip.crit{color:var(--crit);border-color:rgba(255,122,133,.32);background:rgba(255,122,133,.08)}
+
+  /* ── macOS notification (dark material) ── */
+  .noti{width:376px;display:flex;gap:12px;padding:14px 15px 14px 14px;border-radius:19px;position:relative;
+    background:rgba(40,40,46,.66);
+    -webkit-backdrop-filter:blur(34px) saturate(160%);backdrop-filter:blur(34px) saturate(160%);
+    border:1px solid rgba(255,255,255,.1);
+    box-shadow:0 22px 60px -14px rgba(0,0,0,.66),0 3px 10px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.1);
+    animation:noti-in .6s cubic-bezier(.2,.85,.2,1) both}
+  @keyframes noti-in{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+
+  /* app icon tile (this is also WakieAI's app icon — filled navy tile, unlike the transparent in-app mark) */
+  .app-ico{width:40px;height:40px;border-radius:10px;flex:none;position:relative;display:grid;place-items:center;
+    background:linear-gradient(150deg,#1b2250,#0c1030 78%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 6px rgba(0,0,0,.45)}
+  .app-ico svg{width:26px;height:26px;display:block;filter:drop-shadow(0 0 4px rgba(246,178,60,.4))}
+  /* attention badge on the icon corner — mirrors the menu-bar attention state */
+  .app-ico .pip{position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;
+    background:var(--crit);border:2.5px solid #26262c;box-shadow:0 0 8px rgba(255,122,133,.7)}
+
+  .nbody{flex:1;min-width:0}
+  .ntop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .napp{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.58);letter-spacing:.02em}
+  .ntime{font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.4);white-space:nowrap}
+  .ntitle{font-size:13.5px;font-weight:600;color:#fff;margin-top:3px;letter-spacing:-.005em;line-height:1.3}
+  .nmsg{font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.42;margin-top:3px}
+  .nmsg b{color:rgba(255,255,255,.82);font-weight:500}
+
+  .nact{display:flex;gap:8px;margin-top:12px}
+  .nbtn{font-family:var(--sans);font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:9px;cursor:pointer;
+    border:1px solid transparent;transition:filter .14s,background .14s,border-color .14s}
+  .nbtn.primary{background:var(--amber);color:#1a1205;box-shadow:0 1px 4px rgba(246,178,60,.25)}
+  .nbtn.primary:hover{filter:brightness(1.05)}
+  .nbtn.ghost{background:rgba(255,255,255,.08);color:rgba(255,255,255,.78);border-color:rgba(255,255,255,.06)}
+  .nbtn.ghost:hover{background:rgba(255,255,255,.13)}
+
+  /* thin accent bar down the left edge, colored by kind */
+  .noti::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px;opacity:.9}
+  .noti.ok::before{background:var(--ok)}
+  .noti.warn::before{background:var(--amber)}
+  .noti.crit::before{background:var(--crit)}
+
+  /* in-context: a faux menu bar with the notification tucked under the top-right */
+  .context{position:relative;min-height:190px;border-radius:16px;overflow:hidden;border:1px solid var(--hair);
+    background:linear-gradient(160deg,rgba(20,26,40,.5),rgba(8,10,18,.6))}
+  .mbar{height:30px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 16px;
+    background:rgba(16,18,26,.6);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.6)}
+  .mbar .wk{display:flex;align-items:center;gap:6px;color:#fff}
+  .mbar .wk svg{width:13px;height:13px}
+  .context .drop{position:absolute;top:44px;right:16px}
+  .context .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:10.5px;color:var(--t3)}
+
+  .row{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+
+  .note{margin-top:30px;display:flex;gap:11px;align-items:flex-start;
+    background:rgba(255,255,255,.03);border:1px solid var(--hair);border-radius:14px;padding:15px 17px;
+    font-size:12.5px;color:var(--t2);line-height:1.6;max-width:620px}
+  .note .k{font-family:var(--mono);color:var(--amber);flex:none}
+  .note b{color:var(--t1);font-weight:600}
+
+  .foot{margin-top:34px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.35);text-align:center}
+
+  /* WakieAI mark (white ring + amber core) reused for icon */
+  .mark circle.ring{fill:none;stroke:#fff;stroke-width:6}
+  .mark circle.core{fill:#f6b23c}
+</style></head>
+<body>
+  <div class="wrap">
+
+    <div class="eyebrow rise">
+      <svg class="lg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>
+      Notifications
+    </div>
+    <h1 class="rise" style="animation-delay:.05s">How WakieAI reaches you</h1>
+    <p class="sub rise" style="animation-delay:.1s">The app runs quietly in the background, so notifications are how you learn what happened while you were away — a calm morning summary when all is well, and a nudge with a one-tap fix when something needs you.</p>
+
+    <!-- in context -->
+    <div class="sec rise" style="animation-delay:.16s">
+      <div class="sec-h">In context · top-right of the screen</div>
+      <div class="context">
+        <div class="mbar">
+          <span class="wk"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="7"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>WakieAI</span>
+          <span>100%</span><span>7:02 AM</span>
+        </div>
+        <div class="drop">
+          <div class="noti ok">
+            <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
+            <div class="nbody">
+              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">now</span></div>
+              <div class="ntitle">Good morning — everything's warm</div>
+              <div class="nmsg"><b>4 sessions</b> refreshed overnight. Next wake at <b>6:55 AM</b>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Delivered when the scheduled wake finishes and all accounts are healthy.</div>
+      </div>
+    </div>
+
+    <!-- states -->
+    <div class="sec rise" style="animation-delay:.22s">
+      <div class="sec-h">Three moments</div>
+      <div class="row">
+
+        <div>
+          <div class="sec-h"><span class="chip ok">ROUTINE</span> the morning payoff</div>
+          <div class="noti ok">
+            <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
+            <div class="nbody">
+              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">7:00 AM</span></div>
+              <div class="ntitle">Good morning — everything's warm</div>
+              <div class="nmsg"><b>4 sessions</b> refreshed overnight. Next wake at <b>6:55 AM</b>.</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec-h"><span class="chip warn">LOW</span> a heads-up with a quick fix</div>
+          <div class="noti warn">
+            <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
+            <div class="nbody">
+              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">2m ago</span></div>
+              <div class="ntitle">Codex is running low</div>
+              <div class="nmsg"><b>12% left</b> this session · resets at <b>4:30 AM</b>.</div>
+              <div class="nact"><button class="nbtn primary">Refresh now</button><button class="nbtn ghost">Later</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec-h"><span class="chip crit">ATTENTION</span> pairs with the menu-bar badge</div>
+          <div class="noti crit">
+            <div class="app-ico"><span class="pip"></span><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
+            <div class="nbody">
+              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">9m ago</span></div>
+              <div class="ntitle">Claude · Personal needs a reconnect</div>
+              <div class="nmsg">The session <b>expired</b> while you were away — reconnect to keep it warm.</div>
+              <div class="nact"><button class="nbtn primary">Reconnect</button><button class="nbtn ghost">Later</button></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="note">
+        <span class="k">◆</span>
+        <div><b>Restraint by design:</b> only the morning summary fires on a routine wake. Low and expired states are the only interruptions, and each ships with a one-tap action so the fix never requires opening the app. Frequency and quiet hours defer to macOS notification settings.</div>
+      </div>
+    </div>
+
+    <div class="foot">WakieAI — notification spec</div>
+  </div>
+</body></html>

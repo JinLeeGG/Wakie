@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WakeyAI — Empty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --t1:#f3f4f7;--t2:#a9aeb8;--t3:#6a7080;
+    --amber:#ffc465;--ok:#5fd39a;--crit:#ff7a85;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Instrument Sans',system-ui,sans-serif;
+    --glass:rgba(22,24,32,.55);
+    --hair:rgba(255,255,255,.09);
+    --hair-2:rgba(255,255,255,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);color:var(--t1);-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    background:
+      radial-gradient(50% 45% at 12% 8%, rgba(56,140,160,.30), transparent 60%),
+      radial-gradient(55% 50% at 92% 18%, rgba(150,110,235,.26), transparent 62%),
+      radial-gradient(60% 55% at 70% 100%, rgba(255,170,70,.18), transparent 60%),
+      radial-gradient(50% 50% at 30% 90%, rgba(60,90,200,.20), transparent 60%),
+      linear-gradient(160deg,#0a0c12,#070810 60%,#05060b);
+    background-attachment:fixed;
+    padding:0 24px 60px;
+  }
+  .menubar{width:100%;height:30px;display:flex;align-items:center;justify-content:flex-end;
+    gap:18px;padding:0 18px;color:rgba(255,255,255,.5);font-size:13px;font-family:var(--mono);margin-bottom:26px}
+  .menubar .active{color:#fff;display:flex;align-items:center;gap:6px}
+  .menubar .active svg{width:14px;height:14px;display:block}
+
+  .win{width:100%;max-width:760px;position:relative;
+    background:var(--glass);
+    -webkit-backdrop-filter:blur(60px) saturate(180%);backdrop-filter:blur(60px) saturate(180%);
+    border:1px solid var(--hair-2);border-radius:22px;overflow:hidden;
+    box-shadow:0 40px 100px -24px rgba(0,0,0,.7),0 8px 30px -10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);
+    animation:win-in .7s cubic-bezier(.2,.85,.2,1) both;}
+  @keyframes win-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+  .win::before{content:"";position:absolute;inset:0 0 auto 0;height:120px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
+
+  header{position:relative;padding:26px 26px 20px;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand .logo{width:20px;height:20px;display:block}
+  .brand .wm{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--amber)}
+  .brand .vtag{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.04em;margin-left:2px;opacity:.7}
+  .device{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--t2);
+    background:rgba(255,255,255,.06);border:1px solid var(--hair);padding:7px 12px;border-radius:999px}
+  .device .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px rgba(95,211,154,.7)}
+  .device b{color:var(--t1);font-weight:500}
+  .device .sep{color:var(--t3)}
+
+  /* ── empty state · a solar system with nothing in orbit yet ── */
+  .empty{position:relative;padding:20px 26px 42px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  /* warm star-glow behind the disc */
+  .empty::before{content:"";position:absolute;top:70px;left:50%;width:560px;height:236px;transform:translateX(-50%);
+    background:radial-gradient(50% 56% at 50% 50%,rgba(255,190,95,.15),rgba(255,150,60,.04) 48%,transparent 72%);
+    pointer-events:none}
+
+  /* ── tilted orrery: elliptical orbits seen at an angle ── */
+  .stage{position:relative;width:540px;height:300px;margin:10px 0 2px;
+    animation:stage-in .9s cubic-bezier(.2,.85,.2,1) both}
+  @keyframes stage-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* orbit ellipses (static, faint HUD glow) */
+  .orbits{position:absolute;inset:0;overflow:visible;filter:drop-shadow(0 0 4px rgba(255,214,150,.18))}
+  .orbits ellipse{fill:none;stroke-width:1}
+  .orbits .live{stroke:rgba(255,224,178,.22)}
+  .orbits .deco{stroke:rgba(255,255,255,.07)}
+
+  /* the WakieAI star at the center */
+  .sun{position:absolute;top:50%;left:50%;width:72px;height:72px;margin:-36px 0 0 -36px;z-index:5;
+    display:grid;place-items:center;animation:sun-in .7s cubic-bezier(.2,.85,.2,1) both .05s}
+  @keyframes sun-in{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+  /* soft warm glow behind the mark — appropriate, not overpowering */
+  .sun .glow{position:absolute;inset:-16px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(255,190,95,.19),transparent 70%);
+    animation:glow 6s ease-in-out infinite}
+  @keyframes glow{0%,100%{opacity:.48;transform:scale(1)}50%{opacity:.72;transform:scale(1.04)}}
+  /* our WakieAI logo mark — minimal effect, just a touch of depth */
+  .sun .mark{position:relative;z-index:1;width:68px;height:68px;display:block;
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,.4)) drop-shadow(0 0 5px rgba(255,190,95,.2));
+    animation:breathe 5s ease-in-out infinite 1s}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+  /* provider planets glide along their ellipse via motion path */
+  .planet{position:absolute;top:0;left:0;width:0;height:0;text-decoration:none;cursor:pointer;
+    offset-rotate:0deg;offset-anchor:50% 50%;
+    animation:glide var(--dur) linear infinite var(--delay), pl-fade .7s ease both .5s}
+  /* offset-distance drives position; z-index steps so a planet slips BEHIND the star at the back */
+  @keyframes glide{
+    0%{offset-distance:0%;z-index:6}
+    12%{z-index:3} 38%{z-index:3}
+    50%{z-index:6}
+    62%{z-index:9} 88%{z-index:9}
+    100%{offset-distance:100%;z-index:6}}
+  @keyframes pl-fade{from{opacity:0}to{opacity:1}}
+  .planet.pA{offset-path:path("M386,150 a116,41 0 1,0 -232,0 a116,41 0 1,0 232,0");--dur:40s;--delay:-6s}
+  .planet.pB{offset-path:path("M440,150 a170,60 0 1,0 -340,0 a170,60 0 1,0 340,0");--dur:58s;--delay:-33s}
+  .planet.pC{offset-path:path("M494,150 a224,79 0 1,0 -448,0 a224,79 0 1,0 448,0");--dur:78s;--delay:-55s}
+
+  /* the round, solid sphere + depth cue (small/dim at back, big/bright at front) */
+  .sphere{position:absolute;top:-20px;left:-20px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+    box-shadow:0 7px 17px -5px rgba(0,0,0,.6),inset 0 2px 3px rgba(255,255,255,.42),inset 0 -8px 12px -5px rgba(0,0,0,.55);
+    animation:depth var(--dur) linear infinite var(--delay)}
+  @keyframes depth{
+    0%{transform:scale(1);filter:brightness(.9)}
+    25%{transform:scale(.82);filter:brightness(.7)}
+    50%{transform:scale(1);filter:brightness(.9)}
+    75%{transform:scale(1.13);filter:brightness(1.12)}
+    100%{transform:scale(1);filter:brightness(.9)}}
+  .sphere img,.sphere svg{width:22px;height:22px;display:block;position:relative;z-index:1;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+  .sphere.claude{background:radial-gradient(circle at 34% 28%,#f4bda3,#d9835f 52%,#8c4632)}
+  .sphere.codex{background:radial-gradient(circle at 34% 28%,#f6f8fb,#c4c9d3 52%,#6a6f78)}
+  .sphere.anti{background:radial-gradient(circle at 34% 28%,#d2ddff,#8ea9f5 52%,#485ec3)}
+  .stage:hover .planet,.stage:hover .sphere{animation-play-state:paused}
+  .planet:hover .sphere{box-shadow:0 10px 26px -6px rgba(0,0,0,.7),0 0 0 3px rgba(255,196,101,.4),
+    inset 0 2px 2px rgba(255,255,255,.45),inset 0 -7px 11px -4px rgba(0,0,0,.5)}
+  .pnm{position:absolute;top:29px;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--t1);
+    background:rgba(10,12,18,.82);padding:2px 8px;border-radius:6px;border:1px solid var(--hair);
+    opacity:0;transition:opacity .16s;pointer-events:none}
+  .planet:hover .pnm{opacity:1}
+
+  .legend{display:flex;align-items:center;gap:9px;margin-bottom:20px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--t3);animation:rise .6s both .52s}
+  .legend .d{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.7}
+
+  .empty h1{margin-top:24px;font-size:30px;font-weight:600;letter-spacing:-.02em;animation:rise .6s both .52s}
+  .empty p{margin-top:13px;font-size:16.5px;color:var(--t2);line-height:1.55;max-width:40ch;text-wrap:balance;animation:rise .6s both .58s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .cta{margin-top:30px;display:flex;align-items:center;gap:10px;
+    padding:16px 30px;border-radius:14px;border:none;cursor:pointer;
+    background:var(--amber);color:#0a0c12;font-family:var(--sans);font-weight:700;font-size:16px;
+    box-shadow:0 8px 24px -10px rgba(255,196,101,.5);transition:transform .12s,box-shadow .15s,filter .15s;
+    animation:rise .6s both .7s}
+  .cta:hover{transform:translateY(-1px);filter:brightness(1.03);box-shadow:0 12px 30px -10px rgba(255,196,101,.6)}
+  .cta:active{transform:translateY(0);transition-duration:.06s}
+  .cta svg{width:18px;height:18px;display:block}
+
+  .hint{margin-top:11px;font-family:var(--mono);font-size:11.5px;color:var(--t3);animation:rise .6s both .76s}
+  .hint kbd{color:var(--t2);background:rgba(255,255,255,.05);border:1px solid var(--hair);
+    border-radius:6px;padding:1px 7px;font-family:var(--mono);font-size:11px}
+
+  @media (prefers-reduced-motion:reduce){
+    .empty *{animation:none !important}
+    .planet{opacity:1}
+    .planet.pA{offset-distance:14%} .planet.pB{offset-distance:60%} .planet.pC{offset-distance:83%}
+  }
+
+  footer{position:relative;display:flex;align-items:center;justify-content:space-between;
+    padding:15px 26px;border-top:1px solid var(--hair);background:rgba(255,255,255,.02)}
+  .foot-hint{font-family:var(--mono);font-size:12px;color:var(--t3)}
+  .foot-hint kbd{color:var(--t2);background:rgba(255,255,255,.05);border:1px solid var(--hair);
+    border-radius:6px;padding:2px 8px;font-family:var(--mono);font-size:11.5px;margin-right:6px}
+  .launch{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--t3);cursor:pointer;user-select:none}
+  .launch:hover{color:var(--t2)}
+  .tog{width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,.12);
+    position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+  .tog.on{background:var(--amber)}
+  .tog::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
+    border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  .tog.on::after{transform:translateX(14px)}
+
+  .caption{margin-top:24px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
+</style>
+</head>
+<body>
+
+  <div class="menubar"><span class="active"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>WakieAI</span><span>100%</span><span>Wed 1:24</span></div>
+
+  <div class="win">
+    <header>
+      <div class="brand"><svg class="logo" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg><span class="wm">WakieAI</span><span class="vtag">1.0.0</span></div>
+      <div class="device"><span class="dot"></span><b>MacBook Air</b><span class="sep">·</span>awake<span class="sep">·</span>ready</div>
+    </header>
+
+    <div class="empty">
+      <div class="stage">
+        <svg class="orbits" viewBox="0 0 540 300">
+          <ellipse class="live" cx="270" cy="150" rx="116" ry="41"/>
+          <ellipse class="live" cx="270" cy="150" rx="170" ry="60"/>
+          <ellipse class="live" cx="270" cy="150" rx="224" ry="79"/>
+        </svg>
+
+        <div class="sun">
+          <div class="glow"></div>
+          <svg class="mark" viewBox="0 0 100 100">
+            <defs><radialGradient id="wcore" cx="38%" cy="30%" r="72%">
+              <stop offset="0%" stop-color="#ffe1a3"/><stop offset="55%" stop-color="#f6b23c"/><stop offset="100%" stop-color="#d1892a"/>
+            </radialGradient></defs>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>
+            <circle cx="50" cy="50" r="22" fill="url(#wcore)"/>
+          </svg>
+        </div>
+
+        <a class="planet pA" href="add-account.html" aria-label="Add Antigravity">
+          <span class="sphere anti"><img src="https://cdn.simpleicons.org/googlegemini/f4f7ff" alt=""></span>
+          <span class="pnm">Antigravity</span></a>
+
+        <a class="planet pB" href="add-account.html" aria-label="Add Claude">
+          <span class="sphere claude"><img src="https://cdn.simpleicons.org/anthropic/ffffff" alt=""></span>
+          <span class="pnm">Claude</span></a>
+
+        <a class="planet pC" href="add-account.html" aria-label="Add Codex">
+          <span class="sphere codex"><svg viewBox="0 0 24 24" fill="#2a2d35" aria-label="Codex"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span>
+          <span class="pnm">Codex</span></a>
+      </div>
+
+      <h1>Nothing in orbit yet</h1>
+      <p>Bring your AI subscriptions in — WakieAI wakes them on time.</p>
+
+      <button class="cta" onclick="location.href='add-account.html'">
+        Add your first account
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#0a0c12" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <footer>
+      <div class="foot-hint"><kbd>⌘N</kbd>Add account</div>
+      <label class="launch" onclick="this.querySelector('.tog').classList.toggle('on')">
+        <div class="tog on"></div>
+        Launch at login
+      </label>
+    </footer>
+  </div>
+
+  <div class="caption">WakieAI — all your AI subscriptions in one dashboard. Click to start a session; the rest runs itself.</div>
+
+</body>
+</html>
