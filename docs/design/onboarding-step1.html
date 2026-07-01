@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --amber:#f6b23c;
+    --amber-dim:rgba(246,178,60,.18);
+    --t1:#f5f6f8;--t2:#aab0ba;--t3:#6a7080;
+    --hair:rgba(255,255,255,.09);--hair2:rgba(255,255,255,.15);
+    --mono:'JetBrains Mono',monospace;--sans:'Instrument Sans',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    display:grid;place-items:center;overflow:hidden;
+    background:
+      radial-gradient(50% 45% at 12% 8%,  rgba(56,140,160,.30),  transparent 60%),
+      radial-gradient(55% 50% at 92% 18%, rgba(150,110,235,.26), transparent 62%),
+      radial-gradient(60% 55% at 70% 100%,rgba(255,170,70,.18),  transparent 60%),
+      radial-gradient(50% 50% at 30% 90%, rgba(60,90,200,.20),   transparent 60%),
+      linear-gradient(160deg,#0a0c12,#070810 60%,#05060b);
+  }
+
+  /* ── window — frosted glass like dashboard ── */
+  .window{
+    position:relative;width:452px;height:684px;border-radius:20px;overflow:hidden;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(22,24,32,.55);
+    -webkit-backdrop-filter:blur(60px) saturate(180%);
+    backdrop-filter:blur(60px) saturate(180%);
+    box-shadow:
+      0 40px 100px -24px rgba(0,0,0,.7),
+      0 8px 30px -10px rgba(0,0,0,.5),
+      inset 0 1px 0 rgba(255,255,255,.14);
+  }
+
+  /* ── layered extras ── */
+  .bg{position:absolute;inset:0;z-index:0}
+  .bg-base{display:none}
+  .bg-neb{display:none}
+
+  /* vignette */
+  .bg-vig{position:absolute;inset:0;
+    background:radial-gradient(ellipse 75% 80% at 50% 46%, transparent 40%, rgba(0,0,2,.75) 100%)}
+
+  /* grain */
+  .bg-grain{position:absolute;inset:0;opacity:.048;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* stars */
+  .stars{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .st{position:absolute;background:#fff;border-radius:50%;animation:tw var(--d,4s) ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.06}50%{opacity:var(--op,.35)}}
+
+  /* bright star — barely visible pinpoint, no flare */
+  .bst{position:absolute;width:1.5px;height:1.5px;border-radius:50%;background:#fff;
+    box-shadow:0 0 2px 1px rgba(255,255,255,.18);
+    animation:tw 8s ease-in-out infinite}
+  .bst::before,.bst::after{display:none}
+
+  /* ── content ── */
+  .stage{
+    position:relative;z-index:3;height:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:20px 36px 64px;
+  }
+
+  /* logo */
+  .logo-wrap{
+    position:relative;width:200px;height:200px;
+    display:grid;place-items:center;
+    margin:0 auto 30px;
+    animation:emerge 1.2s cubic-bezier(.16,1,.3,1) both;
+  }
+  /* corona — perfectly symmetric, no directional drift */
+  .corona{
+    position:absolute;
+    top:50%;left:50%;
+    width:270px;height:270px;
+    margin:-135px 0 0 -135px;
+    border-radius:50%;
+    background:radial-gradient(circle at center,rgba(246,178,60,.03) 0%,transparent 68%);
+    filter:blur(20px);
+    animation:breathe 7s ease-in-out infinite;
+  }
+  .corona-2{display:none}
+  @keyframes breathe{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.65;transform:scale(1.04)}}
+  .logo-svg{
+    width:172px;height:172px;position:relative;z-index:2;
+    filter:drop-shadow(0 0 2px rgba(246,178,60,.10));
+    animation:pulse-logo 7s ease-in-out infinite;
+  }
+  @keyframes pulse-logo{0%,100%{filter:drop-shadow(0 0 2px rgba(246,178,60,.08))}50%{filter:drop-shadow(0 0 5px rgba(246,178,60,.20))}}
+  @keyframes emerge{0%{opacity:0;transform:scale(.55) translateY(10px)}60%{opacity:1}100%{transform:scale(1) translateY(0)}}
+
+  /* title */
+  .title{
+    font-family:var(--mono);font-size:54px;font-weight:700;letter-spacing:-.015em;
+    line-height:1;
+    animation:rise .7s .22s both;
+  }
+  .title .wakie{color:var(--amber)}
+  .title .ai{
+    color:#ffffff;
+    text-shadow:0 0 32px rgba(246,178,60,.3),0 1px 0 rgba(255,255,255,.15);
+  }
+
+  /* tagline */
+  .tagline{
+    font-family:var(--sans);font-size:15px;font-weight:500;
+    color:var(--t2);letter-spacing:.01em;
+    margin-top:12px;line-height:1.4;
+    animation:rise .7s .34s both;
+  }
+
+  .divider{display:none}
+
+  /* buttons */
+  .btns{
+    display:flex;flex-direction:column;gap:9px;
+    width:100%;max-width:336px;
+    margin-top:44px;
+    animation:rise .7s .50s both;
+  }
+  .sso{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:13px 18px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.05);
+    color:var(--t1);font-family:var(--sans);font-size:14px;font-weight:600;
+    cursor:pointer;position:relative;overflow:hidden;
+    transition:background .18s,border-color .18s,transform .14s,box-shadow .18s;
+    letter-spacing:.005em;
+  }
+  .sso::before{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07),transparent 70%);
+    transform:translateX(-140%);transition:transform .55s;
+  }
+  .sso:hover{
+    background:rgba(255,255,255,.09);
+    border-color:rgba(255,255,255,.24);
+    transform:translateY(-1px);
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
+  }
+  .sso:hover::before{transform:translateX(140%)}
+  .sso:active{transform:translateY(0);transition-duration:.06s}
+  .sso svg{width:17px;height:17px;display:block;flex-shrink:0}
+
+  /* note */
+  .note{
+    margin-top:20px;
+    font-family:var(--mono);font-size:10px;
+    color:var(--t3);line-height:1.65;
+    letter-spacing:.02em;
+    animation:rise .7s .64s both;
+  }
+  .note strong{color:rgba(170,176,186,.72);font-weight:500}
+
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+</style></head>
+<body>
+  <div class="window">
+    <!-- background layers -->
+    <div class="bg">
+      <div class="bg-base"></div>
+      <div class="bg-neb"></div>
+      <div class="bg-vig"></div>
+      <div class="bg-grain"></div>
+    </div>
+    <div class="stars" id="stars"></div>
+
+    <!-- content -->
+    <div class="stage">
+      <div class="logo-wrap">
+        <div class="corona"></div>
+        <div class="corona-2"></div>
+        <svg class="logo-svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#ffffff" stroke-width="6"/>
+          <circle cx="50" cy="50" r="22" fill="#f6b23c"/>
+        </svg>
+      </div>
+
+      <div class="title"><span class="wakie">Wakie</span><span class="ai">AI</span></div>
+      <div class="tagline">Wake your AI. Keep it in sync.</div>
+      <div class="divider"></div>
+
+      <div class="btns">
+        <button class="sso" onclick="location.href='onboarding-step2.html'">
+          <svg viewBox="0 0 24 24" fill="#f5f6f8"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.51 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          Continue with Apple
+        </button>
+        <button class="sso" onclick="location.href='onboarding-step2.html'">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="note">We'll detect the AI accounts <strong>already signed in on this Mac</strong>.</div>
+    </div>
+  </div>
+
+  <script>
+    const s = document.getElementById('stars');
+    let h = '';
+    // small stars
+    for (let i = 0; i < 52; i++) {
+      const sz = (Math.random() * 1.3 + 0.4).toFixed(2);
+      const op = (Math.random() * .55 + .25).toFixed(2);
+      h += `<span class="st" style="top:${(Math.random()*100).toFixed(1)}%;left:${(Math.random()*100).toFixed(1)}%;width:${sz}px;height:${sz}px;--d:${(Math.random()*4+2.5).toFixed(1)}s;--op:${op};animation-delay:${(Math.random()*5).toFixed(1)}s"></span>`;
+    }
+    // bright stars with flares
+    [[14,9],[82,7],[28,74],[91,58],[55,20],[6,55]].forEach(([x,y],i)=>{
+      h += `<span class="bst" style="left:${x}%;top:${y}%;animation-delay:${i*1.1}s"></span>`;
+    });
+    s.innerHTML = h;
+  </script>
+</body></html>

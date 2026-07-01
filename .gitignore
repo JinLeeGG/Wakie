@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+*.xcuserdata/
+DerivedData/
+build/
+.build/
+*.swp
+*.log
+__pycache__/
+venv/
+.venv/
+.wakeyai/
