@@ -69,7 +69,7 @@ class _AccountRowState extends State<AccountRow>
           ),
           child: Row(
             children: [
-              SizedBox(width: 224, child: _acct(a)),
+              SizedBox(width: 252, child: _acct(a)),
               const SizedBox(width: 16),
               Expanded(child: _MeterView(a.session)),
               const SizedBox(width: 16),
@@ -107,19 +107,49 @@ class _AccountRowState extends State<AccountRow>
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(a.name,
+          child: _identity(a),
+        ),
+      ],
+    );
+  }
+
+  /// Name + plan tier on the top line, email on its own line below — so the
+  /// (often long) email gets the full column width instead of fighting the
+  /// plan for space. `a.plan` arrives as "email · Plan" (or email-only / "—").
+  Widget _identity(Account a) {
+    final sep = a.plan.lastIndexOf(' · ');
+    final email = sep == -1 ? a.plan : a.plan.substring(0, sep);
+    final plan = sep == -1 ? '' : a.plan.substring(sep + 3);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: Text(a.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: sans(16.5, weight: FontWeight.w600, color: T.t1)),
-              const SizedBox(height: 2),
-              Text(a.plan, style: mono(11.5, color: T.t3)),
-            ],
-          ),
+            ),
+            if (plan.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(plan.toUpperCase(),
+                    style: mono(10.5,
+                        weight: FontWeight.w600,
+                        color: T.amber,
+                        letterSpacing: 0.5)),
+              ),
+          ],
         ),
+        const SizedBox(height: 2),
+        Text(email,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: mono(11.5, color: T.t3)),
       ],
     );
   }

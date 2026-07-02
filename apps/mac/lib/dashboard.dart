@@ -75,34 +75,58 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  void _reload() {
+  void _reload({bool footer = false}) {
     final source = widget.source;
     if (source == null || _loading) return;
     _sub?.cancel();
     setState(() => _loading = true);
+    // watch() emits the account list first (usage still loading), then re-emits
+    // once per account as its live /usage read completes — so emissions after
+    // the first map directly onto real loading progress.
+    var total = 0;
+    var loaded = 0;
+    var first = true;
     _sub = source().listen(
       (accounts) {
         if (!mounted) return;
         setState(() => _accounts
           ..clear()
           ..addAll(accounts));
+        if (!footer) return;
+        if (first) {
+          first = false;
+          total = accounts.length;
+        } else if (total > 0) {
+          loaded++;
+          _footer.progress(loaded / total);
+        }
       },
       onDone: () {
         if (mounted) setState(() => _loading = false);
+        if (footer) _footer.finish('All accounts up to date');
       },
     );
   }
 
-  /// Per-account Update: play the footer progress and, if wired, re-read just
-  /// this account live, swapping the row in when it returns.
+  /// Per-account Update: show the footer bar and, if wired, re-read just this
+  /// account live — the bar completes when the real read returns, swapping the
+  /// row in. (Mock mode has no real read, so it finishes on a short delay.)
   void _update(Account a) {
-    _footer.runUpdate(a.name);
+    _footer.start('Refreshing ${a.name}…');
     final updater = widget.onUpdateAccount;
-    if (updater == null) return; // mock mode — animation only
+    if (updater == null) {
+      Future.delayed(const Duration(milliseconds: 1600), () {
+        if (mounted) _footer.finish('${a.name} refreshed');
+      });
+      return;
+    }
     updater(a).then((fresh) {
-      if (!mounted || fresh == null) return;
-      final i = _accounts.indexWhere((x) => x.id == a.id);
-      if (i != -1) setState(() => _accounts[i] = fresh);
+      if (!mounted) return;
+      if (fresh != null) {
+        final i = _accounts.indexWhere((x) => x.id == a.id);
+        if (i != -1) setState(() => _accounts[i] = fresh);
+      }
+      _footer.finish('${a.name} refreshed');
     });
   }
 
@@ -121,14 +145,17 @@ class _DashboardScreenState extends State<DashboardScreen>
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // The dashboard is designed on a fixed 900x640 canvas and scaled
-          // up to fill the (larger) window, so type + spacing grow uniformly.
-          // Positioned.fill forces tight constraints so FittedBox scales UP.
+          // The dashboard is designed on a fixed 1000x640 canvas and scaled
+          // up to fill the window, so type + spacing grow uniformly.
+          // BoxFit.contain keeps the scale UNIFORM (never stretches type) — the
+          // window is sized to this exact aspect in MainFlutterWindow.swift, so
+          // it fills edge-to-edge; any residual mismatch shows a hairline margin
+          // instead of squishing the text. Must match designWidth/designHeight.
           Positioned.fill(
             child: FittedBox(
-              fit: BoxFit.fill,
+              fit: BoxFit.contain,
               child: SizedBox(
-                width: 900,
+                width: 1000,
                 height: 640,
                 child: AnimatedBuilder(
             animation: _winIn,
@@ -217,8 +244,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               DashboardFooter(
                 controller: _footer,
                 onRefreshAll: () {
-                  _footer.runRefreshAll();
-                  _reload();
+                  _footer.start('Refreshing accounts…');
+                  _reload(footer: true);
                 },
                 onAddAccount: () {},
               ),
@@ -260,7 +287,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           TextSpan(
                             text: 'AI',
                             style: mono(13,
-                                weight: FontWeight.w600, color: T.amber),
+                                weight: FontWeight.w600, color: T.t1),
                           ),
                         ]),
                       ),
@@ -359,7 +386,7 @@ class _ColHead extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 4, 28, 6),
       child: Row(
         children: [
-          SizedBox(width: 224, child: label('Account')),
+          SizedBox(width: 252, child: label('Account')),
           const SizedBox(width: 16),
           Expanded(child: label('Session · 5h')),
           const SizedBox(width: 16),
@@ -369,7 +396,9 @@ class _ColHead extends StatelessWidget {
               width: 62,
               child: label('Last', align: TextAlign.right)),
           const SizedBox(width: 16),
-          const SizedBox(width: 190),
+          SizedBox(
+              width: 190,
+              child: label('Status', align: TextAlign.right)),
         ],
       ),
     );

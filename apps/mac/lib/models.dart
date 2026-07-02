@@ -44,7 +44,7 @@ class Account {
   final String id;
   final Provider provider;
   final String name;
-  final String plan; // e.g. "claude · pro"
+  final String plan; // subtitle, e.g. "name@gmail.com · Pro"
   final Meter session;
   final Meter weekly;
   final String last;
@@ -67,63 +67,63 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.claude,
     name: 'Claude · Personal',
-    plan: 'claude · pro',
+    plan: 'korus.exe@gmail.com · Pro',
     session: Meter(12, Tone.crit, '4:30 AM'),
-    weekly: Meter(34, Tone.warn, 'Jul 7'),
+    weekly: Meter(34, Tone.warn, 'Jul 7 (5:00pm)'),
     last: '2h ago',
     status: RunStatus.low,
   ),
   Account(
     provider: Provider.claude,
     name: 'Claude · Work',
-    plan: 'claude · max',
+    plan: 'korus.work@gmail.com · Max',
     session: Meter(88, Tone.ok, '9:15 AM'),
-    weekly: Meter(92, Tone.ok, 'Jul 7'),
+    weekly: Meter(92, Tone.ok, 'Jul 7 (9:15am)'),
     last: '6h ago',
     status: RunStatus.ok,
   ),
   Account(
     provider: Provider.codex,
     name: 'Codex · main',
-    plan: 'chatgpt · plus',
+    plan: 'korus.exe@gmail.com · Plus',
     session: Meter(100, Tone.ok, '1:20 PM'),
-    weekly: Meter(59, Tone.ok, 'Jul 6'),
+    weekly: Meter(59, Tone.ok, 'Jul 6 (2:00pm)'),
     last: '5m ago',
     status: RunStatus.fresh,
   ),
   Account(
     provider: Provider.anti,
     name: 'Antigravity · main',
-    plan: 'gemini · plan',
+    plan: 'korus.exe@gmail.com',
     session: Meter(45, Tone.warn, '11:55 AM'),
-    weekly: Meter(38, Tone.warn, 'Jul 7'),
+    weekly: Meter(38, Tone.warn, 'Jul 7 (11:00am)'),
     last: '1h ago',
     status: RunStatus.ok,
   ),
   Account(
     provider: Provider.codex,
     name: 'Codex · work',
-    plan: 'chatgpt · pro',
+    plan: 'korus.work@gmail.com · Pro',
     session: Meter(76, Tone.ok, '2:05 PM'),
-    weekly: Meter(64, Tone.ok, 'Jul 6'),
+    weekly: Meter(64, Tone.ok, 'Jul 6 (6:30pm)'),
     last: '18m ago',
     status: RunStatus.fresh,
   ),
   Account(
     provider: Provider.claude,
     name: 'Claude · side',
-    plan: 'claude · pro',
+    plan: 'korus.side@gmail.com · Pro',
     session: Meter(41, Tone.warn, '3:40 PM'),
-    weekly: Meter(70, Tone.ok, 'Jul 8'),
+    weekly: Meter(70, Tone.ok, 'Jul 8 (8:00am)'),
     last: '40m ago',
     status: RunStatus.ok,
   ),
   Account(
     provider: Provider.anti,
     name: 'Antigravity · test',
-    plan: 'gemini · plan',
+    plan: 'korus.test@gmail.com',
     session: Meter(82, Tone.ok, '5:10 PM'),
-    weekly: Meter(55, Tone.ok, 'Jul 7'),
+    weekly: Meter(55, Tone.ok, 'Jul 7 (3:00pm)'),
     last: '1h ago',
     status: RunStatus.ok,
   ),
