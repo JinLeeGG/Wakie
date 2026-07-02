@@ -67,11 +67,11 @@
 
 ## Phase 0 완료 정의 (Definition of Done)
 
-- [ ] `packages/core`에 `ProviderAdapter` + 3개 어댑터 구현.
-- [ ] 스크랩 파서 골든테스트 3종 통과 (PRD §14, M1 ≥ 99%).
-- [ ] 멀티계정 env 격리 계약 테스트 통과.
-- [ ] 대시보드가 목데이터가 아닌 **실 로그인 계정**을 정확 표시.
-- [ ] `dart analyze` / `flutter test` 그린.
+- [x] `packages/core`에 `ProviderAdapter` + 3개 어댑터 구현. (Claude·Codex·Antigravity)
+- [x] 스크랩 파서 골든테스트 3종 통과 (PRD §14, M1 ≥ 99%). (claude/codex/antigravity 파서 골든)
+- [x] 멀티계정 env 격리 계약 테스트 통과. (CLAUDE_CONFIG_DIR·CODEX_HOME·HOME)
+- [x] 대시보드가 목데이터가 아닌 **실 로그인 계정**을 정확 표시. (Claude·Codex GUI 확증; Antigravity는 Engine 배선+CLI 스모크 확증, 패키지드 `.app` GUI 재확인은 후속)
+- [x] `dart analyze` / `flutter test` 그린. (core 32 · app 6, 양쪽 analyze 클린)
 
 ## 범위 밖 (Phase 1 이후)
 
@@ -93,6 +93,13 @@
   - **구현:** 순수 파서 `parseCodexRateLimits`(JSON→`ProviderStatus`) + 라이브 seam `readCodexRateLimits`(app-server 구동, 주입형) + `CodexAdapter`(detect=`codex login status`, `envFor`=`CODEX_HOME`). 골든 픽스처 `test/fixtures/codex_rate_limits.json`. Engine에 Codex 어댑터 배선 → 대시보드 자동 표시. 테스트: core 25 · app 6 그린.
   - **⚠️ 발견:** ① `codex login status`는 로그인 메시지를 **stderr**로 출력(stdout 빈값) → detect가 두 스트림 합쳐 판정. ② **Q4 해결:** Codex `resetsAt`가 epoch 정수라 `UsageWindow`에 nullable `resetAt`(DateTime) 필드 추가(Claude 경로는 `resetLabel` 문자열 그대로 유지). Engine이 세션창→시각·주간창→날짜로 포맷.
   - **Antigravity는 여전히 후속 과제:** `agy`(1.0.14)엔 usage/status/account/app-server/mcp 서브커맨드가 **전무**(모르는 서브커맨드=top-level help). 사용량은 대화형 TUI `/usage`에만 있음 → PRD 🟠 유지. 착수 시: agy TUI 스크랩(alt-screen 처리) 또는 config 파일 탐색으로 detect부터.
+
+- **S7 완료(Antigravity) — 네이티브 pty로 `/usage` TUI 스크랩 (2026-07-02). Phase 0 3어댑터 완성.** 후속 과제였던 Antigravity 착수. 조사 결과: `agy`엔 구조화 usage 표면이 **정말로 없음** — `-p`(print) 모드의 `/usage`는 클라이언트 슬래시커맨드가 아니라 **LLM 프롬프트로 오인식**(usage 가이드 문서를 생성), `bin/agentapi`는 conversation 전용, config/캐시엔 quota 없음. 유일한 구조화 소스는 auth 토큰 재사용이 필요한 서버 API뿐 → **R0 위반이라 배제**. 남은 경로는 TUI `/usage` 스크랩.
+  - **⚠️ 핵심 블로커 = pty 크기:** `agy`는 Claude와 달리 **진짜 크기 있는 인터랙티브 터미널**이 아니면 부팅 직후 alt-screen(`?1049h→l`)을 닫고 TUI를 끔. 기존 Claude용 `script`(0×0 pty) 하네스로는 실패. **해결:** `dart:ffi`로 `openpty`(40×120 winsize) 할당 후 **`posix_spawnp`**(+`POSIX_SPAWN_SETSID`)로 `agy` 구동 — Dart VM을 `fork()`하지 않아 멀티스레드 fork 데드락 회피. 정상 렌더 시엔 alt-screen을 안 쓰고 상대커서+erase만 써서 **기존 `vt.dart` 그대로 재사용**(VT 변경 0). **외부 의존성 0**(package:ffi도 안 씀, libSystem 심볼 직접 lookup).
+  - **⚠️ FFI 함정 2건(실측 디버깅):** ① **`fcntl`은 가변인자** → arm64에서 고정 시그니처로 선언하면 3번째 인자(O_NONBLOCK)가 유실돼 blocking read로 **영구 hang**. `VarArgs<(Int32,)>`로 선언해 해결. ② `_promptReady`를 배너 "Antigravity CLI"에 매칭하면 **로그인 완료 전**에 `/usage`를 보내 유실 → 실제 준비 신호 "for shortcuts"를 대기하도록 교정.
+  - **데이터 모델 매핑:** `agy /usage`는 **2그룹(GEMINI / CLAUDE·GPT) × 2창(Weekly/Five-Hour)** = 4미터. session/weekly 2창 모델엔 창별로 **가장 여유 없는(remaining 최소) 그룹**을 취함 — 잔량을 과대표시하지 않는 정직한 단일 수치. 리셋은 절대시각이 아니라 상대("Refreshes in 4h 25m") → `resetLabel` 문자열로 보존(파서 순수성/골든 결정성 유지).
+  - **구현:** 순수 파서 `parseAntigravityUsage`(스크린텍스트→`ProviderStatus`, 최소-잔량 축약) + FFI 캡처 seam `captureAntigravityUsagePanel`(주입형) + `AntigravityAdapter`(detect=`agy --version` + `~/.gemini/oauth_creds.json` **존재만** 확인·토큰 미독취, detail=`google_accounts.json`의 `active` 이메일, `envFor`=`HOME` 샌드박스). 골든 픽스처 `test/fixtures/antigravity_usage.txt`. Engine 배선 → 3어댑터. 테스트: core 32 · app 6 그린.
+  - **라이브 검증:** `detect: ok(gjlee99211@gmail.com) 88ms · readStatus 2.6s · session 2% used(4h 25m) · weekly 1% used(124h 57m)`(=가장 여유 없는 Gemini 그룹). dispose(SIGTERM)로 프로세스 누수 0 확인. TUI 개편 취약성은 스크랩 특성상 불가피(Claude와 동일 리스크).
 
 ## 남은 오픈 질문
 
