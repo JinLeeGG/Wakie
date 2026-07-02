@@ -24,6 +24,27 @@ class _StubAdapter implements ProviderAdapter {
       RunOutcome(ok: true, startedAt: DateTime(2026));
 }
 
+/// Adapter stub whose detect() answer depends on the account probed —
+/// for identity-drift tests where ambient and isolated logins differ (or
+/// collide).
+class _PerAccountAdapter implements ProviderAdapter {
+  final Preflight Function(Account) answer;
+  final Map<String, String> Function(Account)? env;
+  _PerAccountAdapter(this.answer, {this.env});
+
+  @override
+  String get id => 'stub';
+  @override
+  Map<String, String> envFor(Account a) => env?.call(a) ?? const {};
+  @override
+  Future<Preflight> detect(Account a) async => answer(a);
+  @override
+  Future<ProviderStatus> readStatus(Account a) async => ProviderStatus.unknown;
+  @override
+  Future<RunOutcome> startSession(Account a, {String? model}) async =>
+      RunOutcome(ok: true, startedAt: DateTime(2026));
+}
+
 void main() {
   test('discovers only logged-in providers as ambient default accounts', () async {
     final claude = _StubAdapter(const Preflight(PreflightState.ok));
@@ -85,6 +106,64 @@ void main() {
       expect(extra.label, 'work');
     });
 
+    test('drops the ambient default when it drifts onto an extra\'s identity',
+        () async {
+      // The user re-logged the terminal's ambient claude into the same
+      // account that already exists as an isolated extra: one identity,
+      // two logins. Only the stable extra should survive.
+      final claude = _PerAccountAdapter((a) => const Preflight(
+          PreflightState.ok, email: 'me@gmail.com', plan: 'pro'));
+      final store = Store.memory()
+        ..addExtraAccount(ExtraAccount(
+          id: 'claude-personal',
+          provider: Provider.claude,
+          label: 'personal',
+          configHome: '/tmp/wakieai-claude-personal',
+          addedAt: DateTime(2026),
+        ));
+
+      final live =
+          await discoverLiveAccounts({Provider.claude: claude}, store);
+
+      expect(live.map((e) => e.$1.id), ['claude-personal']);
+    });
+
+    test('keeps the ambient default when identities differ or are unknown',
+        () async {
+      final claude = _PerAccountAdapter((a) => Preflight(PreflightState.ok,
+          email: a.configHome == null ? 'work@corp.com' : 'me@gmail.com'));
+      final anti = _PerAccountAdapter(
+          (a) => const Preflight(PreflightState.ok)); // email unknown
+      final store = Store.memory()
+        ..addExtraAccount(ExtraAccount(
+          id: 'claude-personal',
+          provider: Provider.claude,
+          label: 'personal',
+          configHome: '/tmp/wakieai-claude-personal',
+          addedAt: DateTime(2026),
+        ))
+        ..addExtraAccount(ExtraAccount(
+          id: 'antigravity-extra',
+          provider: Provider.antigravity,
+          label: 'extra',
+          configHome: '/tmp/wakieai-agy-extra',
+          addedAt: DateTime(2026),
+        ));
+
+      final live = await discoverLiveAccounts(
+          {Provider.claude: claude, Provider.antigravity: anti}, store);
+
+      // Different emails → both claude rows; null emails → never deduped.
+      expect(
+          live.map((e) => e.$1.id),
+          containsAll([
+            'claude-default',
+            'claude-personal',
+            'antigravity-default',
+            'antigravity-extra',
+          ]));
+    });
+
     test('includePendingExtras surfaces a not-yet-signed-in extra account',
         () async {
       final claude = _StubAdapter(const Preflight(PreflightState.notLoggedIn));
@@ -126,6 +205,36 @@ void main() {
           await discoverLiveAccounts({Provider.claude: claude}, store);
 
       expect(live.map((e) => e.$1.id), ['claude-default']);
+    });
+  });
+
+  group('terminalCommandFor', () {
+    Account acct(Provider p, String? home) => Account(
+          id: 'x',
+          provider: p,
+          label: 'x',
+          configHome: home,
+          deviceId: 'local',
+          addedAt: DateTime(2026),
+        );
+
+    test('isolated account → adapter env prefix + provider binary', () {
+      final adapter = _PerAccountAdapter(
+          (_) => const Preflight(PreflightState.ok),
+          env: (a) => {'CLAUDE_CONFIG_DIR': a.configHome!});
+
+      expect(terminalCommandFor(adapter, acct(Provider.claude, '/tmp/c1')),
+          'CLAUDE_CONFIG_DIR="/tmp/c1" claude');
+    });
+
+    test('ambient account → bare binary per provider', () {
+      final adapter =
+          _PerAccountAdapter((_) => const Preflight(PreflightState.ok));
+
+      expect(terminalCommandFor(adapter, acct(Provider.claude, null)), 'claude');
+      expect(terminalCommandFor(adapter, acct(Provider.codex, null)), 'codex');
+      expect(
+          terminalCommandFor(adapter, acct(Provider.antigravity, null)), 'agy');
     });
   });
 }
