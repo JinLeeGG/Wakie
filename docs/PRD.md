@@ -2,13 +2,14 @@
 
 | | |
 | --- | --- |
-| **Status** | Draft v1.2 (production, engineering-focused) |
+| **Status** | Draft v1.4 (production, engineering-focused) |
 | **Owner** | John (korus.exe@gmail.com) |
-| **Last updated** | 2026-07-01 |
+| **Last updated** | 2026-07-02 |
 | **Audience** | Engineering 실행 중심 · 인디/개인 제품 · 소규모 시작→성장 대비 |
 | **Related** | [CLAUDE.md](../CLAUDE.md) |
 
 ### Changelog
+- **v1.4 (2026-07-02)** — 계획 리뷰 반영. **D1 확정:** 세션 시작 = 리셋 시각 자동 체이닝(token maxxing), Update/Refresh = 읽기 전용, 절전 기상 = 다음 리셋들+아침 앵커(§6·§7·§15). **D-SANDBOX 확정:** 앱스토어 불가 → Developer ID DMG(§16). **O2 확정:** 사용 80%·리셋 10분 전(§7.4). 어댑터 서술을 실구현으로 정정(Codex=app-server JSON-RPC, agy=네이티브 pty, 기본 계정=Keychain 앰비언트). FR-OB-01(소셜 로그인)→Phase 2. §15에 Phase 1 실행 순서 추가.
 - **v1.3 (2026-07-01)** — ToS/약관 리스크를 §17 **R0(최우선)**로 격상: 프로바이더별 신호등(Claude🟢/Codex🟡/agy🟠), "공식 바이너리·토큰 미추출" 아키텍처 불변식, 포지셔닝·빈도·kill-switch 완화책, 근거 출처.
 - **v1.2 (2026-07-01)** — 브랜드/디자인 확정: 이름 **WakieAI**, 오빗 로고(네이비+앰버), 다크 글래스 대시보드, Update/Refresh 액션 정의(§9.4).
 - **v1.1 (2026-07-01)** — 결정 패스 반영: 가치 재정의(멀티계정 효율 오케스트레이션), 멀티계정=핵심 단위(4↓3종 검증), Mac 메뉴바 앱 우선(폰 Phase 2), 절전 기상 MVP, Supabase 릴레이(Phase 2), 알림 전략.
@@ -100,20 +101,20 @@ Phase 2:    [iPhone 앱] ◀── Supabase 릴레이 ──▶ [Mac 앱]   (명
 
 | 우선 | 범위 |
 | --- | --- |
-| **Must (MVP=Mac 앱)** | 멀티계정 자동 감지·순회 · `/usage` 상태 읽기 · **메뉴바 대시보드** · 절전 기상(로그인된 절전) · 세션 시작(온디맨드) · 알림(전부 on/커스텀) · Claude/Codex/Antigravity |
+| **Must (MVP=Mac 앱)** | 멀티계정 자동 감지·순회 · `/usage` 상태 읽기 · **메뉴바 대시보드** · 절전 기상(로그인된 절전) · **세션 자동 시작(리셋 체이닝 = token maxxing)** · 알림(전부 on/커스텀) · Claude/Codex/Antigravity |
 | **Should** | 스케줄 기반 세션 시작 · 계정 추가 UX · 실패 상태 UX · 임계값 튜닝 |
 | **Could (Phase 2)** | Supabase 릴레이 · **iPhone 앱**(원격 대시보드/제어) · 폰 푸시 알림 |
-| **Won't (now)** | Grok(주간 풀·CLI 상태 미노출) · 다기기 러너 · 완전 로그아웃(root 데몬) · 팀/조직 · **세션 시작 상세 UX 플로우(다음 결정)** |
+| **Won't (now)** | Grok(주간 풀·CLI 상태 미노출) · 다기기 러너 · 완전 로그아웃(root 데몬) · 팀/조직 · WakieAI 소셜 로그인(→Phase 2) |
 
 ---
 
 ## 6. 사용자 여정
 
-1. **온보딩("앱 2개"):** ① Mac에 WakieAI 앱 설치 → 열기 → WakieAI 소셜 로그인 → **기존 AI 로그인 자동 감지·등록** → (Phase 2) ② iPhone 앱 설치 → 같은 계정 로그인 → 대시보드.
+1. **온보딩:** ① Mac에 WakieAI 앱 설치 → 열기 → **기존 AI 로그인 자동 감지·등록**(로그인 절차 없음). (Phase 2) ② iPhone 앱 설치 → 소셜 로그인·페어링 → 원격 대시보드.
 2. **계정 추가:** Mac 앱에서 [계정 추가] → 프로바이더·라벨 → **기기에서 로그인**(새 config 홈) → 등록.
 3. **관제(핵심):** 대시보드가 모든 계정의 세션/주간 %+리셋을 표시 → "거의 소진/방금 리셋" 알림 → 유저가 어느 계정 쓸지 판단.
-4. **세션 시작:** 대시보드에서 계정 선택 → 지금 시작(온디맨드). (예약/자동 시작 플로우 = 다음 결정.)
-5. **절전 자동:** Mac이 예약 기상(다크 웨이크) → 상태 갱신/예약 세션 → 다시 절전.
+4. **세션 자동 시작(token maxxing):** 각 계정의 **리셋 시각 도달 시** 엔진이 최저가 모델 프롬프트 1개로 새 창을 엶(리셋당 1회, 계정별 토글). 수동 Update/Refresh는 상태만 갱신.
+5. **절전 자동:** **다음 리셋 시각들 + 아침 앵커 시각**에 예약 기상(다크 웨이크) → 자동 시작/상태 갱신 → 다시 절전. 창이 하나도 안 열려 있으면 아침 앵커가 체인을 시동.
 
 ---
 
@@ -126,7 +127,7 @@ Phase 2:    [iPhone 앱] ◀── Supabase 릴레이 ──▶ [Mac 앱]   (명
 | --- | --- | --- | --- |
 | FR-UI-01 | M | 메뉴바 아이콘 + 상태 요약(도는지/에러/로그인) | 아이콘으로 러너 상태 즉시 식별 |
 | FR-UI-02 | M | 계정별 카드(세션%·리셋, 주간%·리셋, 마지막 결과) | 각 계정 최신 상태 표시; 데이터 없으면 "알 수 없음" |
-| FR-UI-03 | M | 계정별 **Update**(세션 시작+상태 갱신) · 전역 **Refresh all**(상태만) | Update=프롬프트로 새 세션 시작 + 그 계정 상태 갱신; Refresh all=세션 시작 없이 전 계정 상태만 갱신 |
+| FR-UI-03 | M | 계정별 **Update**(그 계정 상태 갱신) · 전역 **Refresh all**(전 계정 상태 갱신) — **둘 다 읽기 전용** | 어떤 버튼도 세션을 시작하지 않음(쿼터 0); 세션 시작은 FR-RN-04 자동 체이닝 전용 |
 | FR-UI-04 | S | 계정 추가/제거, 라벨 편집 | 추가 시 기기 로그인 유도→등록 |
 | FR-UI-05 | M | 권한 안내(pmset admin 등) GUI | 최초 1회 admin 요청을 GUI로 |
 
@@ -136,8 +137,8 @@ Phase 2:    [iPhone 앱] ◀── Supabase 릴레이 ──▶ [Mac 앱]   (명
 | FR-RN-01 | M | **멀티계정 자동 감지** | 기본 홈(`~/.claude`,`~/.codex`,`~/.gemini`) 로그인 감지→계정 등록 |
 | FR-RN-02 | M | **계정 백그라운드 순회** | 계정마다 env(`CLAUDE_CONFIG_DIR`/`CODEX_HOME`/`HOME`) 설정 후 CLI 실행, 무개입 |
 | FR-RN-03 | M | 상태 읽기(어댑터) | 프로바이더별 TUI 슬래시 pty 스크랩 → 세션·주간 %+리셋 파싱 |
-| FR-RN-04 | M | 세션 시작(어댑터) | 최저가 모델+최소 프롬프트, 성공/실패·타임스탬프 |
-| FR-RN-05 | M | 절전 기상 | `pmset` 타이머 + LaunchAgent 헬퍼가 **다크 웨이크**에 실행, `caffeinate` 유지 |
+| FR-RN-04 | M | **세션 자동 시작(리셋 체이닝)** | 계정별 리셋 시각 도달 시 최저가 모델+최소 프롬프트 1개로 새 창(**리셋당 1회**); 계정별 토글(권장 기본: Claude on·Codex off — R0 🟡); 성공/실패·타임스탬프 기록 |
+| FR-RN-05 | M | 절전 기상 | `pmset` 타이머 + LaunchAgent 헬퍼가 **다크 웨이크**에 실행, `caffeinate` 유지; 기상 스케줄 = **다음 리셋 시각들 + 아침 앵커**(파생) |
 | FR-RN-06 | M | 로그인된 절전 커버 | 로그인 세션 유지 상태에서 기상·작업(화면 잠금 무관); 키체인 unlock 유지 전제 |
 | FR-RN-07 | M | 로컬 상태 저장 | 계정별 상태를 로컬 store에 기록(Phase 2에서 릴레이 push) |
 | FR-RN-08 | M | 로컬 전용 경계 | 자격증명·프롬프트·응답을 앱 밖으로 내보내지 않음 |
@@ -146,23 +147,23 @@ Phase 2:    [iPhone 앱] ◀── Supabase 릴레이 ──▶ [Mac 앱]   (명
 | ID | Pri | 요구 | AC |
 | --- | --- | --- | --- |
 | FR-PA-01 | M | Claude | `claude -p` 시작; `/usage`+`/stats`; 멀티계정 `CLAUDE_CONFIG_DIR` |
-| FR-PA-02 | M | Codex | 번들 `codex exec`; `/status`+`/usage daily`; `CODEX_HOME`/`--profile`; 최소버전 체크 |
-| FR-PA-03 | M | Antigravity | `agy -p`; `/usage`(주간·5h); 멀티계정 `HOME` 샌드박스; 첫실행 온보딩 감지 |
+| FR-PA-02 | M | Codex | 시작=`codex exec`; 상태=**`codex app-server` JSON-RPC**(`account/rateLimits/read`·`account/read` — 스크랩 불필요, 구조화 JSON); detect=`login status`; `CODEX_HOME`; 최소버전 체크 |
+| FR-PA-03 | M | Antigravity | 시작=`agy -p`; 상태=**네이티브 pty**(openpty+posix_spawnp) TUI `/usage` 스크랩(`-p`는 `/usage`를 LLM 프롬프트로 오인식); detect=`--version`+`oauth_creds.json` **존재만** 확인(토큰 미독취); `HOME` 샌드박스 |
 
 ### 7.4 알림 (FR-NT)
 | ID | Pri | 요구 | AC |
 | --- | --- | --- | --- |
 | FR-NT-01 | M | **기본 전부 on** | 리셋 임박/완료·거의 소진·막힘 해제 등 기본 활성 |
 | FR-NT-02 | M | 계정별·유형별 커스텀 on/off | 설정에서 개별 토글 |
-| FR-NT-03 | M | 임계값 조정 | "거의 소진" 임계(기본 80% 등) 사용자 조정 |
-| FR-NT-04 | M | 그룹핑(스팸 방지) | 동시 다발 시 묶어서 1개 |
+| FR-NT-03 | M | 임계값 | **확정(O2, 2026-07-02): 사용 80% · 리셋 10분 전** — 하드코드 우선, 조정 UI는 실사용 후 |
+| FR-NT-04 | C | 그룹핑(스팸 방지) | 계정 수 개 규모에선 연기; 실사용에서 시끄러워지면 도입 |
 | FR-NT-05 | M | 실패 알림 항상 on | 러너 오류/로그인 만료 = 상태변화당 1회 |
 | FR-NT-06 | M | 채널 | Phase 0-1: Mac 알림 / Phase 2: 폰 푸시 |
 
 ### 7.5 온보딩/프리플라이트 (FR-OB)
 | ID | Pri | 요구 | AC |
 | --- | --- | --- | --- |
-| FR-OB-01 | M | WakieAI 계정 = 소셜 로그인(Apple/Google) | 최초 1회, 비번 관리 없음 |
+| FR-OB-01 | C | WakieAI 계정 = 소셜 로그인(Apple/Google) | **Phase 2로 이동** — 릴레이 페어링용. 로컬 단독 Phase 0-1엔 불필요(설치 즉시 사용) |
 | FR-OB-02 | M | CLI 감지(설치/버전/로그인) | 프로바이더별 `ok/not_installed/not_logged_in/outdated/needs_onboarding` |
 | FR-OB-03 | M | 결핍 안내 | 설치/로그인/업데이트 액션(데스크톱에서 수행) |
 | FR-OB-04 | C | 자동 로그인 권장 안내 | 완전 로그아웃 엣지 대비 설정 가이드 |
@@ -186,7 +187,7 @@ Phase 2:    [iPhone 앱] ◀── Supabase 릴레이 ──▶ [Mac 앱]   (명
 | NFR-06 | 관측성 | 구조화 로그, 스크랩 성공/실패 카운터, 계정별 상태 히스토리. |
 | NFR-07 | 비용 | 상태 읽기=스크랩(쿼터 0). 세션 시작만 소량→최저가 모델. |
 | NFR-08 | 업데이트/회귀 | CLI 최소버전 핀 + 스크랩 파서 골든테스트(NFR 회귀 방지). |
-| NFR-09 | i18n/접근성 | **기본 언어 = 영어(en)**, 한국어(ko) 로케일 지원. 모든 UI 문자열 **외부화**(하드코딩 금지). 동적 타입·대비 준수. |
+| NFR-09 | i18n/접근성 | MVP = **영어 단일**(문자열 외부화·ko 로케일은 Phase 3로 연기 — 1인 MVP 속도 우선). 동적 타입·대비 준수. |
 
 ---
 
@@ -211,6 +212,7 @@ for 각 계정:  env(CLAUDE_CONFIG_DIR/CODEX_HOME/HOME) 설정
              → claude -p / codex exec / agy -p (비대화)
              → /usage·/status pty 스크랩 → 상태 파싱 → 저장
 ```
+> **기본 계정 = 앰비언트(2026-07-01 실측):** 기본 계정 자격증명은 macOS **Keychain**에 있어 `CLAUDE_CONFIG_DIR`를 지정하면 파일 네임스페이스로 전환돼 로그인이 풀림 → 기본 계정은 **env 오버라이드 없이** 실행(`Account.configHome=null`), **추가 계정만** config 홈으로 격리.
 
 ---
 
@@ -219,7 +221,7 @@ for 각 계정:  env(CLAUDE_CONFIG_DIR/CODEX_HOME/HOME) 설정
 - **로고:** "오빗(orbit)" 마크 — 네이비 필드 + 흰 궤도 링 + **앰버 코어**(깨어난 태양/별). protostar에서 유래, 대칭·큰 코어·풀프레임. 단색·앱아이콘(네이비 타일) 대응. 에셋: `docs/design/`.
 - **미감:** 다크 프로스티드 글래스(Cluely 계열) — 반투명 플로팅 패널, 얇은 헤어라인, **탭ular 모노 숫자**, 앰버 단일 액센트 + 의미색(초록/앰버/레드).
 - **메인 화면:** 메뉴바 아이콘 → 클릭 시 **전체 창(대시보드)**. 계정 카드 목록(세션·주간 %+리셋, 상태 pill, 실제 프로바이더 로고). 참고 목업: `docs/design/dashboard-mockup.html`.
-- **핵심 액션:** 계정별 **Update**(세션 시작+상태 갱신) · 전역 **Refresh all**(상태만) · **Add account**.
+- **핵심 액션:** 계정별 **Update** · 전역 **Refresh all**(둘 다 **상태만, 읽기 전용**) · **Add account**. 세션 시작은 엔진 자동 체이닝(FR-RN-04) 전용 — 버튼 없음.
 
 ## 10. 데이터 모델 & 계약
 
@@ -228,7 +230,8 @@ for 각 계정:  env(CLAUDE_CONFIG_DIR/CODEX_HOME/HOME) 설정
 Account { id, provider, label, configHome, deviceId, addedAt }
 Status  { accountId, sessionPct?, sessionResetAt?, weeklyPct?, weeklyResetAt?,
           lastStartedAt?, lastOutcome, lastCheckedAt }
-Schedule{ enabled, intervalHours(3..8), anchorHour, anchorMinute }
+Schedule{ morningAnchorHour, morningAnchorMinute, autoStart{accountId: on/off} }
+          // 기상 시각 = 다음 리셋 시각들 + 아침 앵커 (별도 인터벌 설정 없음 — 파생)
 AlertPrefs { perAccount/type on/off, thresholds{ nearLimitPct=80, ... } }
 ```
 - **핵심 단위 = Account**(멀티계정). Status는 accountId 키. deviceId는 1대여도 유지(N대 성장 대비).
@@ -270,8 +273,8 @@ abstract class ProviderAdapter {
 | 프로바이더 (CLI) | 세션 시작 | 사용량/리셋 | 멀티계정 | 인증 | 종합 |
 | --- | --- | --- | --- | --- | --- |
 | Claude (`claude`) | ✅ `-p` | ✅ `/usage`+`/stats` | ✅ `CLAUDE_CONFIG_DIR` | claude.ai | 🟢 |
-| Codex (`codex`, 번들) | ✅ `exec` | ✅ `/status`+`/usage daily` | ✅ `CODEX_HOME`/`--profile` | ChatGPT | 🟢 |
-| Gemini=Antigravity (`agy`) | ✅ `-p` | ✅ `/usage`(주간·5h) | ✅ `HOME` 샌드박스 | Google/Antigravity | 🟢 |
+| Codex (`codex`, 번들) | ✅ `exec` | ✅ **app-server JSON-RPC**(구조화, 스크랩 불필요) | ✅ `CODEX_HOME` | ChatGPT | 🟢 |
+| Gemini=Antigravity (`agy`) | ✅ `-p` | ✅ TUI `/usage` **네이티브 pty 스크랩** | ✅ `HOME` 샌드박스 | Google/Antigravity | 🟢 |
 
 - **Grok 제외:** 주간 공용 풀(5h 창 없음) + CLI로 주간 사용량 미노출(`/usage`=크레딧→웹) → 제품 핵심과 불일치.
 - **버전 스큐:** Codex 0.125.0 실패→0.142.5 필요 → 최소버전 체크·번들 경로 폴백.
@@ -296,16 +299,29 @@ abstract class ProviderAdapter {
 | Phase | 산출물 | 게이트 |
 | --- | --- | --- |
 | **0** | Mac 앱 코어: 멀티계정 자동감지 + `/usage` 스크랩 + 메뉴바 대시보드 + 세션 시작(온디맨드) | 기존 로그인 계정들이 대시보드에 정확 표시; 파서 골든테스트 통과 |
-| **1** | 절전 기상(pmset+LaunchAgent 다크웨이크) + 스케줄 + 알림(Mac) + 계정 추가 UX | Mac 절전→기상→상태 갱신/세션 E2E ≥ 95% |
+| **1** | 로컬 store + **세션 자동 시작(리셋 체이닝)** + 절전 기상(pmset+LaunchAgent, 리셋들+아침 앵커) + 알림(Mac) + 계정 추가 UX | Mac 절전→기상→자동 시작/상태 갱신 E2E ≥ 95% |
 | **2** | Supabase 릴레이 + iPhone 앱(원격 대시보드/제어) + 폰 푸시 | 폰에서 실시간 상태·원격 세션 시작; RLS 격리 |
 | **3** | 하드닝·다계정 스케일·자동로그인 안내·Win/Android 확장 검토 | 실사용 신뢰성·회귀 안정 |
 
-> **보류(다음 결정):** 세션 시작 상세 UX 플로우 + 정기 리프레시 동작(상태만 읽기 vs 세션 시작; D1).
+> **확정(D1, 2026-07-02):** 정기 동작 = **읽기 전용 상태 갱신**(쿼터 0). 세션 시작 = **리셋 시각 자동 체이닝**(token maxxing) — 리셋당 1회·최저가 모델·계정별 토글(권장 기본: Claude on·Codex off, R0 🟡). 수동 시작 버튼 없음. 절전 기상 스케줄 = 다음 리셋 시각들 + 아침 앵커(창이 없으면 아침 앵커가 체인 시동).
+
+### Phase 1 실행 순서 (의존성순, 2026-07-02 계획 리뷰)
+
+| # | 작업 | 게이트 |
+| --- | --- | --- |
+| P1-1 | **로컬 store(JSON)** — Status·Schedule·AlertPrefs + 계정 추가/제거 영속화(현재 제거한 계정이 재스캔 시 부활하는 버그 해소) | 앱 재시작 후 상태 유지 · 제거 계정 부활 없음 |
+| P1-2 | **리셋 절대시각을 core로** — Claude 라벨("2:30am") 파싱 + duration 변환을 표시 계층에서 core로 이관 | 3어댑터 모두 `resetAt` 골든 통과 |
+| P1-3 | **headless 러너**(`core/bin/`) — 순회→store 기록 원샷 (다크웨이크는 GUI 앱 제약 → 헬퍼 분리 필수) | 터미널 1회 실행 → store 갱신 → GUI 반영 |
+| P1-4 | **세션 자동 시작 체이닝**(awake 상태) — 리셋 도달 감지→startSession, 계정별 토글 | 리셋 도달 → 새 창 열림 실확인(리셋당 1회) |
+| P1-5 | **pmset+LaunchAgent 다크웨이크** — 기상 스케줄(리셋들+아침 앵커) + admin 1회 GUI(FR-UI-05) | 절전→기상→자동 시작/갱신 E2E ≥ 95% (M2/M3) |
+| P1-6 | **Mac 알림** — 80%·리셋 10분 전·실패 알림 | 임계 통과 시 정확히 1회 발화 |
+| P1-7 | **계정 추가 UX**(Should) | 두 번째 계정 등록·표시 |
 
 ---
 
 ## 16. 운영 / 패키징
-- **Mac:** Flutter macOS 메뉴바 앱 + 번들 LaunchAgent 헬퍼(`KeepAlive`). **코드사이닝·공증**(오너 Apple 개발자 계정 보유) → DMG/App Store. `pmset` admin 1회 GUI 요청. **자동 로그인 권장** 안내로 로그아웃 엣지 커버.
+- **Mac:** Flutter macOS 메뉴바 앱 + 번들 LaunchAgent 헬퍼(`KeepAlive`). **코드사이닝·공증**(오너 Apple 개발자 계정 보유) → **DMG**(Developer ID). `pmset` admin 1회 GUI 요청. **자동 로그인 권장** 안내로 로그아웃 엣지 커버.
+- **D-SANDBOX(확정 2026-07-02): App Store 배포 불가.** MAS는 번들 내 **모든 실행파일**의 App Sandbox를 의무화하는데, 제품 핵심 셋(공식 CLI 구동+그 키체인 로그인 사용 · `~/.claude` 등 홈 읽기 · `pmset` admin)이 전부 샌드박스 금지 항목 — "비샌드박스 헬퍼만 분리" 우회도 MAS에선 금지라 구조적 비호환. **배포 = Developer ID 서명+공증 DMG**(게이트키퍼 경고 없는 공식 외부 배포 경로; Raycast·Bartender류 메뉴바 앱과 동일). 뷰어 전용 MAS 컴패니언 앱은 Phase 3+에서 검토.
 - **iOS(P2):** App Store/TestFlight(동일 개발자 계정).
 - **업데이트:** 앱 자체 업데이트 + CLI 최소버전 안내. 스크랩 파서 골든테스트로 안전 배포.
 
@@ -341,7 +357,7 @@ abstract class ProviderAdapter {
 ### 리스크→완화
 **ToS 준수→R0(신호등·불변식·포지셔닝·kill-switch)** · TUI 스크랩 취약→골든/버전핀/강등 · 절전 기상 신뢰성→pmset+LaunchAgent(다크웨이크)+전원권장 · 키체인 잠금 설정→안내 · 코드사이닝/공증 마찰→개발자 계정 보유 · (P2)릴레이 탈취→명령 화이트리스트·RLS.
 ### 오픈 이슈
-O1. **세션 시작 UX 플로우 + 정기 리프레시 동작(D1)** — 다음 결정. O2. 알림 임계 기본값 튜닝. O3. 다기기 러너(성장).
+O1(D1)·O2 **해결(2026-07-02)** — §15 확정 블록·FR-NT-03 참조. O3. 다기기 러너(성장).
 ### 의존성
 Flutter/Dart · 각 프로바이더 CLI(설치·로그인·최소버전) · (P2) Supabase.
 
