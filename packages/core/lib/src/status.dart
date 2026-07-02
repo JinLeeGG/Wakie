@@ -36,10 +36,16 @@ class ProviderStatus {
   /// [Preflight] instead.
   final String? accountEmail;
 
+  /// The account's subscription tier, when the usage panel exposes it (the
+  /// agy header shows "email (Google AI Pro)"). Same rationale as
+  /// [accountEmail]: for Antigravity this appears nowhere else R0-safe.
+  final String? accountPlan;
+
   const ProviderStatus({
     this.session = UsageWindow.unknown,
     this.weekly = UsageWindow.unknown,
     this.accountEmail,
+    this.accountPlan,
   });
 
   static const unknown = ProviderStatus();

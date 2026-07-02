@@ -443,7 +443,8 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
     provider: _uiProvider(a.provider),
     name: _displayName(a),
     plan: pf.isOk
-        ? _subtitle(pf, fallbackEmail: s.accountEmail)
+        ? _subtitle(pf,
+            fallbackEmail: s.accountEmail, fallbackPlan: s.accountPlan)
         : 'signing in — complete it in your browser',
     session: session,
     weekly: _meter(s.weekly, weekly: true),
@@ -508,19 +509,18 @@ String _shortReset(String? label) {
 /// Account subtitle: "email · Plan", dropping the redundant provider name
 /// (the row's icon + title already say the provider). Shows whichever halves
 /// the provider exposes — email-only, plan-only, or "—" when neither.
-/// [fallbackEmail] (from the usage panel) fills in when the preflight has no
-/// email, as for isolated Antigravity accounts.
-String _subtitle(core.Preflight pf, {String? fallbackEmail}) {
-  final plan = pf.plan;
-  final email = (pf.email != null && pf.email!.isNotEmpty)
-      ? pf.email
-      : (fallbackEmail != null && fallbackEmail.isNotEmpty
-          ? fallbackEmail
-          : null);
+/// [fallbackEmail]/[fallbackPlan] (from the usage panel) fill in when the
+/// preflight lacks them, as for Antigravity where identity/tier only appear
+/// in the scraped panel header.
+String _subtitle(core.Preflight pf,
+    {String? fallbackEmail, String? fallbackPlan}) {
+  String? pick(String? a, String? b) =>
+      (a != null && a.isNotEmpty) ? a : ((b != null && b.isNotEmpty) ? b : null);
+  final email = pick(pf.email, fallbackEmail);
+  final plan = pick(pf.plan, fallbackPlan);
   final parts = <String>[
     ?email,
-    if (plan != null && plan.isNotEmpty)
-      plan[0].toUpperCase() + plan.substring(1),
+    if (plan != null) plan[0].toUpperCase() + plan.substring(1),
   ];
   return parts.isEmpty ? '—' : parts.join(' · ');
 }
