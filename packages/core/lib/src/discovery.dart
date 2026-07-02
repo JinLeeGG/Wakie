@@ -4,6 +4,26 @@ import 'preflight.dart';
 import 'provider.dart';
 import 'store.dart';
 
+/// Each provider's CLI binary, for [terminalCommandFor].
+const _executables = {
+  Provider.claude: 'claude',
+  Provider.codex: 'codex',
+  Provider.antigravity: 'agy',
+};
+
+/// The shell command that runs [account]'s CLI in a terminal — the adapter's
+/// own [ProviderAdapter.envFor] as an env prefix, so switching accounts is
+/// typing a different command instead of re-logging-in (which overwrites the
+/// ambient login and is how duplicate identities happen in the first place).
+/// For an ambient account this is just the bare binary.
+String terminalCommandFor(ProviderAdapter adapter, Account account) {
+  final env = adapter.envFor(account);
+  final binary = _executables[account.provider]!;
+  final prefix =
+      env.entries.map((e) => '${e.key}="${e.value}"').join(' ');
+  return prefix.isEmpty ? binary : '$prefix $binary';
+}
+
 /// The ambient default account candidate for each provider (not yet probed).
 /// Each uses `configHome: null` so the CLI runs with no env override — the
 /// Keychain-backed default (PRD §7.2). Additional isolated accounts are
@@ -76,9 +96,28 @@ Future<List<(Account, Preflight)>> discoverLiveAccounts(
   final candidates = [...defaults, ...extras];
   final preflights = await Future.wait(
       candidates.map((a) => adapters[a.provider]!.detect(a)));
+
+  // Identity dedupe: accounts are identities, not slots. The ambient
+  // default's identity drifts whenever the user re-logs-in in a terminal;
+  // if it lands on the same login as an isolated extra, keeping both would
+  // show the same account twice (and the runner would chain it twice). The
+  // extra wins — it's the stable, user-labeled one.
+  final extraIdentities = <(Provider, String)>{
+    for (var i = defaults.length; i < candidates.length; i++)
+      if (preflights[i].isOk &&
+          preflights[i].email != null &&
+          !store.isRemoved(candidates[i].id))
+        (candidates[i].provider, preflights[i].email!),
+  };
+  bool duplicatesAnExtra(int i) =>
+      i < defaults.length &&
+      preflights[i].email != null &&
+      extraIdentities.contains((candidates[i].provider, preflights[i].email!));
+
   return [
     for (var i = 0; i < candidates.length; i++)
       if (!store.isRemoved(candidates[i].id) &&
+          !duplicatesAnExtra(i) &&
           (preflights[i].isOk ||
               (includePendingExtras && i >= defaults.length)))
         (candidates[i], preflights[i]),
