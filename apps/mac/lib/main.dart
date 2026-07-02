@@ -93,6 +93,8 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         onAwakeTick: _engine.awakeTick,
         launchAtLogin: _engine.launchAtLogin,
         onSetLaunchAtLogin: _engine.setLaunchAtLogin,
+        darkWake: _engine.darkWake,
+        onSetDarkWake: _engine.setDarkWake,
       ),
     );
   }

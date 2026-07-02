@@ -99,6 +99,12 @@ class DashboardFooter extends StatefulWidget {
   final bool launchAtLogin;
   final ValueChanged<bool>? onLaunchAtLogin;
 
+  /// "Wake from sleep" — whether the daily hardware wake is programmed, and
+  /// the toggle handler (admin prompt). onChanged returns an error message to
+  /// surface, or null on success. Null handler in tests/goldens.
+  final bool darkWake;
+  final Future<String?> Function(bool)? onDarkWake;
+
   const DashboardFooter({
     super.key,
     required this.controller,
@@ -107,6 +113,8 @@ class DashboardFooter extends StatefulWidget {
     this.nextWake = '—',
     this.launchAtLogin = false,
     this.onLaunchAtLogin,
+    this.darkWake = false,
+    this.onDarkWake,
   });
 
   @override
@@ -177,6 +185,8 @@ class _DashboardFooterState extends State<DashboardFooter> {
                   children: [
                     Expanded(
                         child: c.running ? _runStatus(c) : _keys()),
+                    _darkWakeToggle(),
+                    const SizedBox(width: 18),
                     _launchToggle(),
                     const SizedBox(width: 22),
                     Text.rich(TextSpan(children: [
@@ -262,11 +272,27 @@ class _DashboardFooterState extends State<DashboardFooter> {
     );
   }
 
-  Widget _launchToggle() {
+  Widget _launchToggle() => _toggle(
+        value: widget.launchAtLogin,
+        label: 'Launch at login',
+        onTap: () => widget.onLaunchAtLogin?.call(!widget.launchAtLogin),
+      );
+
+  Widget _darkWakeToggle() => _toggle(
+        value: widget.darkWake,
+        label: 'Wake from sleep',
+        onTap: () => widget.onDarkWake?.call(!widget.darkWake),
+      );
+
+  Widget _toggle({
+    required bool value,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => widget.onLaunchAtLogin?.call(!widget.launchAtLogin),
+        onTap: onTap,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -275,14 +301,13 @@ class _DashboardFooterState extends State<DashboardFooter> {
               width: 32,
               height: 18,
               decoration: BoxDecoration(
-                color: widget.launchAtLogin ? T.amber : T.white(.12),
+                color: value ? T.amber : T.white(.12),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment: widget.launchAtLogin
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment:
+                    value ? Alignment.centerRight : Alignment.centerLeft,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: Container(
@@ -304,7 +329,7 @@ class _DashboardFooterState extends State<DashboardFooter> {
               ),
             ),
             const SizedBox(width: 8),
-            Text('Launch at login', style: mono(11.5, color: T.t3)),
+            Text(label, style: mono(11.5, color: T.t3)),
           ],
         ),
       ),
