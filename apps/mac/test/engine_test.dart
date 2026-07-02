@@ -50,6 +50,25 @@ void main() {
     expect(a.status, RunStatus.low); // session nearly exhausted
   });
 
+  test('maps Codex epoch resetAt to date (weekly) and time (session)', () async {
+    final sessionAt = DateTime(2026, 6, 1, 15, 30); // local
+    final weeklyAt = DateTime(2026, 6, 5, 9, 0); // local
+    final engine = Engine.withAdapters({
+      core.Provider.codex: _FakeClaude(core.ProviderStatus(
+        session: core.UsageWindow(usedPct: 1, resetAt: sessionAt), // 99% left
+        weekly: core.UsageWindow(usedPct: 44, resetAt: weeklyAt), // 56% left
+      )),
+    });
+
+    final a = (await engine.load()).single;
+    expect(a.provider, Provider.codex);
+    expect(a.session.pct, 99);
+    expect(a.session.tone, Tone.ok);
+    expect(a.session.reset, '3:30pm'); // session window → time
+    expect(a.weekly.pct, 56);
+    expect(a.weekly.reset, 'Jun 5'); // weekly window → date
+  });
+
   test('unknown usage falls back gracefully', () async {
     final engine = Engine.withAdapters({
       core.Provider.claude: _FakeClaude(core.ProviderStatus.unknown),

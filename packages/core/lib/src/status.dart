@@ -5,11 +5,16 @@ class UsageWindow {
   final int? usedPct;
 
   /// The provider's raw reset wording, e.g. "2:30am (America/New_York)" or
-  /// "Jul 7 at 7am (America/New_York)". Kept verbatim for Phase 0 display;
-  /// absolute-time parsing lands in Phase 1 when notifications need it.
+  /// "Jul 7 at 7am (America/New_York)". Kept verbatim when the provider only
+  /// exposes a rendered string (Claude's `/usage` panel).
   final String? resetLabel;
 
-  const UsageWindow({this.usedPct, this.resetLabel});
+  /// Absolute reset instant, when the provider reports it as a timestamp
+  /// (Codex's `account/rateLimits/read` returns epoch `resetsAt`). Null when
+  /// only [resetLabel] is available.
+  final DateTime? resetAt;
+
+  const UsageWindow({this.usedPct, this.resetLabel, this.resetAt});
 
   static const unknown = UsageWindow();
 
