@@ -45,7 +45,7 @@ class AntigravityAdapter implements ProviderAdapter {
     if (!File('$gemini/oauth_creds.json').existsSync()) {
       return const Preflight(PreflightState.notLoggedIn);
     }
-    return Preflight(PreflightState.ok, detail: _activeAccount(gemini));
+    return Preflight(PreflightState.ok, email: _activeAccount(gemini));
   }
 
   /// The signed-in Google account email, from `google_accounts.json`'s

@@ -60,7 +60,9 @@ class ClaudeAdapter implements ProviderAdapter {
     if (json['loggedIn'] != true) {
       return const Preflight(PreflightState.notLoggedIn);
     }
-    return Preflight(PreflightState.ok, detail: json['subscriptionType'] as String?);
+    return Preflight(PreflightState.ok,
+        email: json['email'] as String?,
+        plan: json['subscriptionType'] as String?);
   }
 
   @override

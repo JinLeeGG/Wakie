@@ -16,7 +16,15 @@ class Preflight {
   /// Human-readable detail for the dashboard (e.g. why it's not ok).
   final String? detail;
 
-  const Preflight(this.state, {this.version, this.detail});
+  /// Signed-in account identity (the login email), when the provider exposes
+  /// it. Not a secret — never a token (R0). Null when unavailable.
+  final String? email;
+
+  /// Subscription tier as the provider names it (e.g. "pro", "max", "plus").
+  /// Null when the provider exposes no plan.
+  final String? plan;
+
+  const Preflight(this.state, {this.version, this.detail, this.email, this.plan});
 
   bool get isOk => state == PreflightState.ok;
 }
