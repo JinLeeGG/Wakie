@@ -21,7 +21,7 @@ import '../vt.dart';
 Future<String> captureAntigravityUsagePanel({
   Map<String, String> env = const {},
   String executable = 'agy',
-  Duration maxBoot = const Duration(seconds: 15),
+  Duration maxBoot = const Duration(seconds: 25),
   Duration maxRender = const Duration(seconds: 12),
   Duration poll = const Duration(milliseconds: 200),
 }) async {
@@ -29,16 +29,19 @@ Future<String> captureAntigravityUsagePanel({
   if (pty == null) return '';
 
   try {
-    // 1. Wait for the input prompt, then open /usage.
+    // 1. Wait for the input prompt (sign-in can be slow on a cold start, so
+    // maxBoot is generous), then open /usage — retrying the whole command,
+    // since a keystroke sent a hair early is silently dropped and the panel
+    // never opens (the failure that leaves the card stuck "loading").
     await _pollUntil(() => _promptReady.hasMatch(pty.screenText()), maxBoot, poll);
-    pty.write('/usage');
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    pty.write('\r');
-
-    // Resend Enter once if the panel hasn't started opening (autocomplete race).
-    if (!await _pollUntil(() => _panelOpening.hasMatch(pty.screenText()),
-        const Duration(seconds: 3), poll)) {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      pty.write('/usage');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       pty.write('\r');
+      if (await _pollUntil(() => _panelOpening.hasMatch(pty.screenText()),
+          const Duration(seconds: 3), poll)) {
+        break;
+      }
     }
 
     // 2. Wait until the panel's numbers have actually rendered.

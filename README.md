@@ -92,9 +92,23 @@ Phase 2     ┌──────────────┐   Supabase relay (c
             └──────────────┘                                  └──────────────┘
 ```
 
-The Mac app is both the **engine** — detect → wake → scrape usage → start session → notify — and the **dashboard**. Every scrape reads status by driving each CLI's `/usage`-style command (which costs no quota); only *starting* a session consumes a little, so it uses the cheapest model.
+The Mac app is both the **engine** — detect → wake → read usage → start session → notify — and the **dashboard**. Reading status is always quota-free (each provider exposes usage without spending it — see [How usage is read](#how-usage-is-read-per-provider)); only *starting* a session consumes a little, so it uses the cheapest model.
 
 In **Phase 2**, a phone becomes a remote control over a Supabase relay that carries only commands (a fixed enum) and status metadata — never credentials or content.
+
+<br>
+
+### How usage is read (per provider)
+
+There's no single API for "how much subscription is left" — each provider exposes it differently, so every adapter uses its own **read path**. All of them obey the same rule (**R0**): read-only, official binary, tokens never extracted, prompt/response content never stored.
+
+| Provider | Read path | Why this way | Typical latency |
+| --- | --- | --- | --- |
+| **Codex** (`codex`) | **Structured JSON-RPC.** `codex app-server` (stdio) answers `account/rateLimits/read` after an `initialize` handshake — usage returns as JSON, with absolute epoch reset times. No scraping. | Codex ships a machine-readable surface, so we use it directly. | ~0.7 s |
+| **Claude** (`claude`) | **TUI scrape.** Drive the interactive `claude` TUI in a pty, open `/usage`, render the terminal bytes through a tiny built-in VT emulator, then parse the panel text. | Claude has no structured usage endpoint; the only non-scrape path would extract the session token, which R0 forbids. | ~5 s |
+| **Antigravity** (`agy`) | **Native-pty TUI scrape.** Same idea as Claude, but `agy` won't render unless attached to a *real, sized* terminal, so the pty is allocated via FFI (`openpty` + `posix_spawnp`, 40×120). Its two model groups (Gemini / Claude·GPT) × two windows collapse to the **most-constrained** group per window, so the meter never overstates headroom. | No structured surface at all — `agy`'s `/usage` lives only inside the interactive TUI. | ~2–3 s |
+
+Each read path is split into a **pure parser** (screen-text or JSON → status), golden-tested against captured fixtures, and a thin, injectable **live seam** (the pty/process/RPC glue). Parsers are deterministic and unit-tested; the fragile I/O seam is swapped for fixtures in tests. Adapters live in [`packages/core/lib/src/adapters/`](packages/core/lib/src/adapters/).
 
 <br>
 
@@ -103,7 +117,7 @@ In **Phase 2**, a phone becomes a remote control over a Supabase relay that carr
 | Provider (CLI) | Start session | Usage / reset | Multi-account | Auth |
 | --- | --- | --- | --- | --- |
 | **Claude** (`claude`) | `-p` | `/usage` + `/stats` | `CLAUDE_CONFIG_DIR` | claude.ai |
-| **Codex** (`codex`) | `exec` | `/status` + `/usage daily` | `CODEX_HOME` / `--profile` | ChatGPT |
+| **Codex** (`codex`) | `exec` | `app-server` RPC | `CODEX_HOME` / `--profile` | ChatGPT |
 | **Antigravity** (`agy`) | `-p` | `/usage` (weekly · 5h) | `HOME` sandbox | Google |
 
 > **Grok** is intentionally out of scope — a shared weekly pool with no 5-hour window, and usage isn't exposed via its CLI, so it doesn't fit the product's core.
