@@ -21,9 +21,13 @@ class Engine {
     final codex = core.CodexAdapter(
       read: (a) => core.readCodexRateLimits(env: _codexEnv(a)),
     );
+    final antigravity = core.AntigravityAdapter(
+      capture: (a) => core.captureAntigravityUsagePanel(env: _antigravityEnv(a)),
+    );
     return Engine._({
       core.Provider.claude: claude,
       core.Provider.codex: codex,
+      core.Provider.antigravity: antigravity,
     });
   }
 
@@ -38,6 +42,9 @@ class Engine {
   static Map<String, String> _codexEnv(core.Account a) => a.configHome == null
       ? const {}
       : {'CODEX_HOME': a.configHome!};
+
+  static Map<String, String> _antigravityEnv(core.Account a) =>
+      a.configHome == null ? const {} : {'HOME': a.configHome!};
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;

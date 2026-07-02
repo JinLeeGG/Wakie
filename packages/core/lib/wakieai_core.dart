@@ -3,6 +3,9 @@ library;
 
 export 'src/account.dart';
 export 'src/adapter.dart';
+export 'src/adapters/antigravity_adapter.dart';
+export 'src/adapters/antigravity_usage_capture.dart';
+export 'src/adapters/antigravity_usage_parser.dart';
 export 'src/adapters/claude_adapter.dart';
 export 'src/adapters/claude_usage_capture.dart';
 export 'src/adapters/claude_usage_parser.dart';
