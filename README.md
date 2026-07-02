@@ -10,7 +10,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 
 <br>
 
-![Status](https://img.shields.io/badge/status-design%20%26%20spec-F6B23C?style=flat-square)
+![Status](https://img.shields.io/badge/status-Phase%200%20—%20Mac%20core-5FD39A?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-macOS%20→%20iOS-0B1120?style=flat-square&logo=apple&logoColor=white)
 ![Built with](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0B1120?style=flat-square&logo=dart&logoColor=white)
@@ -25,7 +25,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 <br>
 
 > [!NOTE]
-> **Project status — design & spec.** This repo currently holds the [product spec](docs/PRD.md) and a complete, click-through [UI prototype](docs/design/). Engineering starts from Phase 0 (see [Roadmap](#roadmap)). Screenshots below are from the working mockups.
+> **Project status — Phase 0 (Mac core) shipped.** The macOS menu-bar app auto-detects logged-in accounts, reads live `/usage` for all three providers (Claude · Codex · Antigravity), renders the dashboard, and starts sessions on demand. Next up is Phase 1 (automation — see [Roadmap](#roadmap)). The [product spec](docs/PRD.md) and click-through [UI prototype](docs/design/) remain the source of truth for the design.
 
 <br>
 
@@ -126,7 +126,7 @@ Each read path is split into a **pure parser** (screen-text or JSON → status),
 
 ## Roadmap
 
-- [ ] **Phase 0 — Mac core.** Auto-detect accounts · scrape `/usage` · menu-bar dashboard · on-demand session start.
+- [x] **Phase 0 — Mac core.** Auto-detect accounts · scrape `/usage` · menu-bar dashboard · on-demand session start.
 - [ ] **Phase 1 — Automation.** Sleep-wake (`pmset` + LaunchAgent dark wake) · schedules · macOS notifications · add-account UX.
 - [ ] **Phase 2 — Remote.** Supabase relay + iPhone app (remote dashboard/control) + push notifications.
 - [ ] **Phase 3 — Hardening.** Multi-account scale · auto-login guidance · Windows/Android exploration.
@@ -137,21 +137,25 @@ Each read path is split into a **pure parser** (screen-text or JSON → status),
 ## Getting started
 
 > [!IMPORTANT]
-> The app isn't built yet. Today you can explore the **interactive prototype**.
+> Phase 0 (the Mac core) runs today. You can launch the menu-bar app locally, or explore the **interactive prototype** for the full designed flow.
+
+**Run the Mac app (Phase 0)**
+
+```bash
+git clone https://github.com/JohnLee/WakeyAI.git
+cd WakeyAI/apps/mac
+flutter run -d macos          # menu-bar app: auto-detects logged-in CLIs, reads live /usage
+```
+
+Any provider CLI you're already logged into (`claude`, `codex`, `agy`) is detected automatically — no re-login, no API keys. The dashboard shows live session/weekly usage and lets you start a session per account.
 
 **Explore the prototype**
 
 ```bash
-git clone https://github.com/JohnLee/WakeyAI.git
-cd WakeyAI
 open docs/design/onboarding-step1.html   # start of the wired flow → dashboard
 ```
 
 Or open any single screen in [`docs/design/`](docs/design/) directly in a browser.
-
-**Once built (planned)**
-
-Install the WakieAI Mac app → sign in with Apple/Google → your already-logged-in AI accounts are detected automatically. No re-login, no API keys. Two apps and you're done (Mac now; iPhone in Phase 2).
 
 **Planned repo layout**
 
