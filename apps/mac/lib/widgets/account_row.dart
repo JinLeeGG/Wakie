@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models.dart';
@@ -27,6 +28,15 @@ class AccountRow extends StatefulWidget {
 class _AccountRowState extends State<AccountRow>
     with SingleTickerProviderStateMixin {
   bool _hover = false;
+  bool _copied = false;
+
+  Future<void> _copyCommand(String command) async {
+    await Clipboard.setData(ClipboardData(text: command));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future.delayed(const Duration(milliseconds: 1400));
+    if (mounted) setState(() => _copied = false);
+  }
   late final AnimationController _in = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 550),
@@ -177,6 +187,19 @@ class _AccountRowState extends State<AccountRow>
                 mainAxisAlignment: MainAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Isolated accounts: copy the env-prefixed CLI command, so
+                  // using this account in a terminal is paste-and-go instead
+                  // of a re-login (which is what causes identity drift).
+                  if (a.terminalCommand != null) ...[
+                    _pillButton(
+                      label: _copied ? 'Copied ✓' : 'Copy CLI',
+                      fg: T.t1,
+                      bg: T.white(.06),
+                      border: T.hair,
+                      onTap: () => _copyCommand(a.terminalCommand!),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   _pillButton(
                     label: 'Remove',
                     fg: T.crit,

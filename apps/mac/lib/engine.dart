@@ -283,7 +283,8 @@ class Engine {
       // local store (if any) while a live read is still in flight.
       final rows = [
         for (final (a, pf) in visible)
-          _toRow(a, pf, _cachedStatus(a.id), autoStart: _autoStartFor(a)),
+          _toRow(a, pf, _cachedStatus(a.id),
+              autoStart: _autoStartFor(a), terminalCommand: _switchCommand(a)),
       ];
       out.add(List.of(rows));
 
@@ -295,7 +296,8 @@ class Engine {
         for (var i = 0; i < visible.length; i++)
           _readReady(visible[i].$1).then((s) {
             rows[i] = _toRow(visible[i].$1, visible[i].$2, s,
-                autoStart: _autoStartFor(visible[i].$1));
+                autoStart: _autoStartFor(visible[i].$1),
+                terminalCommand: _switchCommand(visible[i].$1));
             _store.cacheStatus(visible[i].$1.id, s);
             out.add(List.of(rows));
           }),
@@ -304,6 +306,12 @@ class Engine {
       await out.close();
     }
   }
+
+  /// Terminal command for an isolated account (switch by command, not
+  /// re-login); null for ambient defaults — they're just the bare binary.
+  String? _switchCommand(core.Account a) => a.configHome == null
+      ? null
+      : core.terminalCommandFor(_adapters[a.provider]!, a);
 
   /// Re-reads one account's usage live (the per-account Update button).
   /// Read-only — no session is started, so it costs no quota. Returns the
@@ -322,11 +330,14 @@ class Engine {
     _live[id] = (account, pf);
     if (!pf.isOk) {
       return _toRow(account, pf, core.ProviderStatus.unknown,
-          autoStart: _autoStartFor(account));
+          autoStart: _autoStartFor(account),
+          terminalCommand: _switchCommand(account));
     }
     final status = await _readReady(account);
     _store.cacheStatus(id, status);
-    return _toRow(account, pf, status, autoStart: _autoStartFor(account));
+    return _toRow(account, pf, status,
+        autoStart: _autoStartFor(account),
+        terminalCommand: _switchCommand(account));
   }
 
   /// Polls a pending (added, signing-in) account. Cheap by default — just
@@ -368,7 +379,8 @@ class Engine {
     // which for a cold isolated Antigravity home can take ~30s.
     return SignInResult(SignInState.ready,
         row: _toRow(account, pf, _cachedStatus(id),
-            autoStart: _autoStartFor(account)));
+            autoStart: _autoStartFor(account),
+            terminalCommand: _switchCommand(account)));
   }
 
   /// Ids of extra accounts registered but whose sign-in hasn't landed yet —
@@ -638,9 +650,10 @@ class Engine {
 }
 
 Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
-    {required bool autoStart}) {
+    {required bool autoStart, String? terminalCommand}) {
   final session = _meter(s.session, weekly: false);
   return Account(
+    terminalCommand: terminalCommand,
     id: a.id,
     provider: _uiProvider(a.provider),
     name: _displayName(a),
