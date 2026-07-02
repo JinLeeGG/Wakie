@@ -9,6 +9,7 @@ class AccountRow extends StatefulWidget {
   final int animDelayMs;
   final VoidCallback onRemove;
   final VoidCallback onUpdate;
+  final ValueChanged<bool>? onAutoStartChanged;
 
   const AccountRow({
     super.key,
@@ -16,6 +17,7 @@ class AccountRow extends StatefulWidget {
     required this.animDelayMs,
     required this.onRemove,
     required this.onUpdate,
+    this.onAutoStartChanged,
   });
 
   @override
@@ -109,6 +111,7 @@ class _AccountRowState extends State<AccountRow>
         Expanded(
           child: _identity(a),
         ),
+        if (widget.onAutoStartChanged != null) _AutoStartToggle(a: a, onChanged: widget.onAutoStartChanged!),
       ],
     );
   }
@@ -317,11 +320,13 @@ class _StatusPill extends StatelessWidget {
       RunStatus.fresh => (T.ok, 'Fresh', true),
       RunStatus.ok => (T.t3, 'OK', false),
       RunStatus.low => (T.crit, 'Low', true),
+      RunStatus.signin => (T.amber, 'Sign in', true),
     };
     final textColor = switch (status) {
       RunStatus.fresh => T.ok,
       RunStatus.ok => T.t2,
       RunStatus.low => T.crit,
+      RunStatus.signin => T.amber,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -348,6 +353,45 @@ class _StatusPill extends StatelessWidget {
           Text(label.toUpperCase(),
               style: mono(11.5, weight: FontWeight.w600, color: textColor, letterSpacing: 1.1)),
         ],
+      ),
+    );
+  }
+}
+
+/// Session-chaining toggle (D1 "token maxxing"): a fresh session starts the
+/// moment this account's window resets. Off by default for Codex/Antigravity
+/// (R0 🟡/🟠 — automation there is a less defensible ToS position); on by
+/// default for Claude (🟢). Always visible, not hover-gated — this is a
+/// standing setting the user should see at a glance, unlike Update/Remove.
+class _AutoStartToggle extends StatelessWidget {
+  final Account a;
+  final ValueChanged<bool> onChanged;
+  const _AutoStartToggle({required this.a, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final on = a.autoStart;
+    return Tooltip(
+      message: on
+          ? 'Auto-start is on — a new session starts the moment this window resets'
+          : 'Auto-start is off — this account only refreshes, never starts a session',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => onChanged(!on),
+          child: Container(
+            width: 28,
+            height: 28,
+            margin: const EdgeInsets.only(left: 8),
+            decoration: BoxDecoration(
+              color: on ? const Color(0x26FFC465) : T.white(.04),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: on ? const Color(0x66FFC465) : T.hair),
+            ),
+            child: Icon(Icons.bolt,
+                size: 15, color: on ? T.amber : T.t3),
+          ),
+        ),
       ),
     );
   }

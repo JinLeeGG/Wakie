@@ -5,11 +5,17 @@ import '../theme.dart';
 class SummaryBar extends StatelessWidget {
   final int accountCount;
   final VoidCallback onAddAccount;
+  final int morningAnchorHour;
+  final int morningAnchorMinute;
+  final void Function(int hour, int minute)? onSetMorningAnchor;
 
   const SummaryBar({
     super.key,
     required this.accountCount,
     required this.onAddAccount,
+    this.morningAnchorHour = 8,
+    this.morningAnchorMinute = 0,
+    this.onSetMorningAnchor,
   });
 
   @override
@@ -50,7 +56,13 @@ class SummaryBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 11),
-          const Expanded(child: _AutoRefreshPill()),
+          Expanded(
+            child: _MorningAnchorPill(
+              hour: morningAnchorHour,
+              minute: morningAnchorMinute,
+              onChanged: onSetMorningAnchor,
+            ),
+          ),
         ],
       ),
     );
@@ -114,20 +126,39 @@ class _PillState extends State<_Pill> {
   }
 }
 
-class _AutoRefreshPill extends StatefulWidget {
-  const _AutoRefreshPill();
+/// Options offered for the daily dark-wake time (PRD §9.2 "아침 앵커").
+const _morningAnchorOpts = <(String, int, int)>[
+  ('6:00am', 6, 0),
+  ('7:00am', 7, 0),
+  ('8:00am', 8, 0),
+  ('9:00am', 9, 0),
+  ('10:00am', 10, 0),
+];
 
-  @override
-  State<_AutoRefreshPill> createState() => _AutoRefreshPillState();
+String _fmtAnchor(int hour, int minute) {
+  final ampm = hour < 12 ? 'am' : 'pm';
+  final h12 = hour % 12 == 0 ? 12 : hour % 12;
+  return '$h12:${minute.toString().padLeft(2, '0')}$ampm';
 }
 
-class _AutoRefreshPillState extends State<_AutoRefreshPill> {
-  static const _opts = ['Off', '3h', '4h', '5h', '6h'];
+class _MorningAnchorPill extends StatefulWidget {
+  final int hour;
+  final int minute;
+  final void Function(int hour, int minute)? onChanged;
+
+  const _MorningAnchorPill({required this.hour, required this.minute, this.onChanged});
+
+  @override
+  State<_MorningAnchorPill> createState() => _MorningAnchorPillState();
+}
+
+class _MorningAnchorPillState extends State<_MorningAnchorPill> {
   final LayerLink _link = LayerLink();
   final GlobalKey _pillKey = GlobalKey();
   OverlayEntry? _menu;
   bool _hover = false;
-  String _value = '4h';
+  late int _hour = widget.hour;
+  late int _minute = widget.minute;
 
   bool get _open => _menu != null;
 
@@ -150,10 +181,15 @@ class _AutoRefreshPillState extends State<_AutoRefreshPill> {
               followerAnchor: Alignment.topLeft,
               offset: const Offset(0, 9),
               child: _Menu(
-                value: _value,
-                options: _opts,
+                value: _fmtAnchor(_hour, _minute),
+                options: [for (final o in _morningAnchorOpts) o.$1],
                 onSelect: (v) {
-                  setState(() => _value = v);
+                  final picked = _morningAnchorOpts.firstWhere((o) => o.$1 == v);
+                  setState(() {
+                    _hour = picked.$2;
+                    _minute = picked.$3;
+                  });
+                  widget.onChanged?.call(picked.$2, picked.$3);
                   _close();
                 },
               ),
@@ -207,13 +243,13 @@ class _AutoRefreshPillState extends State<_AutoRefreshPill> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('AUTO-REFRESH',
+                Text('MORNING WAKE',
                     style: mono(12.5, weight: FontWeight.w500, color: T.t2, letterSpacing: 1.3)),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_value,
+                    Text(_fmtAnchor(_hour, _minute),
                         style:
                             mono(20, weight: FontWeight.w600, color: T.amber)),
                     AnimatedRotation(
@@ -300,7 +336,7 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(9, 6, 9, 7),
-                child: Text('REFRESH EVERY',
+                child: Text('WAKE AT',
                     style: mono(10.5, color: T.t3, letterSpacing: 1.4)),
               ),
               for (final o in widget.options)
@@ -312,7 +348,7 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
                   border: Border(top: BorderSide(color: T.hair)),
                 ),
                 child: Text(
-                  'Your Mac wakes on this cadence to refresh status.',
+                  'Your Mac wakes at this time each day to refresh status and start any due sessions.',
                   style: sans(11.5, color: T.t3, height: 1.45),
                 ),
               ),

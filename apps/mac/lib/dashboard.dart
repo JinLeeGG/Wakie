@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'engine.dart' show SignInResult, SignInState;
 import 'models.dart';
 import 'theme.dart';
 import 'widgets/account_row.dart';
+import 'widgets/add_account_modal.dart';
 import 'widgets/confirm_modal.dart';
 import 'widgets/footer.dart';
 import 'widgets/summary.dart';
@@ -24,7 +26,42 @@ class DashboardScreen extends StatefulWidget {
   /// refreshed row, or null if it can't be resolved. Null in tests/goldens.
   final Future<Account?> Function(Account)? onUpdateAccount;
 
-  const DashboardScreen({super.key, this.source, this.onUpdateAccount});
+  /// Persists a Remove action so the account doesn't resurface on the next
+  /// discovery/refresh. Null in tests/goldens (removal stays in-memory only).
+  final void Function(Account)? onRemoveAccount;
+
+  /// Persists the auto-start (session-chaining) toggle for one account
+  /// (D1). Null in tests/goldens.
+  final void Function(Account, bool enabled)? onSetAutoStart;
+
+  /// Launches the new account's login and registers it (FR-UI-04). Returns
+  /// null on success or an error message to show. Null in tests/goldens — the
+  /// Add Account modal still opens, it just has nothing to submit to.
+  final Future<String?> Function(Provider, String label)? onCreateAccount;
+
+  /// Polls all in-flight sign-ins once, returning the ones that resolved
+  /// (ready with a live row, or a rejected duplicate). Pending accounts never
+  /// appear as rows — they surface only once signed in and confirmed unique,
+  /// so nothing flashes into the list and back out. Null in tests/goldens.
+  final Future<List<SignInResult>> Function()? onPollSignins;
+
+  /// The daily dark-wake time shown/edited in the summary bar (PRD §9.2).
+  final int morningAnchorHour;
+  final int morningAnchorMinute;
+  final void Function(int hour, int minute)? onSetMorningAnchor;
+
+  const DashboardScreen({
+    super.key,
+    this.source,
+    this.onUpdateAccount,
+    this.onRemoveAccount,
+    this.onSetAutoStart,
+    this.onCreateAccount,
+    this.onPollSignins,
+    this.morningAnchorHour = 8,
+    this.morningAnchorMinute = 0,
+    this.onSetMorningAnchor,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -47,9 +84,13 @@ class _DashboardScreenState extends State<DashboardScreen>
   Timer? _tagTimer;
 
   Account? _pendingRemove;
+  bool _addingAccount = false;
 
   // Footer run sequence.
   final FooterController _footer = FooterController();
+
+  Timer? _signinPoll;
+  bool _polling = false; // re-entrancy guard: never overlap sign-in polls
 
   @override
   void initState() {
@@ -64,15 +105,60 @@ class _DashboardScreenState extends State<DashboardScreen>
         _tagFaded = false;
       });
     });
+    // While any account is waiting on its sign-in, quietly re-check it so the
+    // row flips to live usage the moment login completes — no manual Refresh
+    // needed. No-op when nothing is pending; guarded so a slow check can't
+    // stack up overlapping polls.
+    _signinPoll = Timer.periodic(
+        const Duration(seconds: 6), (_) => _pollPendingSignins());
   }
 
   @override
   void dispose() {
     _sub?.cancel();
     _tagTimer?.cancel();
+    _signinPoll?.cancel();
     _winIn.dispose();
     _footer.dispose();
     super.dispose();
+  }
+
+  Future<void> _pollPendingSignins() async {
+    if (_polling) return; // a previous poll is still running
+    final poll = widget.onPollSignins;
+    if (poll == null) return;
+    _polling = true;
+    try {
+      final results = await poll();
+      if (!mounted) return;
+      for (final r in results) {
+        switch (r.state) {
+          case SignInState.pending:
+            break; // pending accounts are never shown
+          case SignInState.ready:
+            final row = r.row!;
+            setState(() {
+              final i = _accounts.indexWhere((x) => x.id == row.id);
+              if (i == -1) {
+                _accounts.add(row);
+              } else {
+                _accounts[i] = row;
+              }
+            });
+            _footer.finish('${row.name} signed in');
+            // The ready row carries only cached usage (it appears instantly);
+            // pull its live usage now, which also fills in an isolated
+            // account's email from the scraped panel.
+            _update(row);
+          case SignInState.duplicate:
+            _footer.fail(r.message ?? 'Already added.');
+          case SignInState.expired:
+            _footer.fail(r.message ?? 'Sign-in timed out.');
+        }
+      }
+    } finally {
+      _polling = false;
+    }
   }
 
   void _reload({bool footer = false}) {
@@ -133,10 +219,48 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _askRemove(Account a) => setState(() => _pendingRemove = a);
 
   void _confirmRemove() {
+    final removed = _pendingRemove;
     setState(() {
-      if (_pendingRemove != null) _accounts.remove(_pendingRemove);
+      if (removed != null) _accounts.remove(removed);
       _pendingRemove = null;
     });
+    if (removed != null) widget.onRemoveAccount?.call(removed);
+  }
+
+  void _setAutoStart(Account a, bool enabled) {
+    final i = _accounts.indexWhere((x) => x.id == a.id);
+    if (i != -1) {
+      setState(() => _accounts[i] = Account(
+            id: a.id,
+            provider: a.provider,
+            name: a.name,
+            plan: a.plan,
+            session: a.session,
+            weekly: a.weekly,
+            last: a.last,
+            status: a.status,
+            autoStart: enabled,
+          ));
+    }
+    widget.onSetAutoStart?.call(a, enabled);
+  }
+
+  Future<void> _createAccount(Provider provider, String label) async {
+    setState(() => _addingAccount = false);
+    final creator = widget.onCreateAccount;
+    if (creator == null) return;
+    final displayLabel = label.trim().isEmpty ? provider.name : label.trim();
+    _footer.start('Adding $displayLabel…');
+    final error = await creator(provider, label);
+    if (!mounted) return;
+    if (error != null) {
+      _footer.fail(error);
+    } else {
+      _footer.finish('$displayLabel — finish signing in in your browser');
+    }
+    // No rescan: the account stays invisible until its login lands, at which
+    // point the sign-in poll adds it as a row (or drops it if it's a
+    // duplicate) — so nothing ever flashes into the list and back out.
   }
 
   @override
@@ -183,6 +307,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               onCancel: () => setState(() => _pendingRemove = null),
               onRemove: _confirmRemove,
             ),
+          if (_addingAccount)
+            AddAccountModal(
+              onCancel: () => setState(() => _addingAccount = false),
+              onAdd: _createAccount,
+            ),
         ],
       ),
     );
@@ -220,7 +349,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               _header(),
               SummaryBar(
                 accountCount: _accounts.length,
-                onAddAccount: () {},
+                onAddAccount: () => setState(() => _addingAccount = true),
+                morningAnchorHour: widget.morningAnchorHour,
+                morningAnchorMinute: widget.morningAnchorMinute,
+                onSetMorningAnchor: widget.onSetMorningAnchor,
               ),
               const _ColHead(),
               Expanded(
@@ -238,6 +370,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                           animDelayMs: 70 + i * 60,
                           onRemove: () => _askRemove(_accounts[i]),
                           onUpdate: () => _update(_accounts[i]),
+                          onAutoStartChanged: (enabled) =>
+                              _setAutoStart(_accounts[i], enabled),
                         ),
                       ),
               ),
@@ -247,7 +381,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _footer.start('Refreshing accounts…');
                   _reload(footer: true);
                 },
-                onAddAccount: () {},
+                onAddAccount: () => setState(() => _addingAccount = true),
               ),
             ],
           ),

@@ -83,6 +83,13 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
       home: DashboardScreen(
         source: _engine.watch,
         onUpdateAccount: (a) => _engine.refreshAccount(a.id),
+        onRemoveAccount: (a) => _engine.removeAccount(a.id),
+        onSetAutoStart: (a, enabled) => _engine.setAutoStart(a.id, enabled),
+        onCreateAccount: _engine.addAccount,
+        onPollSignins: _engine.pollSignins,
+        morningAnchorHour: _engine.morningAnchorHour,
+        morningAnchorMinute: _engine.morningAnchorMinute,
+        onSetMorningAnchor: _engine.setMorningAnchor,
       ),
     );
   }

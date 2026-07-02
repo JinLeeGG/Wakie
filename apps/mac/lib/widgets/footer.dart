@@ -13,6 +13,7 @@ import '../theme.dart';
 class FooterController extends ChangeNotifier {
   bool running = false;
   bool done = false;
+  bool failed = false;
   double fill = 0;
   String label = '';
 
@@ -28,6 +29,7 @@ class FooterController extends ChangeNotifier {
     _hide?.cancel();
     running = true;
     done = false;
+    failed = false;
     fill = 6;
     this.label = label;
     notifyListeners();
@@ -52,11 +54,29 @@ class FooterController extends ChangeNotifier {
     _trickle?.cancel();
     label = doneLabel;
     done = true;
+    failed = false;
     fill = 100;
     notifyListeners();
     _hide = Timer(const Duration(milliseconds: 1500), () {
       running = false;
       done = false;
+      notifyListeners();
+    });
+  }
+
+  /// Like [finish], but shown as a failure (red, longer-lived) instead of
+  /// silently succeeding or vanishing — an action that failed with no
+  /// visible reaction is worse than one that failed loudly.
+  void fail(String message) {
+    _trickle?.cancel();
+    label = message;
+    done = false;
+    failed = true;
+    fill = 100;
+    notifyListeners();
+    _hide = Timer(const Duration(milliseconds: 3500), () {
+      running = false;
+      failed = false;
       notifyListeners();
     });
   }
@@ -122,13 +142,17 @@ class _DashboardFooterState extends State<DashboardFooter> {
                           height: 2,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: c.done
-                                  ? [T.ok, const Color(0xFF8FE6BD)]
-                                  : [T.amber, const Color(0xFFFFDF9E)],
+                              colors: c.failed
+                                  ? [T.crit, const Color(0xFFFFA8AE)]
+                                  : c.done
+                                      ? [T.ok, const Color(0xFF8FE6BD)]
+                                      : [T.amber, const Color(0xFFFFDF9E)],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: (c.done ? T.ok : T.amber)
+                                color: (c.failed
+                                        ? T.crit
+                                        : (c.done ? T.ok : T.amber))
                                     .withValues(alpha: .28),
                                 blurRadius: 5,
                               )
@@ -206,7 +230,9 @@ class _DashboardFooterState extends State<DashboardFooter> {
   Widget _runStatus(FooterController c) {
     return Row(
       children: [
-        if (c.done)
+        if (c.failed)
+          const Icon(Icons.error_outline, size: 14, color: T.crit)
+        else if (c.done)
           const Icon(Icons.check, size: 14, color: T.ok)
         else
           const SizedBox(
@@ -219,8 +245,12 @@ class _DashboardFooterState extends State<DashboardFooter> {
             ),
           ),
         const SizedBox(width: 10),
-        Text(c.label,
-            style: mono(12.5, color: c.done ? T.ok : T.t2)),
+        Expanded(
+          child: Text(c.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: mono(12.5, color: c.failed ? T.crit : (c.done ? T.ok : T.t2))),
+        ),
       ],
     );
   }

@@ -29,7 +29,9 @@ extension ToneColors on Tone {
       };
 }
 
-enum RunStatus { fresh, ok, low }
+/// [signin]: a user-added account whose provider login isn't finished yet —
+/// shown as an actionable pill instead of being hidden (FR-ER).
+enum RunStatus { fresh, ok, low, signin }
 
 class Meter {
   final int pct;
@@ -50,6 +52,10 @@ class Account {
   final String last;
   final RunStatus status;
 
+  /// Session-chaining toggle (D1 "token maxxing"): when on, the engine
+  /// starts a fresh session the moment this account's window resets.
+  final bool autoStart;
+
   const Account({
     this.id = '',
     required this.provider,
@@ -59,6 +65,7 @@ class Account {
     required this.weekly,
     required this.last,
     required this.status,
+    this.autoStart = false,
   });
 }
 
@@ -72,6 +79,7 @@ const mockAccounts = <Account>[
     weekly: Meter(34, Tone.warn, 'Jul 7 (5:00pm)'),
     last: '2h ago',
     status: RunStatus.low,
+    autoStart: true,
   ),
   Account(
     provider: Provider.claude,
@@ -81,6 +89,7 @@ const mockAccounts = <Account>[
     weekly: Meter(92, Tone.ok, 'Jul 7 (9:15am)'),
     last: '6h ago',
     status: RunStatus.ok,
+    autoStart: true,
   ),
   Account(
     provider: Provider.codex,
@@ -117,6 +126,7 @@ const mockAccounts = <Account>[
     weekly: Meter(70, Tone.ok, 'Jul 8 (8:00am)'),
     last: '40m ago',
     status: RunStatus.ok,
+    autoStart: true,
   ),
   Account(
     provider: Provider.anti,
