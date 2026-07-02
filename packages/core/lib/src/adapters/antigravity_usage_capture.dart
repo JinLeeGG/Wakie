@@ -29,6 +29,15 @@ Future<String> captureAntigravityUsagePanel({
   if (pty == null) return '';
 
   try {
+    // 0. An isolated account's fresh HOME makes agy replay its first-run
+    // wizard (color scheme → Terms of Service), which blocks /usage. Drive
+    // through it: on each wizard page, TAB focuses the advance button ([Next]
+    // / [Done] — the color list and the ToS checkbox default fine) and Enter
+    // activates it. The ToS page has a [Previous] before [Done], so it needs
+    // two TABs. Screen-driven and idempotent — a no-op once the prompt shows
+    // (the common warm case skips it entirely).
+    await _driveFirstRunWizard(pty, maxBoot, poll);
+
     // 1. Wait for the input prompt (sign-in can be slow on a cold start, so
     // maxBoot is generous), then open /usage — retrying the whole command,
     // since a keystroke sent a hair early is silently dropped and the panel
@@ -58,6 +67,35 @@ Future<String> captureAntigravityUsagePanel({
     pty.dispose();
   }
 }
+
+/// Clicks through agy's first-run wizard (color scheme, then Terms of Service)
+/// so a fresh isolated HOME reaches the input prompt. On each page, TAB moves
+/// focus onto the advance button and Enter activates it; the ToS page's
+/// [Previous] sits before [Done], so it takes two TABs. Bails out the moment
+/// the prompt appears (warm homes have no wizard → immediate no-op).
+Future<void> _driveFirstRunWizard(_Pty pty, Duration max, Duration poll) async {
+  final deadline = DateTime.now().add(max);
+  while (DateTime.now().isBefore(deadline)) {
+    final s = pty.screenText();
+    if (_promptReady.hasMatch(s)) return;
+    if (_tosPage.hasMatch(s)) {
+      pty.write('\t');
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      pty.write('\t');
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      pty.write('\r');
+    } else if (_colorPage.hasMatch(s)) {
+      pty.write('\t');
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      pty.write('\r');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+  }
+}
+
+final _colorPage = RegExp(r'Choose your color', caseSensitive: false);
+final _tosPage =
+    RegExp(r'I agree|Terms of Service', caseSensitive: false);
 
 /// Input is only ready once sign-in finishes and the shortcuts hint appears —
 /// the banner ("Antigravity CLI") shows earlier, mid sign-in, so keying /usage
@@ -138,6 +176,9 @@ final _fcntl = _lib.lookupFunction<Int32 Function(Int32, Int32, VarArgs<(Int32,)
     int Function(int, int, int)>('fcntl');
 final _kill = _lib
     .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>('kill');
+final _waitpid = _lib.lookupFunction<
+    Int32 Function(Int32, Pointer<Int32>, Int32),
+    int Function(int, Pointer<Int32>, int)>('waitpid');
 
 const _fGetfl = 3, _fSetfl = 4, _oNonblock = 4, _spawnSetsid = 0x0400;
 
@@ -154,7 +195,9 @@ class _Pty {
   static _Pty? spawn(String executable, Map<String, String> env) {
     final ws = _malloc(sizeOf<_Winsize>()).cast<_Winsize>();
     ws.ref
-      ..row = 40
+      // Tall enough that the first-run wizard's [Next]/[Done] buttons and the
+      // ToS text render on-screen (they fall off a 40-row pty).
+      ..row = 55
       ..col = 120
       ..xpixel = 0
       ..ypixel = 0;
@@ -221,7 +264,15 @@ class _Pty {
   }
 
   void dispose() {
-    _kill(_pid, 15); // SIGTERM
+    // agy (spawned with setsid) forks helper children and ignores a bare
+    // SIGTERM to just its own pid, leaving them alive to pile up. SIGKILL the
+    // whole process group (negative pid = the group led by _pid), then reap
+    // the leader so it doesn't linger as a zombie.
+    _kill(-_pid, 9);
+    _kill(_pid, 9);
+    final st = _malloc(4).cast<Int32>();
+    _waitpid(_pid, st, 0);
+    _free(st.cast());
     _close(_fd);
     _free(_buf.cast());
   }

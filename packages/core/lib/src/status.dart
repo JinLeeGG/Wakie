@@ -29,9 +29,17 @@ class ProviderStatus {
   final UsageWindow session;
   final UsageWindow weekly;
 
+  /// The signed-in account's email, when the usage panel exposes it — used
+  /// for isolated Antigravity accounts whose email isn't in any config file
+  /// (it's only in the encrypted keychain token, so the scraped panel is the
+  /// only R0-safe place to read it). Null for providers that carry email via
+  /// [Preflight] instead.
+  final String? accountEmail;
+
   const ProviderStatus({
     this.session = UsageWindow.unknown,
     this.weekly = UsageWindow.unknown,
+    this.accountEmail,
   });
 
   static const unknown = ProviderStatus();
