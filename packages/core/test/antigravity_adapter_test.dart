@@ -55,6 +55,20 @@ GEMINI MODELS
     final status = await adapter.readStatus(_account(null));
     expect(status.accountEmail, 'wakieDemo1@gmail.com');
     expect(status.weekly.usedPct, 3);
+    // "(Antigravity Starter Quota)" → bare tier, like other providers' plans.
+    expect(status.accountPlan, 'Starter');
+  });
+
+  test('plan header variants normalize to the bare tier', () async {
+    Future<String?> plan(String header) async {
+      final adapter = AntigravityAdapter(capture: (_) async => header);
+      return (await adapter.readStatus(_account(null))).accountPlan;
+    }
+
+    expect(await plan('a@b.com (Google AI Pro)'), 'Pro');
+    expect(await plan('a@b.com (Antigravity Starter Quota)'), 'Starter');
+    expect(await plan('a@b.com (Ultra)'), 'Ultra'); // unknown shape kept as-is
+    expect(await plan('a@b.com'), isNull); // no parenthesized tier
   });
 
   test('readStatus never launches agy for an isolated account with no keychain',

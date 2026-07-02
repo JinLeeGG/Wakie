@@ -51,6 +51,7 @@ ProviderStatus parseAntigravityUsage(String panel) {
     session: _mostConstrained(session),
     weekly: _mostConstrained(weekly),
     accountEmail: _email.firstMatch(panel)?.group(0),
+    accountPlan: _planFrom(panel),
   );
 }
 
@@ -58,6 +59,24 @@ ProviderStatus parseAntigravityUsage(String panel) {
 // "wakieDemo1@gmail.com (Antigravity Starter Quota)". Not a secret (an
 // identifier), and the only place an isolated account's email is exposed.
 final _email = RegExp(r'[\w.+-]+@[\w-]+\.[\w.-]+');
+
+// Plan tier from the same header — the parenthesized text right after the
+// email: "(Google AI Pro)" / "(Antigravity Starter Quota)". Boilerplate
+// ("Google AI", "Antigravity", trailing "Quota") is stripped so it reads as
+// the bare tier ("Pro", "Starter") like the other providers' plans.
+final _emailPlan =
+    RegExp(r'[\w.+-]+@[\w-]+\.[\w.-]+\s*\(([^)\n]{2,40})\)');
+
+String? _planFrom(String panel) {
+  final raw = _emailPlan.firstMatch(panel)?.group(1)?.trim();
+  if (raw == null || raw.isEmpty) return null;
+  final plan = raw
+      .replaceFirst(RegExp(r'^Google AI\s+', caseSensitive: false), '')
+      .replaceFirst(RegExp(r'^Antigravity\s+', caseSensitive: false), '')
+      .replaceFirst(RegExp(r'\s+Quota$', caseSensitive: false), '')
+      .trim();
+  return plan.isEmpty ? raw : plan;
+}
 final _weeklyHdr = RegExp(r'Weekly Limit', caseSensitive: false);
 final _sessionHdr = RegExp(r'Five[- ]?Hour Limit', caseSensitive: false);
 final _remaining = RegExp(r'(\d{1,3})%\s*remaining', caseSensitive: false);

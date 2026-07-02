@@ -43,6 +43,14 @@ Future<String> captureAntigravityUsagePanel({
     // since a keystroke sent a hair early is silently dropped and the panel
     // never opens (the failure that leaves the card stuck "loading").
     await _pollUntil(() => _promptReady.hasMatch(pty.screenText()), maxBoot, poll);
+    // Snapshot the boot screen: its banner is the only place agy shows the
+    // account's plan tier — "email (Google AI Pro)" — and it gets redrawn
+    // without the plan once the /usage panel opens. The plan lands a beat
+    // after the prompt (post quota fetch), so give it a short best-effort
+    // wait; missing it only costs the plan label, never the usage read.
+    await _pollUntil(
+        () => _bannerPlan.hasMatch(pty.screenText()), const Duration(seconds: 3), poll);
+    final bootScreen = pty.screenText();
     for (var attempt = 0; attempt < 3; attempt++) {
       pty.write('/usage');
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -62,7 +70,10 @@ Future<String> captureAntigravityUsagePanel({
     pty.write('\x1b'); // Esc closes the panel
     pty.write('\x03'); // Ctrl-C to exit
     await Future<void>.delayed(const Duration(milliseconds: 200));
-    return pty.screenText();
+    // Boot screen first (email + plan banner), then the usage panel — the
+    // parser scans the combined text; the boot part has no usage numbers to
+    // confuse it.
+    return '$bootScreen\n${pty.screenText()}';
   } finally {
     pty.dispose();
   }
@@ -106,6 +117,9 @@ final _promptReady =
 /// The /usage panel is opening (loading or already showing numbers).
 final _panelOpening =
     RegExp(r'Models & Quota|Weekly Limit|remaining', caseSensitive: false);
+
+/// The boot banner's "email (Plan Tier)" — present once the quota fetch lands.
+final _bannerPlan = RegExp(r'@[\w.-]+\s*\(');
 
 Future<bool> _pollUntil(
     bool Function() cond, Duration max, Duration poll) async {
