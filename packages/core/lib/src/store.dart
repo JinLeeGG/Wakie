@@ -69,10 +69,14 @@ class Store {
   int? _morningAnchorHour;
   int? _morningAnchorMinute;
   bool? _launchAtLogin;
+  bool? _darkWake;
 
   Store._(this._file, this._removedAccountIds, this._status, this._autoStart,
       this._extraAccounts,
-      [this._morningAnchorHour, this._morningAnchorMinute, this._launchAtLogin]);
+      [this._morningAnchorHour,
+      this._morningAnchorMinute,
+      this._launchAtLogin,
+      this._darkWake]);
 
   static String defaultPath() {
     final home = Platform.environment['HOME'] ?? '.';
@@ -126,7 +130,8 @@ class Store {
           extra,
           json['morningAnchorHour'] as int?,
           json['morningAnchorMinute'] as int?,
-          json['launchAtLogin'] as bool?);
+          json['launchAtLogin'] as bool?,
+          json['darkWake'] as bool?);
     } catch (_) {
       return Store._(file, <String>{}, <String, Status>{}, <String, bool>{}, []);
     }
@@ -185,6 +190,16 @@ class Store {
     _save();
   }
 
+  /// Whether the app has programmed a daily hardware wake (`pmset`) so it can
+  /// update while the Mac sleeps. Off until the user turns it on (an admin
+  /// action — see [runWithAdminPrompt]); mirrors what's actually scheduled.
+  bool get darkWake => _darkWake ?? false;
+
+  void setDarkWake(bool enabled) {
+    _darkWake = enabled;
+    _save();
+  }
+
   Status? statusFor(String accountId) => _status[accountId];
 
   /// Caches an account's last-known status so the dashboard has something to
@@ -223,6 +238,7 @@ class Store {
       if (_morningAnchorMinute != null)
         'morningAnchorMinute': _morningAnchorMinute,
       if (_launchAtLogin != null) 'launchAtLogin': _launchAtLogin,
+      if (_darkWake != null) 'darkWake': _darkWake,
     }));
   }
 
