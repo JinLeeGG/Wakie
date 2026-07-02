@@ -45,7 +45,7 @@ void main() {
     );
   });
 
-  testWidgets('auto-refresh dropdown golden', (tester) async {
+  testWidgets('morning wake dropdown golden', (tester) async {
     tester.view.physicalSize = const Size(1000, 640);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -67,7 +67,7 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 1500));
-    await tester.tap(find.text('AUTO-REFRESH'));
+    await tester.tap(find.text('MORNING WAKE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
