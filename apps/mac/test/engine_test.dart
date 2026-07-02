@@ -12,7 +12,9 @@ class _FakeClaude implements core.ProviderAdapter {
   @override
   String get id => 'claude';
   @override
-  Map<String, String> envFor(core.Account a) => const {};
+  Map<String, String> envFor(core.Account a) => a.configHome == null
+      ? const {}
+      : {'CLAUDE_CONFIG_DIR': a.configHome!};
   @override
   Future<core.Preflight> detect(core.Account a) async =>
       const core.Preflight(core.PreflightState.ok,
@@ -595,6 +597,31 @@ void main() {
     await engine.setLaunchAtLogin(false);
     expect(engine.launchAtLogin, isFalse);
     expect(calls, [true, false]);
+  });
+
+  test('rows carry the terminal switch command for isolated accounts only',
+      () async {
+    final store = core.Store.memory()
+      ..addExtraAccount(core.ExtraAccount(
+        id: 'claude-personal',
+        provider: core.Provider.claude,
+        label: 'personal',
+        configHome: '/tmp/wakieai-claude-personal',
+        addedAt: DateTime(2026),
+      ));
+    // Distinct emails per login so identity dedupe keeps both rows.
+    final engine = Engine.withAdapters({
+      core.Provider.claude: _PendingClaude(const core.ProviderStatus())
+        ..extraLoggedIn = true
+    }, store: store);
+
+    final rows = await engine.load();
+
+    final ambient = rows.singleWhere((r) => r.id == 'claude-default');
+    final extra = rows.singleWhere((r) => r.id == 'claude-personal');
+    expect(ambient.terminalCommand, isNull);
+    expect(extra.terminalCommand,
+        'CLAUDE_CONFIG_DIR="/tmp/wakieai-claude-personal" claude');
   });
 
   group('setDarkWake', () {

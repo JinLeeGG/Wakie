@@ -60,6 +60,11 @@ class Account {
   /// summary bar's "next reset". Null for mock rows and unknown windows.
   final DateTime? sessionResetAt;
 
+  /// Shell command that runs this account's CLI in a terminal (isolated
+  /// accounts only — switching accounts by command instead of re-login).
+  /// Null for ambient defaults and mock rows.
+  final String? terminalCommand;
+
   const Account({
     this.id = '',
     required this.provider,
@@ -71,6 +76,7 @@ class Account {
     required this.status,
     this.autoStart = false,
     this.sessionResetAt,
+    this.terminalCommand,
   });
 }
 
