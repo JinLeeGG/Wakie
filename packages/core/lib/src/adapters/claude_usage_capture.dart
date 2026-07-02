@@ -18,6 +18,7 @@ import '../vt.dart';
 Future<String> captureClaudeUsagePanel({
   Map<String, String> env = const {},
   String executable = 'claude',
+  String? workingDirectory,
   Duration maxBoot = const Duration(seconds: 15),
   Duration maxRender = const Duration(seconds: 12),
   Duration poll = const Duration(milliseconds: 200),
@@ -26,6 +27,10 @@ Future<String> captureClaudeUsagePanel({
     'script',
     ['-q', '/dev/null', executable],
     environment: env,
+    // For an isolated (extra) account, run inside its own config home so the
+    // pre-trusted directory (see prepareClaudeConfigHome) matches — otherwise
+    // claude shows a "trust this folder?" dialog that blocks the /usage panel.
+    workingDirectory: workingDirectory,
   );
 
   final screen = VtScreen();

@@ -15,6 +15,7 @@ export 'src/adapters/claude_usage_parser.dart';
 export 'src/adapters/codex_adapter.dart';
 export 'src/adapters/codex_app_server.dart';
 export 'src/adapters/codex_usage_parser.dart';
+export 'src/claude_config.dart';
 export 'src/discovery.dart';
 export 'src/launch_agent.dart';
 export 'src/notify.dart';
