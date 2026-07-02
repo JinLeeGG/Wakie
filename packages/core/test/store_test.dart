@@ -84,6 +84,14 @@ void main() {
     expect(reloaded.autoStartPreference('codex-default'), isNull);
   });
 
+  test('launchAtLogin defaults off and survives reload', () {
+    final fresh = Store.load(path());
+    expect(fresh.launchAtLogin, isFalse);
+
+    fresh.setLaunchAtLogin(true);
+    expect(Store.load(path()).launchAtLogin, isTrue);
+  });
+
   test('morning anchor defaults to 8:00am and survives reload', () {
     final fresh = Store.load(path());
     expect(fresh.morningAnchorHour, 8);

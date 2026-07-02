@@ -68,10 +68,11 @@ class Store {
   final List<ExtraAccount> _extraAccounts;
   int? _morningAnchorHour;
   int? _morningAnchorMinute;
+  bool? _launchAtLogin;
 
   Store._(this._file, this._removedAccountIds, this._status, this._autoStart,
       this._extraAccounts,
-      [this._morningAnchorHour, this._morningAnchorMinute]);
+      [this._morningAnchorHour, this._morningAnchorMinute, this._launchAtLogin]);
 
   static String defaultPath() {
     final home = Platform.environment['HOME'] ?? '.';
@@ -117,8 +118,15 @@ class Store {
         for (final e in extraJson)
           ExtraAccount.fromJson(e as Map<String, dynamic>),
       ];
-      return Store._(file, removed, status, autoStart, extra,
-          json['morningAnchorHour'] as int?, json['morningAnchorMinute'] as int?);
+      return Store._(
+          file,
+          removed,
+          status,
+          autoStart,
+          extra,
+          json['morningAnchorHour'] as int?,
+          json['morningAnchorMinute'] as int?,
+          json['launchAtLogin'] as bool?);
     } catch (_) {
       return Store._(file, <String>{}, <String, Status>{}, <String, bool>{}, []);
     }
@@ -168,6 +176,15 @@ class Store {
     _save();
   }
 
+  /// Whether the app registers itself as a login item. Off until the user
+  /// turns it on (the toggle must reflect what's actually installed).
+  bool get launchAtLogin => _launchAtLogin ?? false;
+
+  void setLaunchAtLogin(bool enabled) {
+    _launchAtLogin = enabled;
+    _save();
+  }
+
   Status? statusFor(String accountId) => _status[accountId];
 
   /// Caches an account's last-known status so the dashboard has something to
@@ -205,6 +222,7 @@ class Store {
       if (_morningAnchorHour != null) 'morningAnchorHour': _morningAnchorHour,
       if (_morningAnchorMinute != null)
         'morningAnchorMinute': _morningAnchorMinute,
+      if (_launchAtLogin != null) 'launchAtLogin': _launchAtLogin,
     }));
   }
 

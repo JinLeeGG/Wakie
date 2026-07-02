@@ -66,3 +66,25 @@ String pmsetDailyWakeCommand({required int hour, required int minute}) {
   final mm = minute.toString().padLeft(2, '0');
   return 'sudo pmset repeat wakeorpoweron MTWRFSU $hh:$mm:00';
 }
+
+const wakieaiLoginItemLabel = 'ai.wakie.app';
+
+/// The LaunchAgent plist that opens the WakieAI app at login (the footer's
+/// "Launch at login" toggle). RunAtLoad-only — launchd starts it once per
+/// login session and never restarts it (no KeepAlive; quitting stays quit).
+String loginItemPlist({required String executablePath}) => '''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$wakieaiLoginItemLabel</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$executablePath</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+''';
