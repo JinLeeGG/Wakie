@@ -16,18 +16,28 @@ class Engine {
 
   factory Engine.production() {
     final claude = core.ClaudeAdapter(
-      capture: (a) => core.captureClaudeUsagePanel(env: _envFor(a)),
+      capture: (a) => core.captureClaudeUsagePanel(env: _claudeEnv(a)),
     );
-    return Engine._({core.Provider.claude: claude});
+    final codex = core.CodexAdapter(
+      read: (a) => core.readCodexRateLimits(env: _codexEnv(a)),
+    );
+    return Engine._({
+      core.Provider.claude: claude,
+      core.Provider.codex: codex,
+    });
   }
 
   @visibleForTesting
   factory Engine.withAdapters(Map<core.Provider, core.ProviderAdapter> a) =>
       Engine._(a);
 
-  static Map<String, String> _envFor(core.Account a) => a.configHome == null
+  static Map<String, String> _claudeEnv(core.Account a) => a.configHome == null
       ? const {}
       : {'CLAUDE_CONFIG_DIR': a.configHome!};
+
+  static Map<String, String> _codexEnv(core.Account a) => a.configHome == null
+      ? const {}
+      : {'CODEX_HOME': a.configHome!};
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;
@@ -73,20 +83,20 @@ class Engine {
 }
 
 Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s) {
-  final session = _meter(s.session);
+  final session = _meter(s.session, weekly: false);
   return Account(
     provider: _uiProvider(a.provider),
     name: _displayName(a),
     plan: '${a.provider.name} · ${pf.detail ?? '—'}',
     session: session,
-    weekly: _meter(s.weekly),
+    weekly: _meter(s.weekly, weekly: true),
     last: 'just now',
     status: session.pct < 20 ? RunStatus.low : RunStatus.ok,
   );
 }
 
 /// The UI shows remaining ("N% left"), while the provider reports used.
-Meter _meter(core.UsageWindow w) {
+Meter _meter(core.UsageWindow w, {required bool weekly}) {
   if (!w.isKnown) return const Meter(0, Tone.warn, '…');
   final remaining = (100 - w.usedPct!).clamp(0, 100);
   final tone = remaining < 20
@@ -94,7 +104,33 @@ Meter _meter(core.UsageWindow w) {
       : remaining < 50
           ? Tone.warn
           : Tone.ok;
-  return Meter(remaining, tone, _shortReset(w.resetLabel));
+  return Meter(remaining, tone, _resetLabel(w, weekly: weekly));
+}
+
+/// Codex reports an absolute [resetAt] (epoch); Claude a rendered [resetLabel].
+/// Show a date for the weekly window, a time for the session window — matching
+/// the mock's "Jul 7" / "4:30 AM" columns.
+String _resetLabel(core.UsageWindow w, {required bool weekly}) {
+  final at = w.resetAt;
+  if (at != null) {
+    final local = at.toLocal();
+    return weekly ? _fmtDate(local) : _fmtTime(local);
+  }
+  return _shortReset(w.resetLabel);
+}
+
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _fmtDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+
+String _fmtTime(DateTime d) {
+  final ampm = d.hour < 12 ? 'am' : 'pm';
+  final h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '$h12:$mm$ampm';
 }
 
 /// Drops the "(timezone)" suffix: "2:30am (America/New_York)" → "2:30am".

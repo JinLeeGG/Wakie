@@ -89,7 +89,12 @@
 - **S4 완료** — pty 캡처(`captureClaudeUsagePanel`, macOS `script`) → VT 렌더 → 파서 파이프라인 라이브 검증(`session=36%, weekly=4%`). Flutter 앱을 `packages/core`에 path 의존 연결. `Engine`(core→UI 매핑: used%→remaining%·tone·리셋 라벨 정리) 추가. 대시보드에 주입형 `loader`(null이면 목데이터→골든 결정성 유지) + Refresh all 재로딩 + 로딩 상태. 앱 테스트 5개 그린(골든 2·위젯 스모크 1·엔진 매핑 2). **부수 수정:** 기존 위젯 스모크 테스트가 폰트 미로드로 이미 깨져 있던 것(footer 오버플로) 폰트 로딩 추가해 복구.
   - **⚠️ VT/그리드 검증 골든:** 실제 raw pty 캡처(`test/fixtures/claude_usage_raw.ansi`)를 VT→파서에 통과시켜 19%/2:30am·2%/Jul 7 확인하는 엔드투엔드 골든 포함.
 
+- **S6 완료(Codex) — TUI 스크랩 없이 app-server JSON-RPC로 전환 (2026-07-02).** S5에서 "높은 난이도"로 막혔던 Codex `/status` TUI 스크랩(동기화출력·alt-screen)을 **완전히 우회**. `codex app-server`(stdio) JSON-RPC에 `initialize` → `account/rateLimits/read` 두 호출이면 **구조화된 rate-limit JSON**을 직접 받음(pty·VT·골든 스크랩 불필요). 실측 응답: `rateLimits.primary`=5h 세션창(`usedPercent`·`windowDurationMins:300`·`resetsAt` epoch)·`secondary`=주간창(`10080`)·`planType`. 라이브 검증: `detect: ok(ChatGPT) · session 99% left · weekly 56% left`(실제 리셋시각).
+  - **구현:** 순수 파서 `parseCodexRateLimits`(JSON→`ProviderStatus`) + 라이브 seam `readCodexRateLimits`(app-server 구동, 주입형) + `CodexAdapter`(detect=`codex login status`, `envFor`=`CODEX_HOME`). 골든 픽스처 `test/fixtures/codex_rate_limits.json`. Engine에 Codex 어댑터 배선 → 대시보드 자동 표시. 테스트: core 25 · app 6 그린.
+  - **⚠️ 발견:** ① `codex login status`는 로그인 메시지를 **stderr**로 출력(stdout 빈값) → detect가 두 스트림 합쳐 판정. ② **Q4 해결:** Codex `resetsAt`가 epoch 정수라 `UsageWindow`에 nullable `resetAt`(DateTime) 필드 추가(Claude 경로는 `resetLabel` 문자열 그대로 유지). Engine이 세션창→시각·주간창→날짜로 포맷.
+  - **Antigravity는 여전히 후속 과제:** `agy`(1.0.14)엔 usage/status/account/app-server/mcp 서브커맨드가 **전무**(모르는 서브커맨드=top-level help). 사용량은 대화형 TUI `/usage`에만 있음 → PRD 🟠 유지. 착수 시: agy TUI 스크랩(alt-screen 처리) 또는 config 파일 탐색으로 detect부터.
+
 ## 남은 오픈 질문
 
 - **Q3.** 로컬 store 백엔드 — 단순 JSON 파일 vs `sqlite`/`hive`? 인디 규모라 JSON으로 충분해 보임(YAGNI).
-- **Q4.** 리셋을 절대 `DateTime`으로 파싱할지(알림용, Phase 1) — 현재는 원본 라벨 문자열 보관.
+- **Q4. (해결됨 2026-07-02)** 리셋을 절대 `DateTime`으로 파싱할지 — Codex가 epoch를 직접 주므로 `UsageWindow.resetAt`(nullable DateTime) 추가로 확정. Claude는 아직 문자열 라벨(`resetLabel`) 유지; 알림(Phase 1) 착수 시 Claude 라벨도 절대시각 파싱 검토.
