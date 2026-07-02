@@ -37,6 +37,8 @@ dependencies:
   tray_manager: ^0.5.3
   macos_window_utils: ^1.9.1
   flutter_svg: ^2.3.0
+  wakieai_core:
+    path: ../../packages/core
 
 dev_dependencies:
   flutter_test:

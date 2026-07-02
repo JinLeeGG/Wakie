@@ -5,6 +5,8 @@
 DerivedData/
 build/
 .build/
+.dart_tool/
+packages/*/pubspec.lock
 *.swp
 *.log
 __pycache__/

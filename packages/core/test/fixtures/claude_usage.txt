@@ -1,0 +1,12 @@
+Usage                                          Status   Config   Usage
+
+Current session
+█████████▌ 19% used                Resets 2:30am (America/New_York)
+
+Current week (all models)
+█ 2% used                          Resets Jul 7 at 7am (America/New_York)
+
+Extra usage
+Extra usage not enabled • /extra-usage to enable
+
+Esc to cancel
