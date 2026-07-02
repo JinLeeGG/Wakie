@@ -486,17 +486,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                   final handler = widget.onSetDarkWake;
                   if (handler == null) return null;
                   setState(() => _darkWake = on); // optimistic
-                  _footer.start(
-                      on ? 'Scheduling wake…' : 'Cancelling wake…');
+                  // No progress bar here: the work is a blocking admin prompt,
+                  // so a trickling bar just climbs while the user types their
+                  // password. The toggle itself is the feedback; only a real
+                  // failure surfaces (and snaps the toggle back).
                   final error = await handler(on);
                   if (!mounted) return error;
                   if (error != null) {
                     setState(() => _darkWake = !on); // snap back on failure
                     _footer.fail(error);
-                  } else {
-                    _footer.finish(on
-                        ? 'Wake from sleep on'
-                        : 'Wake from sleep off');
                   }
                   return error;
                 },
