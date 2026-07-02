@@ -80,7 +80,10 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         fontFamily: T.sans,
         scaffoldBackgroundColor: Colors.transparent,
       ),
-      home: DashboardScreen(source: _engine.watch),
+      home: DashboardScreen(
+        source: _engine.watch,
+        onUpdateAccount: (a) => _engine.refreshAccount(a.id),
+      ),
     );
   }
 }

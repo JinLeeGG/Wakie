@@ -76,4 +76,21 @@ void main() {
     final a = (await engine.load()).single;
     expect(a.session.reset, '…');
   });
+
+  test('refreshAccount re-reads a single discovered account by id', () async {
+    final engine = Engine.withAdapters({
+      core.Provider.claude: _FakeClaude(const core.ProviderStatus(
+        session: core.UsageWindow(usedPct: 40, resetLabel: '2:30am'),
+        weekly: core.UsageWindow(usedPct: 10, resetLabel: 'Jul 7 at 7am'),
+      )),
+    });
+    await engine.load(); // discovers + remembers accounts
+
+    final row = await engine.refreshAccount('claude-default');
+    expect(row, isNotNull);
+    expect(row!.provider, Provider.claude);
+    expect(row.session.pct, 60); // 40% used → 60% left, re-read live
+
+    expect(await engine.refreshAccount('nope'), isNull);
+  });
 }
