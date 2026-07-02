@@ -90,6 +90,9 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         morningAnchorHour: _engine.morningAnchorHour,
         morningAnchorMinute: _engine.morningAnchorMinute,
         onSetMorningAnchor: _engine.setMorningAnchor,
+        onAwakeTick: _engine.awakeTick,
+        launchAtLogin: _engine.launchAtLogin,
+        onSetLaunchAtLogin: _engine.setLaunchAtLogin,
       ),
     );
   }

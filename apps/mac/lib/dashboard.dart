@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'engine.dart' show SignInResult, SignInState;
+import 'engine.dart' show SignInResult, SignInState, formatClock;
 import 'models.dart';
 import 'theme.dart';
 import 'widgets/account_row.dart';
@@ -50,6 +50,16 @@ class DashboardScreen extends StatefulWidget {
   final int morningAnchorMinute;
   final void Function(int hour, int minute)? onSetMorningAnchor;
 
+  /// One awake-cycle pass (auto-start lapsed windows + alerts) — run
+  /// periodically while the app is open. Returns ids whose status changed.
+  /// Null in tests/goldens.
+  final Future<List<String>> Function()? onAwakeTick;
+
+  /// "Launch at login" — current state + toggle handler (installs/removes the
+  /// login item). Null handler in tests/goldens.
+  final bool launchAtLogin;
+  final Future<void> Function(bool)? onSetLaunchAtLogin;
+
   const DashboardScreen({
     super.key,
     this.source,
@@ -61,6 +71,9 @@ class DashboardScreen extends StatefulWidget {
     this.morningAnchorHour = 8,
     this.morningAnchorMinute = 0,
     this.onSetMorningAnchor,
+    this.onAwakeTick,
+    this.launchAtLogin = false,
+    this.onSetLaunchAtLogin,
   });
 
   @override
@@ -92,6 +105,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   Timer? _signinPoll;
   bool _polling = false; // re-entrancy guard: never overlap sign-in polls
 
+  Timer? _awakeTimer;
+  bool _ticking = false; // re-entrancy guard for the awake tick
+
+  // Morning anchor + launch-at-login mirrored into state so the footer's
+  // "next wake" and toggle track edits live (widget values are initial only).
+  late int _anchorHour = widget.morningAnchorHour;
+  late int _anchorMinute = widget.morningAnchorMinute;
+  late bool _launchAtLogin = widget.launchAtLogin;
+
   @override
   void initState() {
     super.initState();
@@ -111,6 +133,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     // stack up overlapping polls.
     _signinPoll = Timer.periodic(
         const Duration(seconds: 6), (_) => _pollPendingSignins());
+    // While awake, watch for session windows lapsing so auto-start chains a
+    // new one (D1) and alerts fire — the dark-wake runner covers the asleep
+    // hours; this covers the Mac sitting open all day. Pure clock/store math
+    // per tick; subprocesses only run when a window actually lapses.
+    _awakeTimer =
+        Timer.periodic(const Duration(seconds: 60), (_) => _awakeTick());
   }
 
   @override
@@ -118,9 +146,55 @@ class _DashboardScreenState extends State<DashboardScreen>
     _sub?.cancel();
     _tagTimer?.cancel();
     _signinPoll?.cancel();
+    _awakeTimer?.cancel();
     _winIn.dispose();
     _footer.dispose();
     super.dispose();
+  }
+
+  /// Earliest upcoming session reset across accounts, in the rows' clock
+  /// format. Mock rows carry no instant, so goldens keep the mockup's value.
+  String _nextResetLabel() {
+    if (widget.source == null) return '4:30am'; // static mock (deterministic)
+    final now = DateTime.now();
+    DateTime? next;
+    for (final a in _accounts) {
+      final at = a.sessionResetAt;
+      if (at == null || at.isBefore(now)) continue;
+      if (next == null || at.isBefore(next)) next = at;
+    }
+    return next == null ? '—' : formatClock(next);
+  }
+
+  /// Next occurrence of the morning anchor (today if still ahead, else
+  /// tomorrow) — what the footer's "next wake" promises.
+  DateTime _nextWake() {
+    final now = DateTime.now();
+    var at = DateTime(now.year, now.month, now.day, _anchorHour, _anchorMinute);
+    if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
+    return at;
+  }
+
+  Future<void> _awakeTick() async {
+    if (_ticking) return;
+    final tick = widget.onAwakeTick;
+    final updater = widget.onUpdateAccount;
+    if (tick == null) return;
+    _ticking = true;
+    try {
+      final changedIds = await tick();
+      if (!mounted || updater == null) return;
+      // Refresh the affected rows so new windows/alerts show immediately.
+      for (final id in changedIds) {
+        final i = _accounts.indexWhere((a) => a.id == id);
+        if (i == -1) continue;
+        final fresh = await updater(_accounts[i]);
+        if (!mounted) return;
+        if (fresh != null) setState(() => _accounts[i] = fresh);
+      }
+    } finally {
+      _ticking = false;
+    }
   }
 
   Future<void> _pollPendingSignins() async {
@@ -349,10 +423,20 @@ class _DashboardScreenState extends State<DashboardScreen>
               _header(),
               SummaryBar(
                 accountCount: _accounts.length,
+                runningLow: _accounts
+                    .where((a) => a.status == RunStatus.low)
+                    .length,
+                nextReset: _nextResetLabel(),
                 onAddAccount: () => setState(() => _addingAccount = true),
-                morningAnchorHour: widget.morningAnchorHour,
-                morningAnchorMinute: widget.morningAnchorMinute,
-                onSetMorningAnchor: widget.onSetMorningAnchor,
+                morningAnchorHour: _anchorHour,
+                morningAnchorMinute: _anchorMinute,
+                onSetMorningAnchor: (h, m) {
+                  setState(() {
+                    _anchorHour = h;
+                    _anchorMinute = m;
+                  });
+                  widget.onSetMorningAnchor?.call(h, m);
+                },
               ),
               const _ColHead(),
               Expanded(
@@ -382,6 +466,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _reload(footer: true);
                 },
                 onAddAccount: () => setState(() => _addingAccount = true),
+                nextWake: formatClock(_nextWake()),
+                launchAtLogin: _launchAtLogin,
+                onLaunchAtLogin: (on) {
+                  setState(() => _launchAtLogin = on);
+                  widget.onSetLaunchAtLogin?.call(on);
+                },
               ),
             ],
           ),

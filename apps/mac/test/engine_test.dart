@@ -57,6 +57,25 @@ class _CountingPendingClaude extends _FakeClaude {
   }
 }
 
+/// Counts startSession/readStatus calls for awake-tick assertions.
+class _CountingClaude extends _FakeClaude {
+  int starts = 0;
+  int reads = 0;
+  _CountingClaude(super.status);
+
+  @override
+  Future<core.RunOutcome> startSession(core.Account a, {String? model}) async {
+    starts++;
+    return super.startSession(a, model: model);
+  }
+
+  @override
+  Future<core.ProviderStatus> readStatus(core.Account a) async {
+    reads++;
+    return super.readStatus(a);
+  }
+}
+
 void main() {
   test('maps core usage (used%) to UI meters (remaining% + tone)', () async {
     final engine = Engine.withAdapters({
@@ -474,6 +493,108 @@ void main() {
     expect(resolved.single.message, contains('already added'));
     expect(store.isRemoved('claude-dup'), isTrue);
     expect(engine.pendingSigninIds(), isEmpty);
+  });
+
+  group('awakeTick', () {
+    // A cached status whose session window lapsed 5 minutes ago.
+    core.Status lapsed(String id) => core.Status(
+          accountId: id,
+          session: core.UsageWindow(
+              usedPct: 100,
+              resetAt: DateTime.now().subtract(const Duration(minutes: 5))),
+          weekly: const core.UsageWindow(usedPct: 10),
+          lastOutcome: core.Outcome.ok,
+          lastCheckedAt: DateTime.now().subtract(const Duration(hours: 1)),
+        );
+
+    test('lapsed window + auto-start on → chains a new session', () async {
+      final adapter = _CountingClaude(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 0, resetLabel: '8:00pm')));
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load(); // Claude defaults auto-start ON
+      store.saveStatus(lapsed('claude-default'));
+
+      final changed = await engine.awakeTick();
+
+      expect(changed, ['claude-default']);
+      expect(adapter.starts, 1); // a new session was started
+      expect(store.statusFor('claude-default')!.session.usedPct, 0); // re-read
+    });
+
+    test('lapsed window + auto-start OFF → refreshes only, never starts', () async {
+      final adapter = _CountingClaude(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 3, resetLabel: '8:00pm')));
+      final store = core.Store.memory()
+        ..setAutoStart('claude-default', false);
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      final readsAfterLoad = adapter.reads;
+      store.saveStatus(lapsed('claude-default'));
+
+      final changed = await engine.awakeTick();
+
+      expect(changed, ['claude-default']);
+      expect(adapter.starts, 0); // read-only: no session consumed
+      expect(adapter.reads, readsAfterLoad + 1);
+      expect(store.statusFor('claude-default')!.session.usedPct, 3);
+    });
+
+    test('window still ahead → nothing happens (no subprocess)', () async {
+      final adapter = _CountingClaude(const core.ProviderStatus());
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      final readsAfterLoad = adapter.reads;
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: core.UsageWindow(
+            usedPct: 40, resetAt: DateTime.now().add(const Duration(hours: 2))),
+        lastCheckedAt: DateTime.now(),
+      ));
+
+      expect(await engine.awakeTick(), isEmpty);
+      expect(adapter.starts, 0);
+      expect(adapter.reads, readsAfterLoad);
+    });
+
+    test('a recently failed start is not retried every tick', () async {
+      final adapter = _CountingClaude(const core.ProviderStatus());
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: core.UsageWindow(
+            usedPct: 100,
+            resetAt: DateTime.now().subtract(const Duration(minutes: 5))),
+        lastOutcome: core.Outcome.failed,
+        lastStartedAt: DateTime.now().subtract(const Duration(minutes: 2)),
+        lastCheckedAt: DateTime.now().subtract(const Duration(minutes: 2)),
+      ));
+
+      expect(await engine.awakeTick(), isEmpty);
+      expect(adapter.starts, 0); // backing off after the recent failure
+    });
+  });
+
+  test('setLaunchAtLogin persists and installs/removes the login item', () async {
+    final calls = <bool>[];
+    final store = core.Store.memory();
+    final engine = Engine.withAdapters({},
+        store: store, installLoginItem: (on) async => calls.add(on));
+
+    await engine.setLaunchAtLogin(true);
+    expect(engine.launchAtLogin, isTrue);
+    expect(store.launchAtLogin, isTrue);
+
+    await engine.setLaunchAtLogin(false);
+    expect(engine.launchAtLogin, isFalse);
+    expect(calls, [true, false]);
   });
 
   test('morning anchor defaults to 8:00am and setMorningAnchor persists via the store',

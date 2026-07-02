@@ -94,11 +94,19 @@ class DashboardFooter extends StatefulWidget {
   final VoidCallback onRefreshAll;
   final VoidCallback onAddAccount;
 
+  /// Next scheduled wake (the morning anchor's next occurrence), preformatted.
+  final String nextWake;
+  final bool launchAtLogin;
+  final ValueChanged<bool>? onLaunchAtLogin;
+
   const DashboardFooter({
     super.key,
     required this.controller,
     required this.onRefreshAll,
     required this.onAddAccount,
+    this.nextWake = '—',
+    this.launchAtLogin = false,
+    this.onLaunchAtLogin,
   });
 
   @override
@@ -106,7 +114,6 @@ class DashboardFooter extends StatefulWidget {
 }
 
 class _DashboardFooterState extends State<DashboardFooter> {
-  bool _launchAtLogin = true;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +184,7 @@ class _DashboardFooterState extends State<DashboardFooter> {
                           text: 'next wake ',
                           style: mono(13.5, color: T.t2)),
                       TextSpan(
-                          text: '6:55 AM',
+                          text: widget.nextWake,
                           style: mono(13.5,
                               weight: FontWeight.w600, color: T.amber)),
                     ])),
@@ -259,7 +266,7 @@ class _DashboardFooterState extends State<DashboardFooter> {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => setState(() => _launchAtLogin = !_launchAtLogin),
+        onTap: () => widget.onLaunchAtLogin?.call(!widget.launchAtLogin),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -268,12 +275,12 @@ class _DashboardFooterState extends State<DashboardFooter> {
               width: 32,
               height: 18,
               decoration: BoxDecoration(
-                color: _launchAtLogin ? T.amber : T.white(.12),
+                color: widget.launchAtLogin ? T.amber : T.white(.12),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment: _launchAtLogin
+                alignment: widget.launchAtLogin
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
                 child: Padding(
