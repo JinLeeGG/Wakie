@@ -598,41 +598,41 @@ void main() {
   });
 
   group('setDarkWake', () {
-    test('on → runs the anchor pmset command and persists', () async {
-      String? command;
+    test('on → configures the wake at the anchor and persists', () async {
+      final calls = <(bool, int, int)>[];
       final store = core.Store.memory()..setMorningAnchor(7, 30);
       final engine = Engine.withAdapters({},
-          store: store, runPrivileged: (c) async {
-        command = c;
+          store: store, configureDarkWake: (e, h, m) async {
+        calls.add((e, h, m));
         return null;
       });
 
       final err = await engine.setDarkWake(true);
 
       expect(err, isNull);
-      expect(command, core.pmsetDailyWakeCommandRaw(hour: 7, minute: 30));
+      expect(calls, [(true, 7, 30)]);
       expect(engine.darkWake, isTrue);
     });
 
-    test('off → runs the cancel command', () async {
-      String? command;
+    test('off → configures removal and persists', () async {
+      final calls = <(bool, int, int)>[];
       final store = core.Store.memory()..setDarkWake(true);
       final engine = Engine.withAdapters({},
-          store: store, runPrivileged: (c) async {
-        command = c;
+          store: store, configureDarkWake: (e, h, m) async {
+        calls.add((e, h, m));
         return null;
       });
 
       await engine.setDarkWake(false);
 
-      expect(command, core.pmsetCancelCommandRaw);
+      expect(calls.single.$1, isFalse);
       expect(engine.darkWake, isFalse);
     });
 
-    test('a cancelled/failed prompt leaves stored state unchanged', () async {
+    test('a cancelled/failed configure leaves stored state unchanged', () async {
       final store = core.Store.memory();
       final engine = Engine.withAdapters({},
-          store: store, runPrivileged: (_) async => 'Cancelled.');
+          store: store, configureDarkWake: (_, _, _) async => 'Cancelled.');
 
       final err = await engine.setDarkWake(true);
 

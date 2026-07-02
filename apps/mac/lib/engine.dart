@@ -68,9 +68,76 @@ Future<void> _realEnsureDir(String path) async {
   await Directory(path).create(recursive: true);
 }
 
-/// Runs a privileged shell command via the macOS admin prompt, returning null
-/// on success or an error message. Injected so tests never spawn osascript.
-typedef PrivilegedRunner = Future<String?> Function(String command);
+/// Installs/removes the daily dark-wake LaunchAgent *and* programs the `pmset`
+/// hardware wake for it, at [hour]:[minute]. Returns null on success or a
+/// message to surface (e.g. the user dismissed the password dialog). Injected
+/// so tests never touch launchd/pmset.
+typedef DarkWakeConfigurer = Future<String?> Function(
+    bool enable, int hour, int minute);
+
+/// The whole dark-wake setup, app-driven (no install script for the user):
+/// writes the runner LaunchAgent, registers it with `launchctl` (both
+/// non-privileged), then programs the hardware wake via the one admin prompt.
+/// Rolls the agent back if that prompt is cancelled, so the two never drift.
+Future<String?> _realConfigureDarkWake(bool enable, int hour, int minute) async {
+  final home = Platform.environment['HOME'];
+  if (home == null) return 'No HOME directory.';
+  final plistPath =
+      '$home/Library/LaunchAgents/${core.wakieaiLaunchAgentLabel}.plist';
+  final plist = File(plistPath);
+
+  if (!enable) {
+    // Prompt first: if they cancel, keep everything as-is.
+    final err = await core.runWithAdminPrompt(core.pmsetCancelCommandRaw);
+    if (err != null) return err;
+    await Process.run('launchctl', ['unload', plistPath]);
+    if (plist.existsSync()) plist.deleteSync();
+    return null;
+  }
+
+  final runner = _resolveRunnerPath();
+  if (runner == null) {
+    return 'Runner not found — rebuild the app to bundle wakieai_runner.';
+  }
+  final logDir = Directory('$home/Library/Application Support/WakieAI/logs')
+    ..createSync(recursive: true);
+  plist.parent.createSync(recursive: true);
+  plist.writeAsStringSync(core.launchAgentPlist(
+    executablePath: runner,
+    hour: hour,
+    minute: minute,
+    stdoutPath: '${logDir.path}/out.log',
+    stderrPath: '${logDir.path}/err.log',
+  ));
+  await Process.run('launchctl', ['unload', plistPath]); // ignore if not loaded
+  final load = await Process.run('launchctl', ['load', plistPath]);
+  if (load.exitCode != 0) {
+    if (plist.existsSync()) plist.deleteSync();
+    return 'launchctl failed: ${(load.stderr as String).trim()}';
+  }
+  final err = await core.runWithAdminPrompt(
+      core.pmsetDailyWakeCommandRaw(hour: hour, minute: minute));
+  if (err != null) {
+    await Process.run('launchctl', ['unload', plistPath]);
+    if (plist.existsSync()) plist.deleteSync();
+    return err;
+  }
+  return null;
+}
+
+/// The headless runner binary: bundled beside the app (release), else the dev
+/// copy compiled under Application Support by scripts/install_dark_wake.sh.
+/// Null if neither exists (a dev build before the runner is compiled).
+String? _resolveRunnerPath() {
+  final macos = File(Platform.resolvedExecutable).parent; // .../Contents/MacOS
+  final bundled = File('${macos.parent.path}/Resources/wakieai_runner');
+  if (bundled.existsSync()) return bundled.path;
+  final home = Platform.environment['HOME'];
+  if (home == null) return null;
+  final dev =
+      File('$home/Library/Application Support/WakieAI/wakieai_runner');
+  return dev.existsSync() ? dev.path : null;
+}
 
 /// Installs/removes the "open at login" LaunchAgent. Injected so tests never
 /// touch ~/Library/LaunchAgents.
@@ -135,7 +202,7 @@ class Engine {
   final ConfigPreparer _prepareConfig;
   final Future<void> Function(String title, String body) _notify;
   final LoginItemInstaller _installLoginItem;
-  final PrivilegedRunner _runPrivileged;
+  final DarkWakeConfigurer _configureDarkWake;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
@@ -151,7 +218,7 @@ class Engine {
       this._prepareConfig,
       this._notify,
       this._installLoginItem,
-      this._runPrivileged);
+      this._configureDarkWake);
 
   factory Engine.production() => Engine._(
       core.productionAdapters(),
@@ -163,7 +230,7 @@ class Engine {
       _realPrepareConfig,
       core.showMacNotification,
       _realInstallLoginItem,
-      core.runWithAdminPrompt);
+      _realConfigureDarkWake);
 
   @visibleForTesting
   factory Engine.withAdapters(Map<core.Provider, core.ProviderAdapter> a,
@@ -175,7 +242,7 @@ class Engine {
           ConfigPreparer? prepareConfig,
           Future<void> Function(String, String)? notify,
           LoginItemInstaller? installLoginItem,
-          PrivilegedRunner? runPrivileged}) =>
+          DarkWakeConfigurer? configureDarkWake}) =>
       Engine._(
           a,
           store ?? core.Store.memory(),
@@ -186,7 +253,7 @@ class Engine {
           prepareConfig ?? (_, _) async {},
           notify ?? (_, _) async {},
           installLoginItem ?? (_) async {},
-          runPrivileged ?? (_) async => null);
+          configureDarkWake ?? (_, _, _) async => null);
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;
@@ -485,17 +552,15 @@ class Engine {
 
   bool get darkWake => _store.darkWake;
 
-  /// Programs (or cancels) the daily hardware wake at the morning anchor via
-  /// the macOS admin prompt, so the headless runner can update while the Mac
-  /// sleeps — no terminal. Returns null on success, or a message to show
-  /// (e.g. the user dismissed the password dialog); on failure the stored
-  /// state is left unchanged so the toggle can snap back.
+  /// Turns the whole dark-wake setup on/off at the morning anchor — installs
+  /// the runner LaunchAgent and programs the `pmset` hardware wake (one admin
+  /// prompt), or tears both down — so the Mac wakes itself to update while
+  /// asleep, no terminal. Returns null on success, or a message to show (e.g.
+  /// the user dismissed the password dialog); on failure the stored state is
+  /// left unchanged so the toggle can snap back.
   Future<String?> setDarkWake(bool enabled) async {
-    final command = enabled
-        ? core.pmsetDailyWakeCommandRaw(
-            hour: _store.morningAnchorHour, minute: _store.morningAnchorMinute)
-        : core.pmsetCancelCommandRaw;
-    final error = await _runPrivileged(command);
+    final error = await _configureDarkWake(
+        enabled, _store.morningAnchorHour, _store.morningAnchorMinute);
     if (error != null) return error;
     _store.setDarkWake(enabled);
     return null;
