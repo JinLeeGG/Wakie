@@ -4,6 +4,7 @@ import 'package:macos_window_utils/macos_window_utils.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 import 'dashboard.dart';
+import 'engine.dart';
 import 'theme.dart';
 
 const _window = MethodChannel('wakieai/window');
@@ -28,6 +29,8 @@ class WakieApp extends StatefulWidget {
 }
 
 class _WakieAppState extends State<WakieApp> with TrayListener {
+  final Engine _engine = Engine.production();
+
   @override
   void initState() {
     super.initState();
@@ -77,7 +80,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         fontFamily: T.sans,
         scaffoldBackgroundColor: Colors.transparent,
       ),
-      home: const DashboardScreen(),
+      home: DashboardScreen(source: _engine.watch),
     );
   }
 }

@@ -15,7 +15,12 @@ const _logoSvg =
     '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  /// Streams live account data (two-phase: accounts first, usage as it loads).
+  /// When null (tests/goldens) the dashboard renders the static [mockAccounts]
+  /// so widget/golden output stays deterministic.
+  final Stream<List<Account>> Function()? source;
+
+  const DashboardScreen({super.key, this.source});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -28,7 +33,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     duration: const Duration(milliseconds: 700),
   )..forward();
 
-  final List<Account> _accounts = List.of(mockAccounts);
+  late final List<Account> _accounts =
+      widget.source == null ? List.of(mockAccounts) : <Account>[];
+  bool _loading = false;
+  StreamSubscription<List<Account>>? _sub;
 
   int _tagIdx = 0;
   bool _tagFaded = false;
@@ -42,6 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.source != null) _reload();
     _tagTimer = Timer.periodic(const Duration(seconds: 7), (_) async {
       setState(() => _tagFaded = true);
       await Future.delayed(const Duration(milliseconds: 500));
@@ -55,10 +64,29 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    _sub?.cancel();
     _tagTimer?.cancel();
     _winIn.dispose();
     _footer.dispose();
     super.dispose();
+  }
+
+  void _reload() {
+    final source = widget.source;
+    if (source == null || _loading) return;
+    _sub?.cancel();
+    setState(() => _loading = true);
+    _sub = source().listen(
+      (accounts) {
+        if (!mounted) return;
+        setState(() => _accounts
+          ..clear()
+          ..addAll(accounts));
+      },
+      onDone: () {
+        if (mounted) setState(() => _loading = false);
+      },
+    );
   }
 
   void _askRemove(Account a) => setState(() => _pendingRemove = a);
@@ -152,21 +180,29 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const _ColHead(),
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                  itemCount: _accounts.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 2),
-                  itemBuilder: (context, i) => AccountRow(
-                    account: _accounts[i],
-                    animDelayMs: 70 + i * 60,
-                    onRemove: () => _askRemove(_accounts[i]),
-                    onUpdate: () => _footer.runUpdate(_accounts[i].name),
-                  ),
-                ),
+                child: _loading && _accounts.isEmpty
+                    ? Center(
+                        child: Text('Scanning accounts…',
+                            style: mono(13, color: T.t2)),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                        itemCount: _accounts.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 2),
+                        itemBuilder: (context, i) => AccountRow(
+                          account: _accounts[i],
+                          animDelayMs: 70 + i * 60,
+                          onRemove: () => _askRemove(_accounts[i]),
+                          onUpdate: () => _footer.runUpdate(_accounts[i].name),
+                        ),
+                      ),
               ),
               DashboardFooter(
                 controller: _footer,
-                onRefreshAll: () => _footer.runRefreshAll(),
+                onRefreshAll: () {
+                  _footer.runRefreshAll();
+                  _reload();
+                },
                 onAddAccount: () {},
               ),
             ],
