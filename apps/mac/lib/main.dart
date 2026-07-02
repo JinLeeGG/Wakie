@@ -94,7 +94,14 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         launchAtLogin: _engine.launchAtLogin,
         onSetLaunchAtLogin: _engine.setLaunchAtLogin,
         darkWake: _engine.darkWake,
-        onSetDarkWake: _engine.setDarkWake,
+        onSetDarkWake: (on) async {
+          final error = await _engine.setDarkWake(on);
+          // The admin password dialog (a separate secure process) buries our
+          // menubar panel; resurface it so the result is visible without a
+          // manual menubar click.
+          await _window.invokeMethod('show');
+          return error;
+        },
       ),
     );
   }
