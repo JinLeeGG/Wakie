@@ -12,14 +12,21 @@ import 'codex_usage_parser.dart';
 typedef CodexRateLimitsRead = Future<Map<String, dynamic>?> Function(
     Account account);
 
+/// Reads an account's identity object (`{type, email, planType}`) from the
+/// app-server `account/read`, or null. Injected like [CodexRateLimitsRead] so
+/// the adapter stays testable; optional so tests can omit it.
+typedef CodexAccountRead = Future<Map<String, dynamic>?> Function(
+    Account account);
+
 /// Codex adapter (PRD §7.3 FR-PA-02). Official `codex` binary only; usage comes
 /// from the structured `account/rateLimits/read` app-server call, not TUI
 /// scraping. Tokens are never read or extracted (R0 invariant).
 class CodexAdapter implements ProviderAdapter {
   final CodexRateLimitsRead read;
+  final CodexAccountRead? readAccount;
   final String executable;
 
-  CodexAdapter({required this.read, this.executable = 'codex'});
+  CodexAdapter({required this.read, this.readAccount, this.executable = 'codex'});
 
   @override
   String get id => 'codex';
@@ -50,11 +57,11 @@ class CodexAdapter implements ProviderAdapter {
       return Preflight(PreflightState.notLoggedIn,
           detail: out.isEmpty ? null : out);
     }
-    // e.g. "Logged in using ChatGPT" → detail "ChatGPT".
-    const marker = 'using ';
-    final i = out.indexOf(marker);
+    // Logged in — enrich with identity (email + plan) from account/read.
+    final account = await readAccount?.call(a);
     return Preflight(PreflightState.ok,
-        detail: i == -1 ? null : out.substring(i + marker.length).trim());
+        email: account?['email'] as String?,
+        plan: account?['planType'] as String?);
   }
 
   @override

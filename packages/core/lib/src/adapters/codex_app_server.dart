@@ -74,3 +74,71 @@ Future<Map<String, dynamic>?> readCodexRateLimits({
     proc.kill();
   }
 }
+
+/// Reads the signed-in account's identity (email + plan) over the same
+/// `codex app-server` surface, via `account/read`. Returns the `account`
+/// object — `{type, email, planType}` — or null on failure. Identity only,
+/// never the token (R0): the response's auth token is never requested here.
+Future<Map<String, dynamic>?> readCodexAccount({
+  Map<String, String> env = const {},
+  String executable = 'codex',
+  Duration timeout = const Duration(seconds: 15),
+}) async {
+  final Process proc;
+  try {
+    proc = await Process.start(executable, ['app-server'], environment: env);
+  } on ProcessException {
+    return null;
+  }
+
+  final result = Completer<Map<String, dynamic>?>();
+  void send(Object message) {
+    proc.stdin.write(jsonEncode(message));
+    proc.stdin.write('\n');
+  }
+
+  final sub = proc.stdout
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen((line) {
+    if (line.trim().isEmpty) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(line);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, dynamic>) return;
+
+    // `account/read` requires a params object (null is rejected).
+    if (decoded['id'] == 1) {
+      send({'id': 2, 'method': 'account/read', 'params': <String, dynamic>{}});
+      proc.stdin.flush();
+      return;
+    }
+    if (decoded['id'] == 2 && !result.isCompleted) {
+      final r = decoded['result'];
+      final account = r is Map<String, dynamic> ? r['account'] : null;
+      result.complete(account is Map<String, dynamic> ? account : null);
+    }
+  });
+  proc.stderr.drain<void>();
+
+  send({
+    'id': 1,
+    'method': 'initialize',
+    'params': {
+      'clientInfo': {'name': 'wakieai', 'version': '0.1.0'},
+    },
+  });
+  await proc.stdin.flush();
+
+  try {
+    return await result.future.timeout(timeout);
+  } on TimeoutException {
+    return null;
+  } finally {
+    await sub.cancel();
+    proc.kill();
+  }
+}
