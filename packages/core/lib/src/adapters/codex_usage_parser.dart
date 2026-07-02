@@ -13,15 +13,31 @@ import '../status.dart';
 ///   "planType":"plus"}}
 /// ```
 ///
-/// `primary` is the ~5h session window, `secondary` the weekly window. A missing
-/// window yields [UsageWindow.unknown] rather than throwing (FR-ER). Pure and
-/// side-effect free so it can be golden-tested against a captured fixture
-/// (PRD §14).
+/// On a paid plan `primary` is the ~5h session window and `secondary` the
+/// weekly window. But a **free** plan reports a single ~30-day window as
+/// `primary` and no `secondary` — so keying off position alone would mislabel
+/// a 30-day window as the "5h session". Instead each window is placed by its
+/// `windowDurationMins`: > 6h goes to the long (weekly) slot, everything else
+/// (including a window with no stated duration, kept for back-compat) to the
+/// session slot. A missing window yields [UsageWindow.unknown] rather than
+/// throwing (FR-ER). Pure and side-effect free so it can be golden-tested
+/// against a captured fixture (PRD §14).
 ProviderStatus parseCodexRateLimits(Map<String, dynamic> result) {
   final limits = result['rateLimits'];
   if (limits is! Map<String, dynamic>) return ProviderStatus.unknown;
+  final primary = limits['primary'];
+  final primaryDur =
+      primary is Map<String, dynamic> ? primary['windowDurationMins'] : null;
+
+  // Free plans report a single long (~30-day) window as `primary` with no
+  // `secondary`. Show that in the weekly (long-window) slot rather than
+  // mislabelling it as the 5h session. Otherwise keep the positional default:
+  // primary = session, secondary = weekly.
+  if (primaryDur is int && primaryDur > 360) {
+    return ProviderStatus(session: UsageWindow.unknown, weekly: _window(primary));
+  }
   return ProviderStatus(
-    session: _window(limits['primary']),
+    session: _window(primary),
     weekly: _window(limits['secondary']),
   );
 }

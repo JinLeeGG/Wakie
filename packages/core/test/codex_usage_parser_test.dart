@@ -44,4 +44,22 @@ void main() {
     expect(status.session.usedPct, 3);
     expect(status.session.resetAt, isNull);
   });
+
+  test('free plan: a 30-day primary window maps to weekly, not session', () {
+    // Free-tier Codex reports one long window as primary and no secondary.
+    final status = parseCodexRateLimits({
+      'rateLimits': {
+        'primary': {
+          'usedPercent': 5,
+          'windowDurationMins': 43200, // 30 days
+          'resetsAt': 1785581976,
+        },
+        'secondary': null,
+      },
+    });
+    // Not shown as a "5h session" — the session slot stays unknown.
+    expect(status.session.isKnown, isFalse);
+    expect(status.weekly.usedPct, 5);
+    expect(status.weekly.resetAt!.millisecondsSinceEpoch, 1785581976 * 1000);
+  });
 }
