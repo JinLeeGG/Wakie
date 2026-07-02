@@ -60,6 +60,12 @@ class DashboardScreen extends StatefulWidget {
   final bool launchAtLogin;
   final Future<void> Function(bool)? onSetLaunchAtLogin;
 
+  /// "Wake from sleep" — current state + toggle handler (programs/cancels the
+  /// daily hardware wake via an admin prompt; returns an error to surface or
+  /// null on success). Null handler in tests/goldens.
+  final bool darkWake;
+  final Future<String?> Function(bool)? onSetDarkWake;
+
   const DashboardScreen({
     super.key,
     this.source,
@@ -74,6 +80,8 @@ class DashboardScreen extends StatefulWidget {
     this.onAwakeTick,
     this.launchAtLogin = false,
     this.onSetLaunchAtLogin,
+    this.darkWake = false,
+    this.onSetDarkWake,
   });
 
   @override
@@ -113,6 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late int _anchorHour = widget.morningAnchorHour;
   late int _anchorMinute = widget.morningAnchorMinute;
   late bool _launchAtLogin = widget.launchAtLogin;
+  late bool _darkWake = widget.darkWake;
 
   @override
   void initState() {
@@ -471,6 +480,25 @@ class _DashboardScreenState extends State<DashboardScreen>
                 onLaunchAtLogin: (on) {
                   setState(() => _launchAtLogin = on);
                   widget.onSetLaunchAtLogin?.call(on);
+                },
+                darkWake: _darkWake,
+                onDarkWake: (on) async {
+                  final handler = widget.onSetDarkWake;
+                  if (handler == null) return null;
+                  setState(() => _darkWake = on); // optimistic
+                  _footer.start(
+                      on ? 'Scheduling wake…' : 'Cancelling wake…');
+                  final error = await handler(on);
+                  if (!mounted) return error;
+                  if (error != null) {
+                    setState(() => _darkWake = !on); // snap back on failure
+                    _footer.fail(error);
+                  } else {
+                    _footer.finish(on
+                        ? 'Wake from sleep on'
+                        : 'Wake from sleep off');
+                  }
+                  return error;
                 },
               ),
             ],

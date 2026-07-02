@@ -597,6 +597,50 @@ void main() {
     expect(calls, [true, false]);
   });
 
+  group('setDarkWake', () {
+    test('on → runs the anchor pmset command and persists', () async {
+      String? command;
+      final store = core.Store.memory()..setMorningAnchor(7, 30);
+      final engine = Engine.withAdapters({},
+          store: store, runPrivileged: (c) async {
+        command = c;
+        return null;
+      });
+
+      final err = await engine.setDarkWake(true);
+
+      expect(err, isNull);
+      expect(command, core.pmsetDailyWakeCommandRaw(hour: 7, minute: 30));
+      expect(engine.darkWake, isTrue);
+    });
+
+    test('off → runs the cancel command', () async {
+      String? command;
+      final store = core.Store.memory()..setDarkWake(true);
+      final engine = Engine.withAdapters({},
+          store: store, runPrivileged: (c) async {
+        command = c;
+        return null;
+      });
+
+      await engine.setDarkWake(false);
+
+      expect(command, core.pmsetCancelCommandRaw);
+      expect(engine.darkWake, isFalse);
+    });
+
+    test('a cancelled/failed prompt leaves stored state unchanged', () async {
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({},
+          store: store, runPrivileged: (_) async => 'Cancelled.');
+
+      final err = await engine.setDarkWake(true);
+
+      expect(err, 'Cancelled.');
+      expect(engine.darkWake, isFalse); // not persisted on failure
+    });
+  });
+
   test('morning anchor defaults to 8:00am and setMorningAnchor persists via the store',
       () async {
     final store = core.Store.memory();

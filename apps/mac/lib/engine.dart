@@ -68,6 +68,10 @@ Future<void> _realEnsureDir(String path) async {
   await Directory(path).create(recursive: true);
 }
 
+/// Runs a privileged shell command via the macOS admin prompt, returning null
+/// on success or an error message. Injected so tests never spawn osascript.
+typedef PrivilegedRunner = Future<String?> Function(String command);
+
 /// Installs/removes the "open at login" LaunchAgent. Injected so tests never
 /// touch ~/Library/LaunchAgents.
 typedef LoginItemInstaller = Future<void> Function(bool enable);
@@ -131,6 +135,7 @@ class Engine {
   final ConfigPreparer _prepareConfig;
   final Future<void> Function(String title, String body) _notify;
   final LoginItemInstaller _installLoginItem;
+  final PrivilegedRunner _runPrivileged;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
@@ -145,7 +150,8 @@ class Engine {
       this._deleteDir,
       this._prepareConfig,
       this._notify,
-      this._installLoginItem);
+      this._installLoginItem,
+      this._runPrivileged);
 
   factory Engine.production() => Engine._(
       core.productionAdapters(),
@@ -156,7 +162,8 @@ class Engine {
       _realDeleteDir,
       _realPrepareConfig,
       core.showMacNotification,
-      _realInstallLoginItem);
+      _realInstallLoginItem,
+      core.runWithAdminPrompt);
 
   @visibleForTesting
   factory Engine.withAdapters(Map<core.Provider, core.ProviderAdapter> a,
@@ -167,7 +174,8 @@ class Engine {
           DirDeleter? deleteDir,
           ConfigPreparer? prepareConfig,
           Future<void> Function(String, String)? notify,
-          LoginItemInstaller? installLoginItem}) =>
+          LoginItemInstaller? installLoginItem,
+          PrivilegedRunner? runPrivileged}) =>
       Engine._(
           a,
           store ?? core.Store.memory(),
@@ -177,7 +185,8 @@ class Engine {
           deleteDir ?? (_) {},
           prepareConfig ?? (_, _) async {},
           notify ?? (_, _) async {},
-          installLoginItem ?? (_) async {});
+          installLoginItem ?? (_) async {},
+          runPrivileged ?? (_) async => null);
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;
@@ -472,6 +481,24 @@ class Engine {
     } catch (e) {
       debugPrint('wakieai: login item install failed — $e');
     }
+  }
+
+  bool get darkWake => _store.darkWake;
+
+  /// Programs (or cancels) the daily hardware wake at the morning anchor via
+  /// the macOS admin prompt, so the headless runner can update while the Mac
+  /// sleeps — no terminal. Returns null on success, or a message to show
+  /// (e.g. the user dismissed the password dialog); on failure the stored
+  /// state is left unchanged so the toggle can snap back.
+  Future<String?> setDarkWake(bool enabled) async {
+    final command = enabled
+        ? core.pmsetDailyWakeCommandRaw(
+            hour: _store.morningAnchorHour, minute: _store.morningAnchorMinute)
+        : core.pmsetCancelCommandRaw;
+    final error = await _runPrivileged(command);
+    if (error != null) return error;
+    _store.setDarkWake(enabled);
+    return null;
   }
 
   /// One awake-cycle pass, run periodically by the dashboard while the app is
