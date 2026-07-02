@@ -56,6 +56,10 @@ class Account {
   /// starts a fresh session the moment this account's window resets.
   final bool autoStart;
 
+  /// Absolute instant the session window resets, when known — drives the
+  /// summary bar's "next reset". Null for mock rows and unknown windows.
+  final DateTime? sessionResetAt;
+
   const Account({
     this.id = '',
     required this.provider,
@@ -66,6 +70,7 @@ class Account {
     required this.last,
     required this.status,
     this.autoStart = false,
+    this.sessionResetAt,
   });
 }
 

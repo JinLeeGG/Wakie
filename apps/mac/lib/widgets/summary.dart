@@ -4,6 +4,8 @@ import '../theme.dart';
 
 class SummaryBar extends StatelessWidget {
   final int accountCount;
+  final int runningLow;
+  final String nextReset;
   final VoidCallback onAddAccount;
   final int morningAnchorHour;
   final int morningAnchorMinute;
@@ -12,6 +14,8 @@ class SummaryBar extends StatelessWidget {
   const SummaryBar({
     super.key,
     required this.accountCount,
+    required this.runningLow,
+    required this.nextReset,
     required this.onAddAccount,
     this.morningAnchorHour = 8,
     this.morningAnchorMinute = 0,
@@ -43,15 +47,17 @@ class SummaryBar extends StatelessWidget {
           Expanded(
             child: _Pill(
               label: 'Running low',
-              value: Text('1',
-                  style: mono(20, weight: FontWeight.w600, color: T.warn)),
+              value: Text('$runningLow',
+                  style: mono(20,
+                      weight: FontWeight.w600,
+                      color: runningLow > 0 ? T.warn : T.t1)),
             ),
           ),
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
               label: 'Next reset',
-              value: Text('4:30 AM',
+              value: Text(nextReset,
                   style: mono(20, weight: FontWeight.w600, color: T.t1)),
             ),
           ),

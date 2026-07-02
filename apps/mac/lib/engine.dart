@@ -68,6 +68,24 @@ Future<void> _realEnsureDir(String path) async {
   await Directory(path).create(recursive: true);
 }
 
+/// Installs/removes the "open at login" LaunchAgent. Injected so tests never
+/// touch ~/Library/LaunchAgents.
+typedef LoginItemInstaller = Future<void> Function(bool enable);
+
+Future<void> _realInstallLoginItem(bool enable) async {
+  final home = Platform.environment['HOME'];
+  if (home == null) return;
+  final plist =
+      File('$home/Library/LaunchAgents/${core.wakieaiLoginItemLabel}.plist');
+  if (enable) {
+    plist.parent.createSync(recursive: true);
+    plist.writeAsStringSync(
+        core.loginItemPlist(executablePath: Platform.resolvedExecutable));
+  } else if (plist.existsSync()) {
+    plist.deleteSync();
+  }
+}
+
 void _realDeleteDir(String path) {
   try {
     final dir = Directory(path);
@@ -111,13 +129,23 @@ class Engine {
   final DirEnsurer _ensureDir;
   final DirDeleter _deleteDir;
   final ConfigPreparer _prepareConfig;
+  final Future<void> Function(String title, String body) _notify;
+  final LoginItemInstaller _installLoginItem;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
   final Map<String, (core.Account, core.Preflight)> _live = {};
 
-  Engine._(this._adapters, this._store, this._runHidden, this._openTerminal,
-      this._ensureDir, this._deleteDir, this._prepareConfig);
+  Engine._(
+      this._adapters,
+      this._store,
+      this._runHidden,
+      this._openTerminal,
+      this._ensureDir,
+      this._deleteDir,
+      this._prepareConfig,
+      this._notify,
+      this._installLoginItem);
 
   factory Engine.production() => Engine._(
       core.productionAdapters(),
@@ -126,7 +154,9 @@ class Engine {
       _openTerminalWithScript,
       _realEnsureDir,
       _realDeleteDir,
-      _realPrepareConfig);
+      _realPrepareConfig,
+      core.showMacNotification,
+      _realInstallLoginItem);
 
   @visibleForTesting
   factory Engine.withAdapters(Map<core.Provider, core.ProviderAdapter> a,
@@ -135,10 +165,19 @@ class Engine {
           LoginRunner? openTerminal,
           DirEnsurer? ensureDir,
           DirDeleter? deleteDir,
-          ConfigPreparer? prepareConfig}) =>
-      Engine._(a, store ?? core.Store.memory(), runHidden ?? (_) async {},
-          openTerminal ?? (_) async {}, ensureDir ?? (_) async {},
-          deleteDir ?? (_) {}, prepareConfig ?? (_, _) async {});
+          ConfigPreparer? prepareConfig,
+          Future<void> Function(String, String)? notify,
+          LoginItemInstaller? installLoginItem}) =>
+      Engine._(
+          a,
+          store ?? core.Store.memory(),
+          runHidden ?? (_) async {},
+          openTerminal ?? (_) async {},
+          ensureDir ?? (_) async {},
+          deleteDir ?? (_) {},
+          prepareConfig ?? (_, _) async {},
+          notify ?? (_, _) async {},
+          installLoginItem ?? (_) async {});
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;
@@ -424,6 +463,77 @@ class Engine {
   void setMorningAnchor(int hour, int minute) =>
       _store.setMorningAnchor(hour, minute);
 
+  bool get launchAtLogin => _store.launchAtLogin;
+
+  Future<void> setLaunchAtLogin(bool enabled) async {
+    _store.setLaunchAtLogin(enabled);
+    try {
+      await _installLoginItem(enabled);
+    } catch (e) {
+      debugPrint('wakieai: login item install failed — $e');
+    }
+  }
+
+  /// One awake-cycle pass, run periodically by the dashboard while the app is
+  /// open (the dark-wake runner covers the asleep hours). For each account
+  /// whose cached session window has lapsed: with auto-start on, chain a new
+  /// session (D1 token maxxing); with it off, just re-read so the row doesn't
+  /// sit stale past its reset. Fires macOS notifications for alert transitions
+  /// either way. Cheap when nothing has lapsed — pure clock/store math, no
+  /// subprocess. Returns the ids that changed so the caller can refresh those
+  /// rows.
+  Future<List<String>> awakeTick({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final changed = <String>[];
+    for (final (account, pf) in _live.values.toList()) {
+      if (!pf.isOk) continue;
+      final cached = _store.statusFor(account.id);
+      if (cached == null) continue;
+      // Resolve the cached window's reset relative to when it was READ, so a
+      // relative label ("4h 25m") anchors to that instant instead of drifting
+      // forward with the current clock and never lapsing.
+      final resetAt = cached.session.resetAt ??
+          core.resolveResetAt(cached.session, now: cached.lastCheckedAt);
+      if (resetAt == null || at.isBefore(resetAt)) continue;
+      // A recent failed auto-start stays failed for a while — don't retry
+      // every tick.
+      if (cached.lastOutcome == core.Outcome.failed &&
+          cached.lastStartedAt != null &&
+          at.difference(cached.lastStartedAt!) < const Duration(minutes: 15)) {
+        continue;
+      }
+
+      if (_autoStartFor(account)) {
+        await core.chainExpiredSessions(
+          _adapters,
+          _store,
+          [
+            (
+              account,
+              pf,
+              core.ProviderStatus(
+                  session: cached.session, weekly: cached.weekly)
+            )
+          ],
+          now: at,
+          log: debugPrint,
+        );
+      } else {
+        _store.cacheStatus(account.id, await _readReady(account));
+      }
+
+      final current = _store.statusFor(account.id);
+      if (current != null) {
+        for (final alert
+            in core.evaluateAlerts(account.id, cached, current, now: at)) {
+          await _notify('WakieAI', alert.message);
+        }
+      }
+      changed.add(account.id);
+    }
+    return changed;
+  }
+
   /// Convenience for tests/one-shot callers: the final, fully-loaded rows.
   Future<List<Account>> load() => watch().last;
 
@@ -455,6 +565,7 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
             ? RunStatus.low
             : RunStatus.ok,
     autoStart: autoStart,
+    sessionResetAt: core.resolveResetAt(s.session),
   );
 }
 
@@ -498,6 +609,10 @@ String _fmtTime(DateTime d) {
   final mm = d.minute.toString().padLeft(2, '0');
   return '$h12:$mm$ampm';
 }
+
+/// The row meters' clock format ("4:30am"), public so the summary bar and
+/// footer render times identically to the rows.
+String formatClock(DateTime d) => _fmtTime(d);
 
 /// Drops the "(timezone)" suffix: "2:30am (America/New_York)" → "2:30am".
 String _shortReset(String? label) {
