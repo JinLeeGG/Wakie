@@ -38,14 +38,47 @@ class AntigravityAdapter implements ProviderAdapter {
       return const Preflight(PreflightState.notInstalled);
     }
 
-    // Auth lives under ~/.gemini (HOME-relative). We check for the credential
-    // file's existence only — never its contents (R0).
     final home = envFor(a)['HOME'] ?? Platform.environment['HOME'];
     final gemini = '$home/.gemini';
-    if (!File('$gemini/oauth_creds.json').existsSync()) {
-      return const Preflight(PreflightState.notLoggedIn);
+
+    // An isolated (extra) account keeps its token ONLY in its own login
+    // keychain — no `oauth_creds.json`/`google_accounts.json` files — so we
+    // detect it by the presence of the `agy` credential *item* in that
+    // keychain (existence only; the token itself is never read — R0). The
+    // email isn't file-exposed for these, so the row shows its label alone.
+    if (a.configHome != null) {
+      final signedIn = await _hasKeychainCredential(a.configHome!);
+      return signedIn
+          ? const Preflight(PreflightState.ok)
+          : const Preflight(PreflightState.notLoggedIn);
     }
-    return Preflight(PreflightState.ok, email: _activeAccount(gemini));
+
+    // Ambient default: token + email live in ~/.gemini files. Existence check
+    // only — never the contents (R0).
+    final email = _activeAccount(gemini);
+    final loggedIn =
+        File('$gemini/oauth_creds.json').existsSync() || email != null;
+    if (!loggedIn) return const Preflight(PreflightState.notLoggedIn);
+    return Preflight(PreflightState.ok, email: email);
+  }
+
+  /// True if [configHome]'s isolated login keychain holds the `agy` credential
+  /// (service `gemini`, account `antigravity`) — i.e. a login has completed.
+  /// Existence probe only; the credential value is never requested (R0).
+  Future<bool> _hasKeychainCredential(String configHome) async {
+    final keychain = '$configHome/Library/Keychains/login.keychain-db';
+    if (!File(keychain).existsSync()) return false;
+    try {
+      final r = await Process.run('security', [
+        'find-generic-password',
+        '-s', 'gemini',
+        '-a', 'antigravity',
+        keychain,
+      ]);
+      return r.exitCode == 0;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// The signed-in Google account email, from `google_accounts.json`'s
@@ -62,6 +95,13 @@ class AntigravityAdapter implements ProviderAdapter {
 
   @override
   Future<ProviderStatus> readStatus(Account a) async {
+    // Never launch agy for an isolated account that isn't actually signed in:
+    // a logged-out `agy` pops the Google OAuth browser, and the capture's
+    // keystrokes would drive it — so an account whose login was lost would
+    // spam login windows on every refresh. Gate on the keychain credential.
+    if (a.configHome != null && !await _hasKeychainCredential(a.configHome!)) {
+      return ProviderStatus.unknown;
+    }
     final panel = await capture(a);
     return parseAntigravityUsage(panel);
   }

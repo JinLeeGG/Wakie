@@ -50,9 +50,14 @@ ProviderStatus parseAntigravityUsage(String panel) {
   return ProviderStatus(
     session: _mostConstrained(session),
     weekly: _mostConstrained(weekly),
+    accountEmail: _email.firstMatch(panel)?.group(0),
   );
 }
 
+// The panel header shows the signed-in account, e.g.
+// "wakieDemo1@gmail.com (Antigravity Starter Quota)". Not a secret (an
+// identifier), and the only place an isolated account's email is exposed.
+final _email = RegExp(r'[\w.+-]+@[\w-]+\.[\w.-]+');
 final _weeklyHdr = RegExp(r'Weekly Limit', caseSensitive: false);
 final _sessionHdr = RegExp(r'Five[- ]?Hour Limit', caseSensitive: false);
 final _remaining = RegExp(r'(\d{1,3})%\s*remaining', caseSensitive: false);

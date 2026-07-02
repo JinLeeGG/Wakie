@@ -5,6 +5,7 @@ export 'src/account.dart';
 export 'src/alerts.dart';
 export 'src/auto_start.dart';
 export 'src/adapter.dart';
+export 'src/antigravity_config.dart';
 export 'src/adapters/antigravity_adapter.dart';
 export 'src/adapters/antigravity_usage_capture.dart';
 export 'src/adapters/antigravity_usage_parser.dart';

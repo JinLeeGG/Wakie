@@ -43,4 +43,40 @@ GEMINI MODELS
     expect(status.session.isKnown, isFalse);
     expect(status.weekly.isKnown, isFalse);
   });
+
+  test('readStatus surfaces the account email from the panel header', () async {
+    final adapter = AntigravityAdapter(capture: (_) async => '''
+wakieDemo1@gmail.com (Antigravity Starter Quota)
+GEMINI MODELS
+  Weekly Limit
+    [██████████] 97.00%
+    97% remaining · Refreshes in 166h 0m
+''');
+    final status = await adapter.readStatus(_account(null));
+    expect(status.accountEmail, 'wakieDemo1@gmail.com');
+    expect(status.weekly.usedPct, 3);
+  });
+
+  test('readStatus never launches agy for an isolated account with no keychain',
+      () async {
+    var captured = false;
+    final adapter = AntigravityAdapter(capture: (_) async {
+      captured = true;
+      return 'GEMINI MODELS\n  Weekly Limit\n    99% remaining';
+    });
+    // configHome with no login keychain → must NOT capture (no OAuth browser).
+    final status =
+        await adapter.readStatus(_account('/tmp/wakieai-agy-no-keychain'));
+    expect(captured, isFalse);
+    expect(status.weekly.isKnown, isFalse);
+  });
+
+  test('an isolated account with no login keychain detects as not logged in',
+      () async {
+    // An extra account's token lives in its own login keychain; with no such
+    // keychain present, detect must report notLoggedIn (never a false "ok").
+    final adapter = AntigravityAdapter(capture: (_) async => '');
+    final pf = await adapter.detect(_account('/tmp/wakieai-agy-no-keychain'));
+    expect(pf.state, PreflightState.notLoggedIn);
+  });
 }
