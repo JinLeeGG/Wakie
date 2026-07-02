@@ -6,7 +6,7 @@ class MainFlutterWindow: NSWindow {
   // Design canvas the Flutter UI is authored against (1x). The window is sized
   // as a fraction of the active display while preserving this aspect ratio, so
   // the content scales to fill without any per-element hardcoded sizes.
-  private let designWidth: CGFloat = 900
+  private let designWidth: CGFloat = 1000
   private let designHeight: CGFloat = 640
 
   override func awakeFromNib() {
@@ -102,7 +102,7 @@ class MainFlutterWindow: NSWindow {
 
     // Target ~50% of the display width, clamped to a sensible absolute range so
     // it never gets tiny on small screens or huge on large ones.
-    var w = min(max(visible.width * 0.50, 840.0), 940.0)
+    var w = min(max(visible.width * 0.52, 900.0), 1040.0)
     var h = w / aspect
 
     let maxH = visible.height * 0.86

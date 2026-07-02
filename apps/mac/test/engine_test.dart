@@ -15,7 +15,8 @@ class _FakeClaude implements core.ProviderAdapter {
   Map<String, String> envFor(core.Account a) => const {};
   @override
   Future<core.Preflight> detect(core.Account a) async =>
-      const core.Preflight(core.PreflightState.ok, detail: 'pro');
+      const core.Preflight(core.PreflightState.ok,
+          email: 'a@b.com', plan: 'pro');
   @override
   Future<core.ProviderStatus> readStatus(core.Account a) async => status;
   @override
@@ -41,7 +42,7 @@ void main() {
     final a = rows.single;
 
     expect(a.provider, Provider.claude);
-    expect(a.plan, 'claude · pro');
+    expect(a.plan, 'a@b.com · Pro');
     expect(a.session.pct, 12);
     expect(a.session.tone, Tone.crit);
     expect(a.session.reset, '2:30am');
@@ -66,7 +67,7 @@ void main() {
     expect(a.session.tone, Tone.ok);
     expect(a.session.reset, '3:30pm'); // session window → time
     expect(a.weekly.pct, 56);
-    expect(a.weekly.reset, 'Jun 5'); // weekly window → date
+    expect(a.weekly.reset, 'Jun 5 (9:00am)'); // weekly window → date (time)
   });
 
   test('unknown usage falls back gracefully', () async {

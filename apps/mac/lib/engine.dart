@@ -24,6 +24,7 @@ class Engine {
     );
     final codex = core.CodexAdapter(
       read: (a) => core.readCodexRateLimits(env: _codexEnv(a)),
+      readAccount: (a) => core.readCodexAccount(env: _codexEnv(a)),
     );
     final antigravity = core.AntigravityAdapter(
       capture: (a) => core.captureAntigravityUsagePanel(env: _antigravityEnv(a)),
@@ -116,7 +117,7 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s) {
     id: a.id,
     provider: _uiProvider(a.provider),
     name: _displayName(a),
-    plan: '${a.provider.name} · ${pf.detail ?? '—'}',
+    plan: _subtitle(pf),
     session: session,
     weekly: _meter(s.weekly, weekly: true),
     last: 'just now',
@@ -136,16 +137,43 @@ Meter _meter(core.UsageWindow w, {required bool weekly}) {
   return Meter(remaining, tone, _resetLabel(w, weekly: weekly));
 }
 
-/// Codex reports an absolute [resetAt] (epoch); Claude a rendered [resetLabel].
-/// Show a date for the weekly window, a time for the session window — matching
-/// the mock's "Jul 7" / "4:30 AM" columns.
+/// Unifies every provider's reset wording to one absolute unit: a bare clock
+/// time for the session window, a date + time for the weekly window —
+/// regardless of how the provider reported it.
+///
+///   - Codex gives an absolute [resetAt] epoch → format directly.
+///   - Antigravity gives a "Refreshes in Xh Ym" duration → now + duration.
+///   - Claude gives a rendered string: session is already a clock time; weekly
+///     ("Jul 7 at 7am") becomes "Jul 7 (7am)".
 String _resetLabel(core.UsageWindow w, {required bool weekly}) {
-  final at = w.resetAt;
+  final at = w.resetAt ?? _instantFromDuration(w.resetLabel);
   if (at != null) {
     final local = at.toLocal();
-    return weekly ? _fmtDate(local) : _fmtTime(local);
+    return weekly ? '${_fmtDate(local)} (${_fmtTime(local)})' : _fmtTime(local);
   }
-  return _shortReset(w.resetLabel);
+  final label = _shortReset(w.resetLabel);
+  if (!weekly) return label;
+  final at_ = label.indexOf(' at ');
+  return at_ == -1
+      ? label
+      : '${label.substring(0, at_)} (${label.substring(at_ + 4)})';
+}
+
+/// Turns a countdown like "125h 16m", "3h 13m", "5d 2h", or "45m" into an
+/// absolute reset instant (now + duration). Null when it isn't a duration
+/// (e.g. Claude's "2:30am"), so the caller falls back to the rendered string.
+DateTime? _instantFromDuration(String? label) {
+  if (label == null) return null;
+  final m = RegExp(r'^(?:(\d+)\s*d)?\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?$')
+      .firstMatch(label.trim());
+  if (m == null || (m.group(1) == null && m.group(2) == null && m.group(3) == null)) {
+    return null;
+  }
+  final days = int.tryParse(m.group(1) ?? '') ?? 0;
+  final hours = int.tryParse(m.group(2) ?? '') ?? 0;
+  final mins = int.tryParse(m.group(3) ?? '') ?? 0;
+  if (days == 0 && hours == 0 && mins == 0) return null;
+  return DateTime.now().add(Duration(days: days, hours: hours, minutes: mins));
 }
 
 const _months = [
@@ -167,6 +195,19 @@ String _shortReset(String? label) {
   if (label == null) return '—';
   final paren = label.indexOf('(');
   return (paren == -1 ? label : label.substring(0, paren)).trim();
+}
+
+/// Account subtitle: "email · Plan", dropping the redundant provider name
+/// (the row's icon + title already say the provider). Shows whichever halves
+/// the provider exposes — email-only, plan-only, or "—" when neither.
+String _subtitle(core.Preflight pf) {
+  final plan = pf.plan;
+  final parts = <String>[
+    if (pf.email != null && pf.email!.isNotEmpty) pf.email!,
+    if (plan != null && plan.isNotEmpty)
+      plan[0].toUpperCase() + plan.substring(1),
+  ];
+  return parts.isEmpty ? '—' : parts.join(' · ');
 }
 
 String _displayName(core.Account a) {

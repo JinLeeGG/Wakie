@@ -15,8 +15,8 @@ void main() {
   });
 
   testWidgets('dashboard golden', (tester) async {
-    // Representative laptop window (~62% of a 1470pt-wide display, 900:640).
-    tester.view.physicalSize = const Size(912, 648);
+    // Exact design canvas (1000:640) so BoxFit.contain fills gap-free.
+    tester.view.physicalSize = const Size(1000, 640);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -46,7 +46,7 @@ void main() {
   });
 
   testWidgets('auto-refresh dropdown golden', (tester) async {
-    tester.view.physicalSize = const Size(912, 648);
+    tester.view.physicalSize = const Size(1000, 640);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 

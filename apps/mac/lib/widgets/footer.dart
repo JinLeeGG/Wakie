@@ -4,69 +4,67 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-class _Stage {
-  final String text;
-  final double pct;
-  final int dur;
-  const _Stage(this.text, this.pct, this.dur);
-}
-
-/// Drives the footer running sequence (wake → session → refresh → done).
+/// Drives the footer progress bar off *real* work, not a canned timeline.
+///
+/// [start] shows the bar and lets it trickle so there's visible life during
+/// I/O we can't measure; [progress] snaps it forward to a measured fraction
+/// (e.g. accounts loaded / total); [finish] only fires when the real work
+/// actually completes — so the bar reaches 100% at true loading speed.
 class FooterController extends ChangeNotifier {
   bool running = false;
   bool done = false;
   double fill = 0;
   String label = '';
 
-  Timer? _timer;
+  // Ceiling the trickle eases toward while waiting on unmeasured I/O; real
+  // [progress] and [finish] are what carry the bar the rest of the way.
+  static const _trickleCap = 80.0;
 
-  void runRefreshAll() => _run([
-        const _Stage('Waking MacBook Air…', 22, 1100),
-        const _Stage('Starting sessions…', 54, 1300),
-        const _Stage('Refreshing status…', 92, 1500),
-      ], 'All accounts up to date');
+  Timer? _trickle;
+  Timer? _hide;
 
-  void runUpdate(String name) => _run([
-        const _Stage('Waking MacBook Air…', 28, 1000),
-        _Stage('Starting $name…', 62, 1200),
-        const _Stage('Refreshing status…', 92, 1300),
-      ], '$name refreshed');
-
-  void _run(List<_Stage> stages, String doneLabel) {
-    if (running) return;
+  void start(String label) {
+    _trickle?.cancel();
+    _hide?.cancel();
     running = true;
     done = false;
-    fill = 0;
+    fill = 6;
+    this.label = label;
     notifyListeners();
-
-    var i = 0;
-    void next() {
-      if (i < stages.length) {
-        label = stages[i].text;
-        fill = stages[i].pct;
-        final dur = stages[i].dur;
-        i++;
+    _trickle = Timer.periodic(const Duration(milliseconds: 380), (_) {
+      if (fill < _trickleCap) {
+        fill += (_trickleCap - fill) * 0.12;
         notifyListeners();
-        _timer = Timer(Duration(milliseconds: dur), next);
-      } else {
-        label = doneLabel;
-        done = true;
-        fill = 100;
-        notifyListeners();
-        _timer = Timer(const Duration(milliseconds: 1700), () {
-          running = false;
-          done = false;
-          notifyListeners();
-        });
       }
-    }
+    });
+  }
 
-    next();
+  /// Report measured progress in [0,1]. Forward-only so the bar never recedes.
+  void progress(double frac, {String? label}) {
+    final pct = (frac.clamp(0.0, 1.0)) * 100;
+    if (pct <= fill && label == null) return;
+    if (pct > fill) fill = pct;
+    if (label != null) this.label = label;
+    notifyListeners();
+  }
+
+  void finish(String doneLabel) {
+    _trickle?.cancel();
+    label = doneLabel;
+    done = true;
+    fill = 100;
+    notifyListeners();
+    _hide = Timer(const Duration(milliseconds: 1500), () {
+      running = false;
+      done = false;
+      notifyListeners();
+    });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _trickle?.cancel();
+    _hide?.cancel();
     super.dispose();
   }
 }
@@ -131,8 +129,8 @@ class _DashboardFooterState extends State<DashboardFooter> {
                             boxShadow: [
                               BoxShadow(
                                 color: (c.done ? T.ok : T.amber)
-                                    .withValues(alpha: .7),
-                                blurRadius: 12,
+                                    .withValues(alpha: .28),
+                                blurRadius: 5,
                               )
                             ],
                           ),
