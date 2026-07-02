@@ -16,4 +16,5 @@ export 'src/discovery.dart';
 export 'src/preflight.dart';
 export 'src/provider.dart';
 export 'src/status.dart';
+export 'src/store.dart';
 export 'src/vt.dart';
