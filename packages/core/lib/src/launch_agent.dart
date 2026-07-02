@@ -59,13 +59,24 @@ String launchAgentPlist({
 }
 
 /// The `pmset` command that programs a daily hardware wake at [hour]:[minute]
-/// (`MTWRFSU` = every day). Requires admin — printed for the user to run
-/// themselves rather than executed on their behalf (FR-UI-05).
-String pmsetDailyWakeCommand({required int hour, required int minute}) {
+/// (`MTWRFSU` = every day). Requires admin — printed with `sudo` for the user
+/// to run in a terminal (FR-UI-05); [pmsetDailyWakeCommandRaw] is the same
+/// command without `sudo`, for the in-app admin prompt which elevates itself.
+String pmsetDailyWakeCommand({required int hour, required int minute}) =>
+    'sudo ${pmsetDailyWakeCommandRaw(hour: hour, minute: minute)}';
+
+/// [pmsetDailyWakeCommand] without `sudo`, for [runWithAdminPrompt] (the macOS
+/// auth prompt handles privilege, so a nested `sudo` would just wedge on a
+/// tty-less password read).
+String pmsetDailyWakeCommandRaw({required int hour, required int minute}) {
   final hh = hour.toString().padLeft(2, '0');
   final mm = minute.toString().padLeft(2, '0');
-  return 'sudo pmset repeat wakeorpoweron MTWRFSU $hh:$mm:00';
+  return 'pmset repeat wakeorpoweron MTWRFSU $hh:$mm:00';
 }
+
+/// Cancels the scheduled daily wake (pmset has a single repeat slot). No
+/// `sudo` — for the in-app admin prompt.
+const pmsetCancelCommandRaw = 'pmset repeat cancel';
 
 const wakieaiLoginItemLabel = 'ai.wakie.app';
 

@@ -92,6 +92,14 @@ void main() {
     expect(Store.load(path()).launchAtLogin, isTrue);
   });
 
+  test('darkWake defaults off and survives reload', () {
+    final fresh = Store.load(path());
+    expect(fresh.darkWake, isFalse);
+
+    fresh.setDarkWake(true);
+    expect(Store.load(path()).darkWake, isTrue);
+  });
+
   test('morning anchor defaults to 8:00am and survives reload', () {
     final fresh = Store.load(path());
     expect(fresh.morningAnchorHour, 8);

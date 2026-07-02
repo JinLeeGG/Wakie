@@ -20,6 +20,7 @@ export 'src/discovery.dart';
 export 'src/launch_agent.dart';
 export 'src/notify.dart';
 export 'src/preflight.dart';
+export 'src/privileged.dart';
 export 'src/production_adapters.dart';
 export 'src/provider.dart';
 export 'src/reset_time.dart';
