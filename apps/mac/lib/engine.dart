@@ -12,6 +12,10 @@ import 'models.dart';
 class Engine {
   final Map<core.Provider, core.ProviderAdapter> _adapters;
 
+  /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
+  /// can re-read one without re-detecting everything.
+  final Map<String, (core.Account, core.Preflight)> _live = {};
+
   Engine._(this._adapters);
 
   factory Engine.production() {
@@ -66,6 +70,12 @@ class Engine {
           if (preflights[i].isOk) (candidates[i], preflights[i]),
       ];
 
+      // Remember the discovered accounts so a single row can be refreshed
+      // on demand (the per-account Update button) without a full rescan.
+      _live
+        ..clear()
+        ..addEntries(live.map((e) => MapEntry(e.$1.id, e)));
+
       // Phase 1: show the accounts immediately, usage still loading.
       final rows = [
         for (final (a, pf) in live) _toRow(a, pf, core.ProviderStatus.unknown),
@@ -85,6 +95,17 @@ class Engine {
     }
   }
 
+  /// Re-reads one account's usage live (the per-account Update button).
+  /// Read-only — no session is started, so it costs no quota. Returns the
+  /// refreshed row, or null if the id isn't among the discovered accounts.
+  Future<Account?> refreshAccount(String id) async {
+    final entry = _live[id];
+    if (entry == null) return null;
+    final (account, pf) = entry;
+    final status = await _adapters[account.provider]!.readStatus(account);
+    return _toRow(account, pf, status);
+  }
+
   /// Convenience for tests/one-shot callers: the final, fully-loaded rows.
   Future<List<Account>> load() => watch().last;
 }
@@ -92,6 +113,7 @@ class Engine {
 Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s) {
   final session = _meter(s.session, weekly: false);
   return Account(
+    id: a.id,
     provider: _uiProvider(a.provider),
     name: _displayName(a),
     plan: '${a.provider.name} · ${pf.detail ?? '—'}',

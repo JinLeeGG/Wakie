@@ -39,6 +39,9 @@ class Meter {
 }
 
 class Account {
+  /// Core account id (e.g. "claude-default"), used to refresh this one row.
+  /// Empty for the static [mockAccounts].
+  final String id;
   final Provider provider;
   final String name;
   final String plan; // e.g. "claude · pro"
@@ -48,6 +51,7 @@ class Account {
   final RunStatus status;
 
   const Account({
+    this.id = '',
     required this.provider,
     required this.name,
     required this.plan,

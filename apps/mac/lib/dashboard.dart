@@ -20,7 +20,11 @@ class DashboardScreen extends StatefulWidget {
   /// so widget/golden output stays deterministic.
   final Stream<List<Account>> Function()? source;
 
-  const DashboardScreen({super.key, this.source});
+  /// Re-reads one account's usage live (per-account Update). Returns the
+  /// refreshed row, or null if it can't be resolved. Null in tests/goldens.
+  final Future<Account?> Function(Account)? onUpdateAccount;
+
+  const DashboardScreen({super.key, this.source, this.onUpdateAccount});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -87,6 +91,19 @@ class _DashboardScreenState extends State<DashboardScreen>
         if (mounted) setState(() => _loading = false);
       },
     );
+  }
+
+  /// Per-account Update: play the footer progress and, if wired, re-read just
+  /// this account live, swapping the row in when it returns.
+  void _update(Account a) {
+    _footer.runUpdate(a.name);
+    final updater = widget.onUpdateAccount;
+    if (updater == null) return; // mock mode — animation only
+    updater(a).then((fresh) {
+      if (!mounted || fresh == null) return;
+      final i = _accounts.indexWhere((x) => x.id == a.id);
+      if (i != -1) setState(() => _accounts[i] = fresh);
+    });
   }
 
   void _askRemove(Account a) => setState(() => _pendingRemove = a);
@@ -193,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           account: _accounts[i],
                           animDelayMs: 70 + i * 60,
                           onRemove: () => _askRemove(_accounts[i]),
-                          onUpdate: () => _footer.runUpdate(_accounts[i].name),
+                          onUpdate: () => _update(_accounts[i]),
                         ),
                       ),
               ),
