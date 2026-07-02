@@ -1,6 +1,8 @@
 import 'account.dart';
 import 'adapter.dart';
+import 'preflight.dart';
 import 'provider.dart';
+import 'store.dart';
 
 /// The ambient default account candidate for each provider (not yet probed).
 /// Each uses `configHome: null` so the CLI runs with no env override — the
@@ -41,5 +43,44 @@ Future<List<Account>> discoverDefaultAccounts(
   return [
     for (var i = 0; i < candidates.length; i++)
       if (preflights[i].isOk) candidates[i],
+  ];
+}
+
+/// Discovers logged-in accounts paired with their [Preflight] (email, plan —
+/// needed for display): each provider's ambient default plus any
+/// user-added [Store.extraAccounts] (FR-UI-04), skipping ones the user has
+/// removed (persisted in [store]) so a rescan doesn't resurrect them. The one
+/// discovery path shared by the Mac GUI engine and the headless runner
+/// (PRD §9.2, FR-RN-01/07).
+///
+/// [includePendingExtras] also returns user-added accounts whose login isn't
+/// finished yet (preflight not ok), so a dashboard can show them as
+/// actionable "sign in" rows (FR-ER) instead of silently hiding them.
+/// Ambient defaults are never included when not ok — that would just render
+/// three permanent "not installed" rows. The headless runner keeps the
+/// default (false): reading usage or starting sessions on a half-logged-in
+/// account is wasted work.
+Future<List<(Account, Preflight)>> discoverLiveAccounts(
+  Map<Provider, ProviderAdapter> adapters,
+  Store store, {
+  String deviceId = 'local',
+  DateTime? now,
+  bool includePendingExtras = false,
+}) async {
+  final defaults =
+      defaultCandidateAccounts(adapters.keys, deviceId: deviceId, now: now);
+  final extras = [
+    for (final e in store.extraAccounts)
+      if (adapters.containsKey(e.provider)) e.toAccount(deviceId: deviceId),
+  ];
+  final candidates = [...defaults, ...extras];
+  final preflights = await Future.wait(
+      candidates.map((a) => adapters[a.provider]!.detect(a)));
+  return [
+    for (var i = 0; i < candidates.length; i++)
+      if (!store.isRemoved(candidates[i].id) &&
+          (preflights[i].isOk ||
+              (includePendingExtras && i >= defaults.length)))
+        (candidates[i], preflights[i]),
   ];
 }
