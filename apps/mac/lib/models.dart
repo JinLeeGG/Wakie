@@ -42,7 +42,25 @@ class Meter {
   /// plans expose no 5h session window, only a weekly quota). Rendered as
   /// "—" — an unknown must never masquerade as an exhausted 0%.
   final bool known;
-  const Meter(this.pct, this.tone, this.reset, {this.known = true});
+
+  /// Absolute instant this window resets, when resolvable — powers the
+  /// hover tooltip's "resets in Xh Ym". Null for mock rows / unknown windows.
+  final DateTime? resetAt;
+
+  const Meter(this.pct, this.tone, this.reset, {this.known = true, this.resetAt});
+}
+
+/// Friendly "time until [at]" for reset tooltips: "5h 12m", "3d 4h", "12m",
+/// or "under a minute" (also the fallback for an instant already past).
+String untilLabel(DateTime at, {DateTime? now}) {
+  final d = at.difference(now ?? DateTime.now());
+  if (d.inMinutes < 1) return 'under a minute';
+  final days = d.inDays;
+  final hours = d.inHours % 24;
+  final mins = d.inMinutes % 60;
+  if (days > 0) return '${days}d ${hours}h';
+  if (hours > 0) return '${hours}h ${mins}m';
+  return '${mins}m';
 }
 
 class Account {

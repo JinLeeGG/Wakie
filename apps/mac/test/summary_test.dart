@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wakieai/models.dart';
 import 'package:wakieai/widgets/summary.dart';
 
 void main() {
@@ -25,6 +26,25 @@ void main() {
       expect(parseAnchorTime('0am'), isNull);
       expect(parseAnchorTime('soon'), isNull);
       expect(parseAnchorTime(''), isNull);
+    });
+  });
+
+  group('untilLabel', () {
+    final now = DateTime(2026, 7, 3, 12, 0);
+    test('hours and minutes within a day', () {
+      expect(untilLabel(now.add(const Duration(hours: 5, minutes: 12)), now: now),
+          '5h 12m');
+      expect(untilLabel(now.add(const Duration(minutes: 40)), now: now), '40m');
+    });
+    test('days and hours past a day', () {
+      expect(untilLabel(now.add(const Duration(days: 3, hours: 4)), now: now),
+          '3d 4h');
+    });
+    test('past or sub-minute reads as under a minute', () {
+      expect(untilLabel(now.subtract(const Duration(minutes: 5)), now: now),
+          'under a minute');
+      expect(untilLabel(now.add(const Duration(seconds: 30)), now: now),
+          'under a minute');
     });
   });
 }

@@ -170,10 +170,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  /// Earliest upcoming session reset across accounts, in the rows' clock
-  /// format. Mock rows carry no instant, so goldens keep the mockup's value.
-  String _nextResetLabel() {
-    if (widget.source == null) return '4:30am'; // static mock (deterministic)
+  /// Earliest upcoming session reset across accounts. Mock rows carry no
+  /// instant (null), so goldens stay deterministic and the card's tooltip
+  /// stays off there.
+  DateTime? _nextResetAt() {
     final now = DateTime.now();
     DateTime? next;
     for (final a in _accounts) {
@@ -181,6 +181,13 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (at == null || at.isBefore(now)) continue;
       if (next == null || at.isBefore(next)) next = at;
     }
+    return next;
+  }
+
+  /// That reset in the rows' clock format.
+  String _nextResetLabel() {
+    if (widget.source == null) return '4:30am'; // static mock (deterministic)
+    final next = _nextResetAt();
     return next == null ? '—' : formatClock(next);
   }
 
@@ -489,6 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     .where((a) => a.status == RunStatus.low)
                     .length,
                 nextReset: _nextResetLabel(),
+                nextResetAt: _nextResetAt(),
                 onAddAccount: () => setState(() => _addingAccount = true),
                 morningAnchorHour: _anchorHour,
                 morningAnchorMinute: _anchorMinute,
