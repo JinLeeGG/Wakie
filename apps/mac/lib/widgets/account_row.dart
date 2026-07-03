@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models.dart';
 import '../theme.dart';
+import 'tiny_toggle_switch.dart';
 
 class AccountRow extends StatefulWidget {
   final Account account;
@@ -55,7 +56,10 @@ class _AccountRowState extends State<AccountRow>
         final t = Curves.easeOutCubic.transform(_in.value);
         return Opacity(
           opacity: t,
-          child: Transform.translate(offset: Offset(0, (1 - t) * 7), child: child),
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 7),
+            child: child,
+          ),
         );
       },
       child: MouseRegion(
@@ -71,7 +75,7 @@ class _AccountRowState extends State<AccountRow>
           ),
           child: Row(
             children: [
-              SizedBox(width: 252, child: _acct(a)),
+              SizedBox(width: 272, child: _acct(a)),
               const SizedBox(width: 16),
               Expanded(child: _MeterView(a.session)),
               const SizedBox(width: 16),
@@ -101,10 +105,9 @@ class _AccountRowState extends State<AccountRow>
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: _identity(a),
-        ),
-        if (widget.onAutoStartChanged != null) _AutoStartToggle(a: a, onChanged: widget.onAutoStartChanged!),
+        Expanded(child: _identity(a)),
+        if (widget.onAutoStartChanged != null)
+          _AutoStartToggle(a: a, onChanged: widget.onAutoStartChanged!),
       ],
     );
   }
@@ -125,27 +128,35 @@ class _AccountRowState extends State<AccountRow>
           textBaseline: TextBaseline.alphabetic,
           children: [
             Flexible(
-              child: Text(a.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: sans(16.5, weight: FontWeight.w600, color: T.t1)),
+              child: Text(
+                a.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: sans(18, weight: FontWeight.w600, color: T.t1),
+              ),
             ),
             if (plan.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Text(plan.toUpperCase(),
-                    style: mono(10.5,
-                        weight: FontWeight.w600,
-                        color: T.amber,
-                        letterSpacing: 0.5)),
+                child: Text(
+                  plan.toUpperCase(),
+                  style: mono(
+                    10.5,
+                    weight: FontWeight.w600,
+                    color: T.amber,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
           ],
         ),
         const SizedBox(height: 2),
-        Text(email,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: mono(11.5, color: T.t3)),
+        Text(
+          email,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: mono(11.5, color: T.t3),
+        ),
       ],
     );
   }
@@ -217,8 +228,10 @@ class _AccountRowState extends State<AccountRow>
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: border),
           ),
-          child: Text(label,
-              style: mono(12, weight: FontWeight.w600, color: fg)),
+          child: Text(
+            label,
+            style: mono(12, weight: FontWeight.w600, color: fg),
+          ),
         ),
       ),
     );
@@ -242,33 +255,43 @@ class _MeterView extends StatelessWidget {
           children: [
             Flexible(
               child: Text.rich(
-                TextSpan(children: [
-                  if (meter.known) ...[
-                    TextSpan(
+                TextSpan(
+                  children: [
+                    if (meter.known) ...[
+                      TextSpan(
                         text: '${meter.pct}%',
-                        style: mono(15,
-                            weight: FontWeight.w600, color: meter.tone.text)),
-                    TextSpan(
+                        style: mono(
+                          17,
+                          weight: FontWeight.w600,
+                          color: meter.tone.text,
+                        ),
+                      ),
+                      TextSpan(
                         text: ' left',
-                        style: mono(11, weight: FontWeight.w500, color: T.t3)),
-                  ] else
-                    // No data for this window (e.g. free plans have no 5h
-                    // session) — never dress an unknown up as an empty 0%.
-                    TextSpan(
+                        style: mono(11, weight: FontWeight.w500, color: T.t3),
+                      ),
+                    ] else
+                      // No data for this window (e.g. free plans have no 5h
+                      // session) — never dress an unknown up as an empty 0%.
+                      TextSpan(
                         text: '—',
-                        style: mono(15, weight: FontWeight.w600, color: T.t3)),
-                ]),
+                        style: mono(17, weight: FontWeight.w600, color: T.t3),
+                      ),
+                  ],
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.clip,
                 softWrap: false,
               ),
             ),
             const SizedBox(width: 8),
-            Text(meter.reset,
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-                softWrap: false,
-                style: mono(12.5, color: T.t3)),
+            Text(
+              meter.reset,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: mono(13.5, color: T.t3),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -303,7 +326,10 @@ class _Bar extends StatelessWidget {
                   color: color,
                   borderRadius: BorderRadius.circular(99),
                   boxShadow: [
-                    BoxShadow(color: color.withValues(alpha: .5), blurRadius: 12),
+                    BoxShadow(
+                      color: color.withValues(alpha: .5),
+                      blurRadius: 12,
+                    ),
                   ],
                 ),
               ),
@@ -355,8 +381,15 @@ class _StatusPill extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text(label.toUpperCase(),
-              style: mono(11.5, weight: FontWeight.w600, color: textColor, letterSpacing: 1.1)),
+          Text(
+            label.toUpperCase(),
+            style: mono(
+              11.5,
+              weight: FontWeight.w600,
+              color: textColor,
+              letterSpacing: 1.1,
+            ),
+          ),
         ],
       ),
     );
@@ -375,28 +408,25 @@ class _AutoStartToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final on = a.autoStart;
+    final available = a.autoStartAvailable;
+    final on = available && a.autoStart;
     return Tooltip(
-      message: on
+      message: !available
+          ? 'Auto-start is unavailable — this account has no current session reset window'
+          : on
           ? 'Auto-start is on — a new session starts the moment this window resets'
           : 'Auto-start is off — this account only refreshes, never starts a session',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () => onChanged(!on),
-          child: Container(
-            width: 28,
-            height: 28,
-            margin: const EdgeInsets.only(left: 8),
-            decoration: BoxDecoration(
-              // Off is a ghost — outline only, dim bolt — so the amber "on"
-              // reads as the lit state of a pressable, not a random badge.
-              color: on ? const Color(0x26FFC465) : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: on ? const Color(0x66FFC465) : T.hair),
-            ),
-            child: Icon(Icons.bolt,
-                size: 15, color: on ? T.amber : T.white(.28)),
+      child: Semantics(
+        label: 'Auto-start',
+        button: true,
+        enabled: available,
+        toggled: on,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: TinyToggleSwitch(
+            value: on,
+            enabled: available,
+            onTap: () => onChanged(!on),
           ),
         ),
       ),

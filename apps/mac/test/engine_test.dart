@@ -118,6 +118,7 @@ void main() {
     expect(a.weekly.reset, 'Jul 7 (7:00am)');
     expect(a.status, RunStatus.low); // session nearly exhausted
     expect(a.autoStart, isTrue); // Claude defaults to auto-start on (R0 🟢)
+    expect(a.autoStartAvailable, isTrue);
   });
 
   test('maps Codex epoch resetAt to date (weekly) and time (session)', () async {
@@ -140,6 +141,25 @@ void main() {
     expect(a.autoStart, isFalse); // Codex defaults to auto-start off (R0 🟡)
   });
 
+  test('weekly reset within 24h shows a countdown, not a date', () async {
+    final engine = Engine.withAdapters({
+      core.Provider.codex: _FakeClaude(core.ProviderStatus(
+        // Session always resolves under 5h — keeps its clock time. Weekly
+        // lands inside a day, so it flips to "Xh Ym" remaining.
+        session: core.UsageWindow(
+            usedPct: 10,
+            resetAt: DateTime.now().add(const Duration(hours: 3))),
+        weekly: core.UsageWindow(
+            usedPct: 20,
+            resetAt: DateTime.now().add(const Duration(hours: 5, minutes: 20))),
+      )),
+    });
+
+    final a = (await engine.load()).single;
+    expect(a.weekly.reset, matches(RegExp(r'^\d+h \d+m$')));
+    expect(a.session.reset, isNot(matches(RegExp(r'^\d+h \d+m$'))));
+  });
+
   test('unknown usage falls back gracefully', () async {
     final engine = Engine.withAdapters({
       core.Provider.claude: _FakeClaude(core.ProviderStatus.unknown),
@@ -147,6 +167,7 @@ void main() {
     final a = (await engine.load()).single;
     expect(a.session.known, isFalse);
     expect(a.session.reset, '');
+    expect(a.autoStartAvailable, isFalse);
   });
 
   test('refreshAccount re-reads a single discovered account by id', () async {

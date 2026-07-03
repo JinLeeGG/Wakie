@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme.dart';
+import 'tiny_toggle_switch.dart';
 
 const _logoSvg =
     '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
@@ -128,7 +129,6 @@ class DashboardFooter extends StatefulWidget {
 }
 
 class _DashboardFooterState extends State<DashboardFooter> {
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -155,42 +155,47 @@ class _DashboardFooterState extends State<DashboardFooter> {
                     color: T.white(.05),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: LayoutBuilder(builder: (context, box) {
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 600),
-                          curve: const Cubic(.4, 0, .2, 1),
-                          width: box.maxWidth * (c.fill / 100),
-                          height: 2,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: c.failed
-                                  ? [T.crit, const Color(0xFFFFA8AE)]
-                                  : c.done
-                                      ? [T.ok, const Color(0xFF8FE6BD)]
-                                      : [T.amber, const Color(0xFFFFDF9E)],
+                      child: LayoutBuilder(
+                        builder: (context, box) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 600),
+                            curve: const Cubic(.4, 0, .2, 1),
+                            width: box.maxWidth * (c.fill / 100),
+                            height: 2,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: c.failed
+                                    ? [T.crit, const Color(0xFFFFA8AE)]
+                                    : c.done
+                                    ? [T.ok, const Color(0xFF8FE6BD)]
+                                    : [T.amber, const Color(0xFFFFDF9E)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (c.failed
+                                              ? T.crit
+                                              : (c.done ? T.ok : T.amber))
+                                          .withValues(alpha: .28),
+                                  blurRadius: 5,
+                                ),
+                              ],
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (c.failed
-                                        ? T.crit
-                                        : (c.done ? T.ok : T.amber))
-                                    .withValues(alpha: .28),
-                                blurRadius: 5,
-                              )
-                            ],
-                          ),
-                        );
-                      }),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 13,
+                ),
                 child: Row(
                   children: [
-                    Expanded(
-                        child: c.running ? _runStatus(c) : _keys()),
+                    Expanded(child: c.running ? _runStatus(c) : _keys()),
                     _darkWakeToggle(),
                     const SizedBox(width: 18),
                     _launchToggle(),
@@ -211,23 +216,26 @@ class _DashboardFooterState extends State<DashboardFooter> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 15,
-          height: 15,
-          child: SvgPicture.string(_logoSvg),
-        ),
+        SizedBox(width: 15, height: 15, child: SvgPicture.string(_logoSvg)),
         const SizedBox(width: 7),
-        Text.rich(TextSpan(children: [
+        Text.rich(
           TextSpan(
-              text: 'Wakie',
-              style: mono(12.5, weight: FontWeight.w600, color: T.amber)),
-          TextSpan(
-              text: 'AI',
-              style: mono(12.5, weight: FontWeight.w600, color: T.t1)),
-          TextSpan(
-              text: '  1.0.0',
-              style: mono(10, color: T.t3, letterSpacing: 0.4)),
-        ])),
+            children: [
+              TextSpan(
+                text: 'Wakie',
+                style: mono(12.5, weight: FontWeight.w600, color: T.amber),
+              ),
+              TextSpan(
+                text: 'AI',
+                style: mono(12.5, weight: FontWeight.w600, color: T.t1),
+              ),
+              TextSpan(
+                text: '  1.0.0',
+                style: mono(10, color: T.t3, letterSpacing: 0.4),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -235,8 +243,6 @@ class _DashboardFooterState extends State<DashboardFooter> {
   Widget _keys() {
     return Row(
       children: [
-        _key('↵', 'Update'),
-        const SizedBox(width: 18),
         _key('⌘R', 'Refresh all', onTap: widget.onRefreshAll),
         const SizedBox(width: 18),
         _key('⌘N', 'Add account', onTap: widget.onAddAccount),
@@ -287,76 +293,44 @@ class _DashboardFooterState extends State<DashboardFooter> {
           ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(c.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: mono(12.5, color: c.failed ? T.crit : (c.done ? T.ok : T.t2))),
+          child: Text(
+            c.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: mono(
+              12.5,
+              color: c.failed ? T.crit : (c.done ? T.ok : T.t2),
+            ),
+          ),
         ),
       ],
     );
   }
 
   Widget _launchToggle() => _toggle(
-        value: widget.launchAtLogin,
-        label: 'Launch at login',
-        onTap: () => widget.onLaunchAtLogin?.call(!widget.launchAtLogin),
-      );
+    value: widget.launchAtLogin,
+    label: 'Launch at login',
+    onTap: () => widget.onLaunchAtLogin?.call(!widget.launchAtLogin),
+  );
 
   Widget _darkWakeToggle() => _toggle(
-        value: widget.darkWake,
-        label: 'Wake from sleep',
-        onTap: () => widget.onDarkWake?.call(!widget.darkWake),
-      );
+    value: widget.darkWake,
+    label: 'Wake from sleep',
+    onTap: () => widget.onDarkWake?.call(!widget.darkWake),
+  );
 
   Widget _toggle({
     required bool value,
     required String label,
     required VoidCallback onTap,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 32,
-              height: 18,
-              decoration: BoxDecoration(
-                color: value ? T.amber : T.white(.12),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment:
-                    value ? Alignment.centerRight : Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: .35),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(label, style: mono(11.5, color: T.t3)),
-          ],
-        ),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TinyToggleSwitch(value: value, onTap: onTap),
+        const SizedBox(width: 8),
+        Text(label, style: mono(11.5, color: T.t3)),
+      ],
     );
   }
 }

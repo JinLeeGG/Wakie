@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'engine.dart' show SignInResult, SignInState, formatClock;
 import 'models.dart';
@@ -92,14 +93,20 @@ class _DashboardScreenState extends State<DashboardScreen>
     duration: const Duration(milliseconds: 700),
   )..forward();
 
-  late final List<Account> _accounts =
-      widget.source == null ? List.of(mockAccounts) : <Account>[];
+  late final List<Account> _accounts = widget.source == null
+      ? List.of(mockAccounts)
+      : <Account>[];
   bool _loading = false;
   StreamSubscription<List<Account>>? _sub;
 
   int _tagIdx = 0;
   bool _tagFaded = false;
   Timer? _tagTimer;
+
+  // When usage was last read — drives the header's "Updated Xm ago". The tag
+  // timer's 7s setState already re-renders the header, so the label re-ages
+  // without a timer of its own.
+  DateTime? _lastRefresh;
 
   Account? _pendingRemove;
   bool _addingAccount = false;
@@ -139,13 +146,17 @@ class _DashboardScreenState extends State<DashboardScreen>
     // needed. No-op when nothing is pending; guarded so a slow check can't
     // stack up overlapping polls.
     _signinPoll = Timer.periodic(
-        const Duration(seconds: 6), (_) => _pollPendingSignins());
+      const Duration(seconds: 6),
+      (_) => _pollPendingSignins(),
+    );
     // While awake, watch for session windows lapsing so auto-start chains a
     // new one (D1) and alerts fire — the dark-wake runner covers the asleep
     // hours; this covers the Mac sitting open all day. Pure clock/store math
     // per tick; subprocesses only run when a window actually lapses.
-    _awakeTimer =
-        Timer.periodic(const Duration(seconds: 60), (_) => _awakeTick());
+    _awakeTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _awakeTick(),
+    );
   }
 
   @override
@@ -189,6 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           final i = _accounts.indexWhere((a) => a.id == row.id);
           if (i != -1) _accounts[i] = row;
         }
+        _lastRefresh = DateTime.now();
       });
     } finally {
       _ticking = false;
@@ -247,9 +259,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     _sub = source().listen(
       (accounts) {
         if (!mounted) return;
-        setState(() => _accounts
-          ..clear()
-          ..addAll(accounts));
+        setState(() {
+          _accounts
+            ..clear()
+            ..addAll(accounts);
+          _lastRefresh = DateTime.now();
+        });
         if (!footer) return;
         if (first) {
           first = false;
@@ -282,12 +297,18 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (!mounted) return;
       if (fresh != null) {
         final i = _accounts.indexWhere((x) => x.id == a.id);
-        if (i != -1) setState(() => _accounts[i] = fresh);
+        if (i != -1) {
+          setState(() {
+            _accounts[i] = fresh;
+            _lastRefresh = DateTime.now();
+          });
+        }
       }
       // A cold isolated home's very first scrape can miss (the engine
       // degrades it to unknown rather than throwing). Retry once before
       // reporting — and never claim "refreshed" over an empty read.
-      final unknown = fresh != null &&
+      final unknown =
+          fresh != null &&
           !fresh.session.known &&
           !fresh.weekly.known &&
           fresh.status != RunStatus.signin;
@@ -319,16 +340,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _setAutoStart(Account a, bool enabled) {
     final i = _accounts.indexWhere((x) => x.id == a.id);
     if (i != -1) {
-      setState(() => _accounts[i] = Account(
-            id: a.id,
-            provider: a.provider,
-            name: a.name,
-            plan: a.plan,
-            session: a.session,
-            weekly: a.weekly,
-            status: a.status,
-            autoStart: enabled,
-          ));
+      setState(
+        () => _accounts[i] = Account(
+          id: a.id,
+          provider: a.provider,
+          name: a.name,
+          plan: a.plan,
+          session: a.session,
+          weekly: a.weekly,
+          status: a.status,
+          autoStart: enabled,
+          autoStartAvailable: a.autoStartAvailable,
+          sessionResetAt: a.sessionResetAt,
+        ),
+      );
     }
     widget.onSetAutoStart?.call(a, enabled);
   }
@@ -353,6 +378,28 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    // The footer advertises ⌘R / ⌘N — wire them for real (autofocus so the
+    // panel catches the keys the moment it opens). Per-account Update stays a
+    // row action; there's no focused "current row" for a global ↵ to target.
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): _refreshAll,
+        const SingleActivator(LogicalKeyboardKey.keyN, meta: true):
+            () => setState(() => _addingAccount = true),
+      },
+      child: Focus(
+        autofocus: true,
+        child: _scaffold(),
+      ),
+    );
+  }
+
+  void _refreshAll() {
+    _footer.start('Refreshing accounts…');
+    _reload(footer: true);
+  }
+
+  Widget _scaffold() {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -370,21 +417,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                 width: 1000,
                 height: 640,
                 child: AnimatedBuilder(
-            animation: _winIn,
-            builder: (context, child) {
-              final t = Curves.easeOutCubic.transform(_winIn.value);
-              return Opacity(
-                opacity: t,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - t) * 10),
-                  child: Transform.scale(
-                    scale: 0.985 + 0.015 * t,
-                    child: child,
-                  ),
-                ),
-              );
-            },
-            child: _panel(),
+                  animation: _winIn,
+                  builder: (context, child) {
+                    final t = Curves.easeOutCubic.transform(_winIn.value);
+                    return Opacity(
+                      opacity: t,
+                      child: Transform.translate(
+                        offset: Offset(0, (1 - t) * 10),
+                        child: Transform.scale(
+                          scale: 0.985 + 0.015 * t,
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _panel(),
                 ),
               ),
             ),
@@ -406,6 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _panel() {
+    final accounts = _orderedAccounts();
     return DecoratedBox(
       decoration: BoxDecoration(
         color: T.glass,
@@ -467,29 +515,38 @@ class _DashboardScreenState extends State<DashboardScreen>
               Expanded(
                 child: _loading && _accounts.isEmpty
                     ? Center(
-                        child: Text('Scanning accounts…',
-                            style: mono(13, color: T.t2)),
+                        child: Text(
+                          'Scanning accounts…',
+                          style: mono(13, color: T.t2),
+                        ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                        itemCount: _accounts.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 2),
-                        itemBuilder: (context, i) => AccountRow(
-                          account: _accounts[i],
-                          animDelayMs: 70 + i * 60,
-                          onRemove: () => _askRemove(_accounts[i]),
-                          onUpdate: () => _update(_accounts[i]),
-                          onAutoStartChanged: (enabled) =>
-                              _setAutoStart(_accounts[i], enabled),
+                    : _TopListFade(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                          itemCount: accounts.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 2),
+                          itemBuilder: (context, i) {
+                            final account = accounts[i];
+                            return AccountRow(
+                              key: ValueKey(
+                                account.id.isEmpty
+                                    ? '${account.provider.name}:${account.name}:${account.plan}'
+                                    : account.id,
+                              ),
+                              account: account,
+                              animDelayMs: 70 + i * 60,
+                              onRemove: () => _askRemove(account),
+                              onUpdate: () => _update(account),
+                              onAutoStartChanged: (enabled) =>
+                                  _setAutoStart(account, enabled),
+                            );
+                          },
                         ),
                       ),
               ),
               DashboardFooter(
                 controller: _footer,
-                onRefreshAll: () {
-                  _footer.start('Refreshing accounts…');
-                  _reload(footer: true);
-                },
+                onRefreshAll: _refreshAll,
                 onAddAccount: () => setState(() => _addingAccount = true),
                 launchAtLogin: _launchAtLogin,
                 onLaunchAtLogin: (on) {
@@ -533,8 +590,41 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  List<Account> _orderedAccounts() {
+    final indexed = <({int index, Account account})>[];
+    for (var i = 0; i < _accounts.length; i++) {
+      indexed.add((index: i, account: _accounts[i]));
+    }
+    indexed.sort((a, b) {
+      final provider = _providerOrder(
+        a.account.provider,
+      ).compareTo(_providerOrder(b.account.provider));
+      if (provider != 0) return provider;
+      return a.index.compareTo(b.index);
+    });
+    return [for (final entry in indexed) entry.account];
+  }
+
+  int _providerOrder(Provider provider) => switch (provider) {
+    Provider.claude => 0,
+    Provider.codex => 1,
+    Provider.anti => 2,
+  };
+
+  /// How long since usage was last read, in words. Empty until the first
+  /// read lands (the pill shows "Syncing…" then).
+  String _freshnessLabel() {
+    final at = _lastRefresh;
+    if (at == null) return '';
+    final d = DateTime.now().difference(at);
+    if (d.inSeconds < 45) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
+  }
+
   // The brand lives in the footer now — up here the rotating tagline IS the
-  // header, full-size, with the device pill riding its centerline.
+  // header, full-size, with the freshness pill riding its centerline.
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(26, 20, 26, 14),
@@ -558,15 +648,20 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ),
           const SizedBox(width: 16),
-          const _DevicePill(),
+          _FreshnessPill(label: _freshnessLabel()),
         ],
       ),
     );
   }
 }
 
-class _DevicePill extends StatelessWidget {
-  const _DevicePill();
+/// Data-freshness readout: how long since the last successful usage read. The
+/// only load-bearing part of the old device pill — the device name and power
+/// state were Phase-1 noise (always "this Mac", always "awake") and wait for
+/// the multi-device Phase 2. The dot is a quiet "live" cue.
+class _FreshnessPill extends StatelessWidget {
+  final String label;
+  const _FreshnessPill({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -587,26 +682,36 @@ class _DevicePill extends StatelessWidget {
               color: T.ok,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(
-                    color: T.ok.withValues(alpha: .7), blurRadius: 10),
+                BoxShadow(color: T.ok.withValues(alpha: .7), blurRadius: 10),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text('MacBook Air',
-              style: mono(13, weight: FontWeight.w500, color: T.t1)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Text('·', style: mono(13, color: T.t3)),
+          Text(
+            label.isEmpty ? 'Syncing…' : 'Updated $label',
+            style: mono(13, color: T.t2),
           ),
-          Text('awake', style: mono(13, color: T.t2)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Text('·', style: mono(13, color: T.t3)),
-          ),
-          Text('2m ago', style: mono(13, color: T.t2)),
         ],
       ),
+    );
+  }
+}
+
+class _TopListFade extends StatelessWidget {
+  final Widget child;
+  const _TopListFade({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.white, Colors.white],
+        stops: [0, .065, 1],
+      ).createShader(bounds),
+      child: child,
     );
   }
 }
@@ -618,35 +723,26 @@ class _ColHead extends StatelessWidget {
   Widget build(BuildContext context) {
     TextStyle s(String _) =>
         mono(12.5, weight: FontWeight.w500, color: T.t2, letterSpacing: 1.3);
-    Widget label(String t, {TextAlign align = TextAlign.left}) => Text(
-          t.toUpperCase(),
-          textAlign: align,
-          style: s(t),
-        );
+    Widget label(String t, {TextAlign align = TextAlign.left}) =>
+        Text(t.toUpperCase(), textAlign: align, style: s(t));
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 4, 28, 6),
       child: Row(
         children: [
-          // AUTO sits over the bolt toggles at the account cell's right edge,
+          // AUTO-START sits over the switches at the account cell's right edge,
           // naming the column so the toggle reads as a setting, not a badge.
           SizedBox(
-            width: 252,
+            width: 272,
             child: Row(
-              children: [
-                label('Account'),
-                const Spacer(),
-                label('Auto'),
-              ],
+              children: [label('Account'), const Spacer(), label('Auto-start')],
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: label('Session · 5h')),
+          Expanded(child: label('Current Session')),
           const SizedBox(width: 16),
           Expanded(child: label('Weekly')),
           const SizedBox(width: 16),
-          SizedBox(
-              width: 190,
-              child: label('Status', align: TextAlign.right)),
+          SizedBox(width: 190, child: label('Status', align: TextAlign.right)),
         ],
       ),
     );

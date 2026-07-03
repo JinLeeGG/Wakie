@@ -22,8 +22,8 @@ typedef DirDeleter = void Function(String path);
 /// onboarding+trust; Antigravity: give it its own login keychain so a second
 /// agy account can sign in in isolation. No-op for Codex (CODEX_HOME files).
 /// Injected so tests never touch real disk/keychains.
-typedef ConfigPreparer = Future<void> Function(
-    core.Provider provider, String configHome);
+typedef ConfigPreparer =
+    Future<void> Function(core.Provider provider, String configHome);
 
 Future<void> _realPrepareConfig(core.Provider provider, String configHome) {
   return switch (provider) {
@@ -41,8 +41,10 @@ Future<void> _realPrepareConfig(core.Provider provider, String configHome) {
 /// app hiccup; output is dropped (the dashboard tracks completion by polling
 /// auth status).
 Future<void> _runLoginHidden(String command) async {
-  await Process.start('/bin/zsh', ['-lc', command],
-      mode: ProcessStartMode.detached);
+  await Process.start('/bin/zsh', [
+    '-lc',
+    command,
+  ], mode: ProcessStartMode.detached);
 }
 
 /// Opens a visible Terminal for a login that needs one — Antigravity (`agy`)
@@ -54,13 +56,21 @@ Future<void> _openTerminalWithScript(String command) async {
   await script.writeAsString('#!/bin/zsh -l\n$command\n');
   final chmod = await Process.run('chmod', ['+x', script.path]);
   if (chmod.exitCode != 0) {
-    throw ProcessException('chmod', ['+x', script.path],
-        chmod.stderr.toString(), chmod.exitCode);
+    throw ProcessException(
+      'chmod',
+      ['+x', script.path],
+      chmod.stderr.toString(),
+      chmod.exitCode,
+    );
   }
   final open = await Process.run('open', ['-a', 'Terminal', script.path]);
   if (open.exitCode != 0) {
-    throw ProcessException('open', ['-a', 'Terminal', script.path],
-        open.stderr.toString(), open.exitCode);
+    throw ProcessException(
+      'open',
+      ['-a', 'Terminal', script.path],
+      open.stderr.toString(),
+      open.exitCode,
+    );
   }
 }
 
@@ -72,14 +82,18 @@ Future<void> _realEnsureDir(String path) async {
 /// hardware wake for it, at [hour]:[minute]. Returns null on success or a
 /// message to surface (e.g. the user dismissed the password dialog). Injected
 /// so tests never touch launchd/pmset.
-typedef DarkWakeConfigurer = Future<String?> Function(
-    bool enable, int hour, int minute);
+typedef DarkWakeConfigurer =
+    Future<String?> Function(bool enable, int hour, int minute);
 
 /// The whole dark-wake setup, app-driven (no install script for the user):
 /// writes the runner LaunchAgent, registers it with `launchctl` (both
 /// non-privileged), then programs the hardware wake via the one admin prompt.
 /// Rolls the agent back if that prompt is cancelled, so the two never drift.
-Future<String?> _realConfigureDarkWake(bool enable, int hour, int minute) async {
+Future<String?> _realConfigureDarkWake(
+  bool enable,
+  int hour,
+  int minute,
+) async {
   final home = Platform.environment['HOME'];
   if (home == null) return 'No HOME directory.';
   final plistPath =
@@ -102,13 +116,15 @@ Future<String?> _realConfigureDarkWake(bool enable, int hour, int minute) async 
   final logDir = Directory('$home/Library/Application Support/WakieAI/logs')
     ..createSync(recursive: true);
   plist.parent.createSync(recursive: true);
-  plist.writeAsStringSync(core.launchAgentPlist(
-    executablePath: runner,
-    hour: hour,
-    minute: minute,
-    stdoutPath: '${logDir.path}/out.log',
-    stderrPath: '${logDir.path}/err.log',
-  ));
+  plist.writeAsStringSync(
+    core.launchAgentPlist(
+      executablePath: runner,
+      hour: hour,
+      minute: minute,
+      stdoutPath: '${logDir.path}/out.log',
+      stderrPath: '${logDir.path}/err.log',
+    ),
+  );
   await Process.run('launchctl', ['unload', plistPath]); // ignore if not loaded
   final load = await Process.run('launchctl', ['load', plistPath]);
   if (load.exitCode != 0) {
@@ -116,7 +132,8 @@ Future<String?> _realConfigureDarkWake(bool enable, int hour, int minute) async 
     return 'launchctl failed: ${(load.stderr as String).trim()}';
   }
   final err = await core.runWithAdminPrompt(
-      core.pmsetDailyWakeCommandRaw(hour: hour, minute: minute));
+    core.pmsetDailyWakeCommandRaw(hour: hour, minute: minute),
+  );
   if (err != null) {
     await Process.run('launchctl', ['unload', plistPath]);
     if (plist.existsSync()) plist.deleteSync();
@@ -134,8 +151,7 @@ String? _resolveRunnerPath() {
   if (bundled.existsSync()) return bundled.path;
   final home = Platform.environment['HOME'];
   if (home == null) return null;
-  final dev =
-      File('$home/Library/Application Support/WakieAI/wakieai_runner');
+  final dev = File('$home/Library/Application Support/WakieAI/wakieai_runner');
   return dev.existsSync() ? dev.path : null;
 }
 
@@ -146,12 +162,14 @@ typedef LoginItemInstaller = Future<void> Function(bool enable);
 Future<void> _realInstallLoginItem(bool enable) async {
   final home = Platform.environment['HOME'];
   if (home == null) return;
-  final plist =
-      File('$home/Library/LaunchAgents/${core.wakieaiLoginItemLabel}.plist');
+  final plist = File(
+    '$home/Library/LaunchAgents/${core.wakieaiLoginItemLabel}.plist',
+  );
   if (enable) {
     plist.parent.createSync(recursive: true);
     plist.writeAsStringSync(
-        core.loginItemPlist(executablePath: Platform.resolvedExecutable));
+      core.loginItemPlist(executablePath: Platform.resolvedExecutable),
+    );
   } else if (plist.existsSync()) {
     plist.deleteSync();
   }
@@ -209,51 +227,55 @@ class Engine {
   final Map<String, (core.Account, core.Preflight)> _live = {};
 
   Engine._(
-      this._adapters,
-      this._store,
-      this._runHidden,
-      this._openTerminal,
-      this._ensureDir,
-      this._deleteDir,
-      this._prepareConfig,
-      this._notify,
-      this._installLoginItem,
-      this._configureDarkWake);
+    this._adapters,
+    this._store,
+    this._runHidden,
+    this._openTerminal,
+    this._ensureDir,
+    this._deleteDir,
+    this._prepareConfig,
+    this._notify,
+    this._installLoginItem,
+    this._configureDarkWake,
+  );
 
   factory Engine.production() => Engine._(
-      core.productionAdapters(),
-      core.Store.load(),
-      _runLoginHidden,
-      _openTerminalWithScript,
-      _realEnsureDir,
-      _realDeleteDir,
-      _realPrepareConfig,
-      core.showMacNotification,
-      _realInstallLoginItem,
-      _realConfigureDarkWake);
+    core.productionAdapters(),
+    core.Store.load(),
+    _runLoginHidden,
+    _openTerminalWithScript,
+    _realEnsureDir,
+    _realDeleteDir,
+    _realPrepareConfig,
+    core.showMacNotification,
+    _realInstallLoginItem,
+    _realConfigureDarkWake,
+  );
 
   @visibleForTesting
-  factory Engine.withAdapters(Map<core.Provider, core.ProviderAdapter> a,
-          {core.Store? store,
-          LoginRunner? runHidden,
-          LoginRunner? openTerminal,
-          DirEnsurer? ensureDir,
-          DirDeleter? deleteDir,
-          ConfigPreparer? prepareConfig,
-          Future<void> Function(String, String)? notify,
-          LoginItemInstaller? installLoginItem,
-          DarkWakeConfigurer? configureDarkWake}) =>
-      Engine._(
-          a,
-          store ?? core.Store.memory(),
-          runHidden ?? (_) async {},
-          openTerminal ?? (_) async {},
-          ensureDir ?? (_) async {},
-          deleteDir ?? (_) {},
-          prepareConfig ?? (_, _) async {},
-          notify ?? (_, _) async {},
-          installLoginItem ?? (_) async {},
-          configureDarkWake ?? (_, _, _) async => null);
+  factory Engine.withAdapters(
+    Map<core.Provider, core.ProviderAdapter> a, {
+    core.Store? store,
+    LoginRunner? runHidden,
+    LoginRunner? openTerminal,
+    DirEnsurer? ensureDir,
+    DirDeleter? deleteDir,
+    ConfigPreparer? prepareConfig,
+    Future<void> Function(String, String)? notify,
+    LoginItemInstaller? installLoginItem,
+    DarkWakeConfigurer? configureDarkWake,
+  }) => Engine._(
+    a,
+    store ?? core.Store.memory(),
+    runHidden ?? (_) async {},
+    openTerminal ?? (_) async {},
+    ensureDir ?? (_) async {},
+    deleteDir ?? (_) {},
+    prepareConfig ?? (_, _) async {},
+    notify ?? (_, _) async {},
+    installLoginItem ?? (_) async {},
+    configureDarkWake ?? (_, _, _) async => null,
+  );
 
   /// Emits account rows in two phases so the dashboard fills fast:
   ///   1. detect all providers in parallel → emit rows with usage still loading;
@@ -284,19 +306,26 @@ class Engine {
       // become visible rows. A pending extra stays invisible until its login
       // lands and it's confirmed not a duplicate, so nothing ever flashes
       // into the list and back out.
-      final all = await core.discoverLiveAccounts(_adapters, _store,
-          includePendingExtras: true);
+      final all = await core.discoverLiveAccounts(
+        _adapters,
+        _store,
+        includePendingExtras: true,
+      );
       _live
         ..clear()
         ..addEntries(all.map((e) => MapEntry(e.$1.id, e)));
 
-      final visible = [for (final e in all) if (e.$2.isOk) e];
+      final visible = [
+        for (final e in all)
+          if (e.$2.isOk) e,
+      ];
 
       // Phase 1: show accounts immediately, with last-known usage from the
       // local store (if any) while a live read is still in flight.
       final rows = [
         for (final (a, pf) in visible)
-          _toRow(a, pf, _cachedStatus(a.id), autoStart: _autoStartFor(a)),
+          _toRow(a, pf, _cachedStatus(a.id),
+              name: _nameFor(a), autoStart: _autoStartFor(a)),
       ];
       out.add(List.of(rows));
 
@@ -307,8 +336,13 @@ class Engine {
       await Future.wait([
         for (var i = 0; i < visible.length; i++)
           _readReady(visible[i].$1).then((s) {
-            rows[i] = _toRow(visible[i].$1, visible[i].$2, s,
-                autoStart: _autoStartFor(visible[i].$1));
+            rows[i] = _toRow(
+              visible[i].$1,
+              visible[i].$2,
+              s,
+              name: _nameFor(visible[i].$1),
+              autoStart: _autoStartFor(visible[i].$1),
+            );
             _store.cacheStatus(visible[i].$1.id, s);
             out.add(List.of(rows));
           }),
@@ -337,12 +371,18 @@ class Engine {
       final pf = await _adapters[account.provider]!.detect(account);
       _live[id] = (account, pf);
       if (!pf.isOk) {
-        return _toRow(account, pf, core.ProviderStatus.unknown,
-            autoStart: _autoStartFor(account));
+        return _toRow(
+          account,
+          pf,
+          core.ProviderStatus.unknown,
+          name: _nameFor(account),
+          autoStart: _autoStartFor(account),
+        );
       }
       final status = await _readReady(account);
       _store.cacheStatus(id, status);
-      return _toRow(account, pf, status, autoStart: _autoStartFor(account));
+      return _toRow(account, pf, status,
+          name: _nameFor(account), autoStart: _autoStartFor(account));
     } finally {
       _inFlight.remove(id);
     }
@@ -367,8 +407,10 @@ class Engine {
     if (!pf.isOk) {
       if (DateTime.now().difference(account.addedAt) > _signinTimeout) {
         removeAccount(id);
-        return SignInResult(SignInState.expired,
-            message: '${_displayName(account)} sign-in timed out — removed.');
+        return SignInResult(
+          SignInState.expired,
+          message: '${_nameFor(account)} sign-in timed out — removed.',
+        );
       }
       return const SignInResult(SignInState.pending);
     }
@@ -376,26 +418,36 @@ class Engine {
     final dupOf = _duplicateOf(id, account.provider, pf.email);
     if (dupOf != null) {
       removeAccount(id);
-      return SignInResult(SignInState.duplicate,
-          message: '${pf.email} is already added as "$dupOf" — '
-              'removed the duplicate.');
+      return SignInResult(
+        SignInState.duplicate,
+        message:
+            '${pf.email} is already added as "$dupOf" — '
+            'removed the duplicate.',
+      );
     }
 
     // Return the row immediately (with any cached usage), so a just-signed-in
     // account appears at once — the caller fills live usage via a follow-up
     // refresh. Without this the row would wait on the full `/usage` scrape,
     // which for a cold isolated Antigravity home can take ~30s.
-    return SignInResult(SignInState.ready,
-        row: _toRow(account, pf, _cachedStatus(id),
-            autoStart: _autoStartFor(account)));
+    return SignInResult(
+      SignInState.ready,
+      row: _toRow(
+        account,
+        pf,
+        _cachedStatus(id),
+        name: _nameFor(account),
+        autoStart: _autoStartFor(account),
+      ),
+    );
   }
 
   /// Ids of extra accounts registered but whose sign-in hasn't landed yet —
   /// tracked in [_live] but not shown as rows. The dashboard polls these.
   List<String> pendingSigninIds() => [
-        for (final e in _live.entries)
-          if (e.value.$1.configHome != null && !e.value.$2.isOk) e.key,
-      ];
+    for (final e in _live.entries)
+      if (e.value.$1.configHome != null && !e.value.$2.isOk) e.key,
+  ];
 
   /// Polls every in-flight sign-in once, returning only the ones that
   /// resolved (ready with a live row, or a rejected duplicate). Still-pending
@@ -444,7 +496,7 @@ class Engine {
         continue;
       }
       if (core.accountIdentityKey(otherPf.email ?? '') == target) {
-        return _displayName(other);
+        return _nameFor(other);
       }
     }
     return null;
@@ -457,7 +509,8 @@ class Engine {
   /// discovery/refresh doesn't resurrect it, and its isolated config dir is
   /// deleted so removed extras don't pile up under ~/.wakieai/accounts/.
   void removeAccount(String id) {
-    final configHome = _live[id]?.$1.configHome ??
+    final configHome =
+        _live[id]?.$1.configHome ??
         _store.extraAccounts
             .where((e) => e.id == id)
             .map((e) => e.configHome)
@@ -487,9 +540,7 @@ class Engine {
     // supersedes it, rather than blocking the user with "already in progress".
     final stale = [
       for (final e in _live.values)
-        if (e.$1.provider == provider &&
-            e.$1.configHome != null &&
-            !e.$2.isOk)
+        if (e.$1.provider == provider && e.$1.configHome != null && !e.$2.isOk)
           e.$1.id,
     ];
     for (final staleId in stale) {
@@ -507,7 +558,9 @@ class Engine {
       // signs in as a separate account (no-op for Codex).
       await _prepareConfig(provider, configHome);
     } catch (e) {
-      debugPrint('wakieai: addAccount could not create/prepare $configHome — $e');
+      debugPrint(
+        'wakieai: addAccount could not create/prepare $configHome — $e',
+      );
       return "Couldn't create $configHome";
     }
 
@@ -521,7 +574,10 @@ class Engine {
     _store.addExtraAccount(extra);
     // Seed _live so a dedup / status poll can act on it before the next full
     // discovery, carrying a not-ok preflight (still signing in).
-    _live[id] = (extra.toAccount(), const core.Preflight(core.PreflightState.notLoggedIn));
+    _live[id] = (
+      extra.toAccount(),
+      const core.Preflight(core.PreflightState.notLoggedIn),
+    );
 
     try {
       switch (provider) {
@@ -551,7 +607,8 @@ class Engine {
     return entry == null ? false : _autoStartFor(entry.$1);
   }
 
-  void setAutoStart(String id, bool enabled) => _store.setAutoStart(id, enabled);
+  void setAutoStart(String id, bool enabled) =>
+      _store.setAutoStart(id, enabled);
 
   int get morningAnchorHour => _store.morningAnchorHour;
   int get morningAnchorMinute => _store.morningAnchorMinute;
@@ -594,7 +651,10 @@ class Engine {
   /// left unchanged so the toggle can snap back.
   Future<String?> setDarkWake(bool enabled) async {
     final error = await _configureDarkWake(
-        enabled, _store.morningAnchorHour, _store.morningAnchorMinute);
+      enabled,
+      _store.morningAnchorHour,
+      _store.morningAnchorMinute,
+    );
     if (error != null) return error;
     _store.setDarkWake(enabled);
     return null;
@@ -622,7 +682,8 @@ class Engine {
       // Resolve the cached window's reset relative to when it was READ, so a
       // relative label ("4h 25m") anchors to that instant instead of drifting
       // forward with the current clock and never lapsing.
-      final resetAt = cached.session.resetAt ??
+      final resetAt =
+          cached.session.resetAt ??
           core.resolveResetAt(cached.session, now: cached.lastCheckedAt);
       if (resetAt == null || at.isBefore(resetAt)) continue;
       // A recent failed auto-start stays failed for a while — don't retry
@@ -650,7 +711,13 @@ class Engine {
           await core.chainExpiredSessions(
             _adapters,
             _store,
-            [(account, pf, core.ProviderStatus(session: session, weekly: cached.weekly))],
+            [
+              (
+                account,
+                pf,
+                core.ProviderStatus(session: session, weekly: cached.weekly),
+              ),
+            ],
             now: at,
             log: debugPrint,
           );
@@ -660,13 +727,24 @@ class Engine {
 
         final current = _store.statusFor(account.id);
         if (current != null) {
-          for (final alert
-              in core.evaluateAlerts(account.id, cached, current, now: at)) {
+          for (final alert in core.evaluateAlerts(
+            account.id,
+            cached,
+            current,
+            now: at,
+          )) {
             await _notify('WakieAI', alert.message);
           }
         }
-        changed.add(_toRow(account, pf, _cachedStatus(account.id),
-            autoStart: _autoStartFor(account)));
+        changed.add(
+          _toRow(
+            account,
+            pf,
+            _cachedStatus(account.id),
+            name: _nameFor(account),
+            autoStart: _autoStartFor(account),
+          ),
+        );
       } finally {
         _inFlight.remove(account.id);
       }
@@ -683,18 +761,48 @@ class Engine {
         ? core.ProviderStatus.unknown
         : core.ProviderStatus(session: cached.session, weekly: cached.weekly);
   }
+
+  /// Row name. A label the user actually chose stands alone — the provider is
+  /// already clear from the icon. An unnamed account (the ambient default, or
+  /// one added without a label) falls back to its provider, numbered by
+  /// add-order so several stay distinct: "Codex 1", "Codex 2", …
+  String _nameFor(core.Account a) {
+    if (_isLabeled(a)) return a.label;
+    final base = _providerLabel(a.provider);
+    final siblings = [
+      for (final e in _live.values)
+        if (e.$1.provider == a.provider && !_isLabeled(e.$1)) e.$1,
+    ]..sort((x, y) {
+        // Ambient default leads; the rest follow by their (time-stamped) id, a
+        // stable order that doesn't reshuffle the numbers between refreshes.
+        final xd = x.label == 'default', yd = y.label == 'default';
+        if (xd != yd) return xd ? -1 : 1;
+        return x.id.compareTo(y.id);
+      });
+    final n = siblings.indexWhere((s) => s.id == a.id) + 1;
+    return '$base $n';
+  }
 }
 
-Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
-    {required bool autoStart}) {
+Account _toRow(
+  core.Account a,
+  core.Preflight pf,
+  core.ProviderStatus s, {
+  required String name,
+  required bool autoStart,
+}) {
   final session = _meter(s.session, weekly: false);
+  final sessionResetAt = core.resolveResetAt(s.session);
   return Account(
     id: a.id,
     provider: _uiProvider(a.provider),
-    name: _displayName(a),
+    name: name,
     plan: pf.isOk
-        ? _subtitle(pf,
-            fallbackEmail: s.accountEmail, fallbackPlan: s.accountPlan)
+        ? _subtitle(
+            pf,
+            fallbackEmail: s.accountEmail,
+            fallbackPlan: s.accountPlan,
+          )
         : 'signing in — complete it in your browser',
     session: session,
     weekly: _meter(s.weekly, weekly: true),
@@ -703,12 +811,13 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
         // Unknown usage (still loading, or a missed read) is not "low" —
         // don't wear an alarming red badge over a 0 that isn't real.
         : !s.session.isKnown
-            ? RunStatus.ok
-            : session.pct < 20
-                ? RunStatus.low
-                : RunStatus.ok,
+        ? RunStatus.ok
+        : session.pct < 20
+        ? RunStatus.low
+        : RunStatus.ok,
     autoStart: autoStart,
-    sessionResetAt: core.resolveResetAt(s.session),
+    autoStartAvailable: s.session.isKnown && sessionResetAt != null,
+    sessionResetAt: sessionResetAt,
   );
 }
 
@@ -719,8 +828,8 @@ Meter _meter(core.UsageWindow w, {required bool weekly}) {
   final tone = remaining < 20
       ? Tone.crit
       : remaining < 50
-          ? Tone.warn
-          : Tone.ok;
+      ? Tone.warn
+      : Tone.ok;
   return Meter(remaining, tone, _resetLabel(w, weekly: weekly));
 }
 
@@ -732,11 +841,26 @@ Meter _meter(core.UsageWindow w, {required bool weekly}) {
 /// formats it for display. Falls back to the raw (timezone-stripped) label
 /// when core can't resolve it (defensive — shouldn't happen for known
 /// provider formats).
-String _resetLabel(core.UsageWindow w, {required bool weekly}) {
+String _resetLabel(core.UsageWindow w, {required bool weekly, DateTime? now}) {
   final at = core.resolveResetAt(w);
   if (at == null) return _shortReset(w.resetLabel);
   final local = at.toLocal();
+  // Within a day, a live "5h 20m" reads faster than a wall-clock date the
+  // user has to subtract in their head. A snapshot like the rest of the row —
+  // it re-reads on the next refresh (the header's "· 2m ago" dates it). Weekly
+  // only: a session window is always under 5h, so it'd never show anything else.
+  final until = local.difference(now ?? DateTime.now());
+  if (weekly && !until.isNegative && until.inHours < 24) {
+    return _fmtCountdown(until);
+  }
   return weekly ? '${_fmtDate(local)} (${_fmtTime(local)})' : _fmtTime(local);
+}
+
+/// "5h 20m" remaining, or just "20m" under the hour.
+String _fmtCountdown(Duration d) {
+  final h = d.inHours;
+  final m = d.inMinutes % 60;
+  return h > 0 ? '${h}h ${m}m' : '${m}m';
 }
 
 const _months = [
@@ -770,10 +894,14 @@ String _shortReset(String? label) {
 /// [fallbackEmail]/[fallbackPlan] (from the usage panel) fill in when the
 /// preflight lacks them, as for Antigravity where identity/tier only appear
 /// in the scraped panel header.
-String _subtitle(core.Preflight pf,
-    {String? fallbackEmail, String? fallbackPlan}) {
-  String? pick(String? a, String? b) =>
-      (a != null && a.isNotEmpty) ? a : ((b != null && b.isNotEmpty) ? b : null);
+String _subtitle(
+  core.Preflight pf, {
+  String? fallbackEmail,
+  String? fallbackPlan,
+}) {
+  String? pick(String? a, String? b) => (a != null && a.isNotEmpty)
+      ? a
+      : ((b != null && b.isNotEmpty) ? b : null);
   final email = pick(pf.email, fallbackEmail);
   final plan = pick(pf.plan, fallbackPlan);
   final parts = <String>[
@@ -783,25 +911,25 @@ String _subtitle(core.Preflight pf,
   return parts.isEmpty ? '—' : parts.join(' · ');
 }
 
-String _displayName(core.Account a) {
-  final base = _providerLabel(a.provider);
-  return a.label == 'default' ? base : '$base · ${a.label}';
-}
+/// Whether the account carries a label the *user* chose, as opposed to the
+/// ambient default or the "extra" placeholder auto-assigned to a blank add.
+bool _isLabeled(core.Account a) =>
+    a.label.trim().isNotEmpty && a.label != 'default' && a.label != 'extra';
 
 String _providerLabel(core.Provider p) => switch (p) {
-      core.Provider.claude => 'Claude',
-      core.Provider.codex => 'Codex',
-      core.Provider.antigravity => 'Antigravity',
-    };
+  core.Provider.claude => 'Claude',
+  core.Provider.codex => 'Codex',
+  core.Provider.antigravity => 'Antigravity',
+};
 
 Provider _uiProvider(core.Provider p) => switch (p) {
-      core.Provider.claude => Provider.claude,
-      core.Provider.codex => Provider.codex,
-      core.Provider.antigravity => Provider.anti,
-    };
+  core.Provider.claude => Provider.claude,
+  core.Provider.codex => Provider.codex,
+  core.Provider.antigravity => Provider.anti,
+};
 
 core.Provider _coreProvider(Provider p) => switch (p) {
-      Provider.claude => core.Provider.claude,
-      Provider.codex => core.Provider.codex,
-      Provider.anti => core.Provider.antigravity,
-    };
+  Provider.claude => core.Provider.claude,
+  Provider.codex => core.Provider.codex,
+  Provider.anti => core.Provider.antigravity,
+};

@@ -5,17 +5,17 @@ enum Provider { claude, codex, anti }
 
 extension ProviderAsset on Provider {
   String get icon => switch (this) {
-        Provider.claude => 'assets/icons/anthropic.svg',
-        Provider.codex => 'assets/icons/codex.svg',
-        Provider.anti => 'assets/icons/gemini.svg',
-      };
+    Provider.claude => 'assets/icons/anthropic.svg',
+    Provider.codex => 'assets/icons/codex.svg',
+    Provider.anti => 'assets/icons/gemini.svg',
+  };
 
   // Badge background tint, from .badge.claude/.codex/.anti
   Color get badgeBg => switch (this) {
-        Provider.claude => const Color(0x29D97757), // rgba(217,119,87,.16)
-        Provider.codex => T.white(.08),
-        Provider.anti => const Color(0x267896F0), // rgba(120,150,240,.15)
-      };
+    Provider.claude => const Color(0x29D97757), // rgba(217,119,87,.16)
+    Provider.codex => T.white(.08),
+    Provider.anti => const Color(0x267896F0), // rgba(120,150,240,.15)
+  };
 }
 
 /// ok / warn / crit tone for meters, matching the pct + fill classes.
@@ -23,10 +23,10 @@ enum Tone { ok, warn, crit }
 
 extension ToneColors on Tone {
   Color get text => switch (this) {
-        Tone.ok => T.ok,
-        Tone.warn => T.warn,
-        Tone.crit => T.crit,
-      };
+    Tone.ok => T.ok,
+    Tone.warn => T.warn,
+    Tone.crit => T.crit,
+  };
 }
 
 /// [signin]: a user-added account whose provider login isn't finished yet —
@@ -60,6 +60,11 @@ class Account {
   /// starts a fresh session the moment this account's window resets.
   final bool autoStart;
 
+  /// False when the account has no usable current-session reset window, so
+  /// the auto-start toggle is visible but disabled instead of promising work
+  /// the engine cannot do.
+  final bool autoStartAvailable;
+
   /// Absolute instant the session window resets, when known — drives the
   /// summary bar's "next reset". Null for mock rows and unknown windows.
   final DateTime? sessionResetAt;
@@ -73,6 +78,7 @@ class Account {
     required this.weekly,
     required this.status,
     this.autoStart = false,
+    this.autoStartAvailable = true,
     this.sessionResetAt,
   });
 }
