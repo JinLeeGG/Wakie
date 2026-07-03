@@ -475,6 +475,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _refreshAll() {
+    // Already scanning — ignore repeat triggers (⌘R, the button, or a
+    // window-open signal) so they can't restart the progress bar over a run
+    // that's already going.
+    if (_loading) return;
     _footer.start('Refreshing accounts…');
     _reload(footer: true);
   }
