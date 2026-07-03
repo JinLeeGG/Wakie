@@ -32,12 +32,19 @@ class WakieApp extends StatefulWidget {
 class _WakieAppState extends State<WakieApp> with TrayListener {
   final Engine _engine = Engine.production();
   final TrayIcon _tray = TrayIcon();
+  final DashboardController _dash = DashboardController();
 
   @override
   void initState() {
     super.initState();
     trayManager.addListener(this);
     _initTray();
+    // Native tells us each time the panel is brought on screen — refresh
+    // everything then, so opening from the menu bar always shows fresh data.
+    _window.setMethodCallHandler((call) async {
+      if (call.method == 'didShow') _dash.refreshAll();
+      return null;
+    });
   }
 
   Future<void> _initTray() async {
@@ -70,6 +77,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
   void dispose() {
     trayManager.removeListener(this);
     _tray.dispose();
+    _dash.dispose();
     super.dispose();
   }
 
@@ -86,6 +94,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
       home: DashboardScreen(
         source: _engine.watch,
         onTrayState: _tray.set,
+        controller: _dash,
         onUpdateAccount: (a) => _engine.refreshAccount(a.id),
         onRemoveAccount: (a) => _engine.removeAccount(a.id),
         onSetAutoStart: (a, enabled) => _engine.setAutoStart(a.id, enabled),
