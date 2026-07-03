@@ -653,9 +653,13 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
     last: pf.isOk ? 'just now' : '—',
     status: !pf.isOk
         ? RunStatus.signin
-        : session.pct < 20
-            ? RunStatus.low
-            : RunStatus.ok,
+        // Unknown usage (still loading, or a missed read) is not "low" —
+        // don't wear an alarming red badge over a 0 that isn't real.
+        : !s.session.isKnown
+            ? RunStatus.ok
+            : session.pct < 20
+                ? RunStatus.low
+                : RunStatus.ok,
     autoStart: autoStart,
     sessionResetAt: core.resolveResetAt(s.session),
   );

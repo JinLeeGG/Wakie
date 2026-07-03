@@ -597,6 +597,17 @@ void main() {
     expect(calls, [true, false]);
   });
 
+  test('a row with unknown usage is not badged LOW (loading, not empty)',
+      () async {
+    final engine = Engine.withAdapters(
+        {core.Provider.claude: _FakeClaude(core.ProviderStatus.unknown)});
+
+    final rows = await engine.load();
+
+    expect(rows.single.session.reset, '…');
+    expect(rows.single.status, RunStatus.ok);
+  });
+
   group('setDarkWake', () {
     test('on → configures the wake at the anchor and persists', () async {
       final calls = <(bool, int, int)>[];
