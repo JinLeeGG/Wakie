@@ -136,7 +136,7 @@ class _AddAccountModalState extends State<AddAccountModal>
         children: [
           SizedBox(width: 20, height: 20, child: SvgPicture.string(_logoSvg)),
           const SizedBox(width: 11),
-          Text('Add account', style: sans(17, weight: FontWeight.w600, color: T.t1)),
+          Text('Add account', style: sans(19, weight: FontWeight.w600, color: T.t1)),
           const Spacer(),
           _CloseButton(onTap: widget.onCancel),
         ],
@@ -181,7 +181,7 @@ class _AddAccountModalState extends State<AddAccountModal>
     return Padding(
       padding: EdgeInsets.fromLTRB(2, top, 2, 11),
       child: Text(text.toUpperCase(),
-          style: mono(9.5, weight: FontWeight.w500, color: T.t3, letterSpacing: 1.4)),
+          style: mono(10.5, weight: FontWeight.w500, color: T.t3, letterSpacing: 1.4)),
     );
   }
 
@@ -202,21 +202,21 @@ class _AddAccountModalState extends State<AddAccountModal>
             child: TextField(
               controller: _label,
               autofocus: true,
-              style: sans(14.5, color: T.t1),
+              style: sans(15.5, color: T.t1),
               cursorColor: T.amber,
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 hintText: 'e.g. Personal, Work, main',
-                hintStyle: sans(14.5, color: T.t3),
+                hintStyle: sans(15.5, color: T.t3),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          Text(tag, style: mono(11, color: T.t3)),
+          Text(tag, style: mono(11.5, color: T.t3)),
         ],
       ),
     );
@@ -224,7 +224,7 @@ class _AddAccountModalState extends State<AddAccountModal>
 
   Widget _info() {
     TextSpan b(String t) =>
-        TextSpan(text: t, style: sans(12, weight: FontWeight.w500, color: T.t1));
+        TextSpan(text: t, style: sans(13, weight: FontWeight.w500, color: T.t1));
     TextSpan n(String t) => TextSpan(text: t);
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 16, 2, 4),
@@ -233,13 +233,13 @@ class _AddAccountModalState extends State<AddAccountModal>
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 1),
-            child: Text('🔒', style: TextStyle(fontSize: 12, color: T.t3)),
+            child: Text('🔒', style: TextStyle(fontSize: 13, color: T.t3)),
           ),
           const SizedBox(width: 9),
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: sans(12, color: T.t2, height: 1.5),
+                style: sans(13, color: T.t2, height: 1.5),
                 children: [
                   n('Sign-in completes in '),
                   b('$_where on this Mac'),
@@ -262,11 +262,10 @@ String _providerKey(Provider p) => switch (p) {
       Provider.anti => 'antigravity',
     };
 
-/// Provider display name + the mockup's service·plan hint line.
-(String, String) _providerMeta(Provider p) => switch (p) {
-      Provider.claude => ('Claude', 'claude.ai · plan'),
-      Provider.codex => ('Codex', 'chatgpt · plan'),
-      Provider.anti => ('Antigravity', 'gemini · plan'),
+String _providerName(Provider p) => switch (p) {
+      Provider.claude => 'Claude',
+      Provider.codex => 'Codex',
+      Provider.anti => 'Antigravity',
     };
 
 class _ProviderRow extends StatefulWidget {
@@ -286,7 +285,7 @@ class _ProviderRowState extends State<_ProviderRow> {
   @override
   Widget build(BuildContext context) {
     final sel = widget.selected;
-    final (name, hint) = _providerMeta(widget.provider);
+    final name = _providerName(widget.provider);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
@@ -318,17 +317,8 @@ class _ProviderRowState extends State<_ProviderRow> {
                       width: 20, height: 20),
                 ),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(name,
-                      style: sans(14.5, weight: FontWeight.w600, color: T.t1)),
-                  const SizedBox(height: 2),
-                  Text(hint, style: mono(10.5, color: T.t3)),
-                ],
-              ),
+              const SizedBox(width: 13),
+              Text(name, style: sans(16, weight: FontWeight.w600, color: T.t1)),
               const Spacer(),
               _Radio(selected: sel),
             ],
@@ -443,11 +433,11 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(widget.label,
-                  style: sans(14,
+                  style: sans(15.5,
                       weight: FontWeight.w700, color: const Color(0xFF0A0C12))),
               const SizedBox(width: 8),
               const Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: Color(0xFF0A0C12)),
+                  size: 17, color: Color(0xFF0A0C12)),
             ],
           ),
         ),
@@ -478,7 +468,7 @@ class _CancelButtonState extends State<_CancelButton> {
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Text('Cancel',
-              style: mono(12, color: _hover ? T.t2 : T.t3)),
+              style: mono(12.5, color: _hover ? T.t2 : T.t3)),
         ),
       ),
     );
