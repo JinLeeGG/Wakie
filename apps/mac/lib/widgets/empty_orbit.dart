@@ -2,17 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../models.dart';
 import '../theme.dart';
 
-/// The empty-dashboard hero: three provider planets floating quietly over a
-/// faint starfield — no orbits, no sun — with the WakieAI wordmark as a soft
-/// watermark below. Each planet drifts a few pixels on its own slow rhythm;
-/// hovering lifts it with a warm glow and names it, clicking opens Add
-/// Account. Calm on purpose: this screen idles on screen, so nothing here
-/// should demand attention.
+/// The empty-dashboard hero: the three providers' real app icons (extracted
+/// from their .icns — see assets/icons/*_app.png) floating quietly over a
+/// faint starfield, with the WakieAI wordmark below. Each icon drifts a few
+/// pixels on its own slow rhythm; hovering lifts it with a warm glow and
+/// names it, clicking opens Add Account. Calm on purpose: this screen idles
+/// on screen, so nothing here should demand attention.
 class EmptyOrbit extends StatefulWidget {
   final VoidCallback onAdd;
   const EmptyOrbit({super.key, required this.onAdd});
@@ -29,25 +27,23 @@ Color _c(int hex, [int? a]) =>
     Color(a == null ? hex : ((a << 24) | (hex & 0xFFFFFF)));
 
 class _Planet {
-  final Provider provider;
   final String label;
+  final String asset; // the provider's real app icon
   final Offset pos; // resting center on the stage
-  final double d; // diameter
+  final double d; // icon size
   final double bobPeriod, bobPhase; // slow vertical drift
-  final int hi, mid, shadow; // sphere tones, 0xFFRRGGBB
-  final Color tint; // brand glyph color on the sphere
-  const _Planet(this.provider, this.label, this.pos, this.d, this.bobPeriod,
-      this.bobPhase, this.hi, this.mid, this.shadow, this.tint);
+  const _Planet(
+      this.label, this.asset, this.pos, this.d, this.bobPeriod, this.bobPhase);
 }
 
 // Asymmetric, breathing-room arrangement: left mid, center high, right low.
 const _planets = <_Planet>[
-  _Planet(Provider.anti, 'Antigravity', Offset(88, 128), 88, 7.2, 0.0, //
-      0xFFE4ECFF, 0xFF8EA9F5, 0xFF3A4A9E, Color(0xFFFFFFFF)),
-  _Planet(Provider.claude, 'Claude', Offset(260, 76), 98, 8.6, 2.1, //
-      0xFFF9CBAE, 0xFFD9835F, 0xFF6E3620, Color(0xFFFFFFFF)),
-  _Planet(Provider.codex, 'Codex', Offset(432, 144), 88, 7.9, 4.4, //
-      0xFFFFFFFF, 0xFFC4C9D3, 0xFF4A4E56, Color(0xFF2A2D35)),
+  _Planet('Antigravity', 'assets/icons/antigravity_app.png', //
+      Offset(88, 128), 92, 7.2, 0.0),
+  _Planet('Claude', 'assets/icons/claude_app.png', //
+      Offset(260, 76), 102, 8.6, 2.1),
+  _Planet('Codex', 'assets/icons/codex_app.png', //
+      Offset(432, 144), 92, 7.9, 4.4),
 ];
 
 class _Star {
@@ -159,41 +155,33 @@ class _EmptyOrbitState extends State<EmptyOrbit>
             scale: hovered ? 1.06 : 1.0,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  // Grounding shadow into space, warming up on hover.
-                  BoxShadow(
-                    color: _c(0x000000, 0x30),
-                    blurRadius: 18,
-                    spreadRadius: -4,
-                    offset: const Offset(0, 8),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                // Warm halo behind the icon on hover.
+                AnimatedOpacity(
+                  opacity: hovered ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    width: p.d * 1.5,
+                    height: p.d * 1.5,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [
+                        _c(0xFFC465, 0x36),
+                        _c(0xFFC465, 0x00),
+                      ], stops: const [0.0, 0.72]),
+                    ),
                   ),
-                  if (hovered)
-                    BoxShadow(
-                      color: _c(0xFFC465, 0x38),
-                      blurRadius: 28,
-                      spreadRadius: -2,
-                    ),
-                ],
-              ),
-              child: ClipOval(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned.fill(
-                        child: CustomPaint(painter: _SpherePainter(p))),
-                    SvgPicture.asset(
-                      p.provider.icon,
-                      width: p.d * 0.40,
-                      height: p.d * 0.40,
-                      colorFilter: ColorFilter.mode(p.tint, BlendMode.srcIn),
-                    ),
-                  ],
                 ),
-              ),
+                Image.asset(
+                  p.asset,
+                  width: p.d,
+                  height: p.d,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ],
             ),
           ),
         ),
@@ -251,78 +239,6 @@ class _EmptyOrbitState extends State<EmptyOrbit>
       ),
     );
   }
-}
-
-/// A softly lit sphere under a fixed top-left key light: base tone, a broad
-/// highlight, a gentle lower-right shade, limb darkening for curvature, and a
-/// small specular — restrained, so the brand glyph stays the subject.
-class _SpherePainter extends CustomPainter {
-  final _Planet p;
-  _SpherePainter(this.p);
-
-  static const _light = Alignment(-0.35, -0.5);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.width / 2;
-    final rect = Offset.zero & size;
-
-    canvas.drawCircle(c, r, Paint()..color = _c(p.mid));
-
-    // Key-light highlight.
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          center: _light,
-          radius: 1.0,
-          colors: [_c(p.hi, 0xE6), _c(p.hi, 0x00)],
-          stops: const [0.0, 0.68],
-        ).createShader(rect),
-    );
-
-    // Soft shade opposite the light.
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.45, 0.6),
-          radius: 1.05,
-          colors: [_c(p.shadow, 0x6E), _c(p.shadow, 0x00)],
-          stops: const [0.0, 0.75],
-        ).createShader(rect),
-    );
-
-    // Limb darkening — the thin rim that sells the curvature.
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [_c(0x000000, 0x00), _c(0x000000, 0x00), _c(0x000000, 0x4A)],
-          stops: const [0.0, 0.76, 1.0],
-        ).createShader(rect),
-    );
-
-    // Small specular near the light.
-    final sp = c + Offset(_light.x, _light.y) * r * 0.5;
-    canvas.drawCircle(
-      sp,
-      r * 0.2,
-      Paint()
-        ..shader = RadialGradient(colors: [
-          _c(0xFFFFFF, 0x8C),
-          _c(0xFFFFFF, 0x00),
-        ]).createShader(Rect.fromCircle(center: sp, radius: r * 0.2))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_SpherePainter old) => false;
 }
 
 /// Hairlines linking the three planets into a constellation — drawn edge to
