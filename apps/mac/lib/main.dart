@@ -102,7 +102,13 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         onPollSignins: _engine.pollSignins,
         morningAnchorHour: _engine.morningAnchorHour,
         morningAnchorMinute: _engine.morningAnchorMinute,
-        onSetMorningAnchor: _engine.setMorningAnchor,
+        onSetMorningAnchor: (h, m) async {
+          final error = await _engine.setMorningAnchor(h, m);
+          // When dark wake is on, this shows an admin prompt that steals focus
+          // and buries the panel; bring it back so the result is visible.
+          await _window.invokeMethod('resurface');
+          return error;
+        },
         onAwakeTick: _engine.awakeTick,
         launchAtLogin: _engine.launchAtLogin,
         onSetLaunchAtLogin: _engine.setLaunchAtLogin,

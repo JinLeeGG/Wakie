@@ -608,7 +608,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                   // anchor so the UI never promises a wake the hardware
                   // won't honor.
                   final error = await widget.onSetMorningAnchor?.call(h, m);
-                  if (!mounted || error == null) return;
+                  if (!mounted) return;
+                  if (error == null) {
+                    final ampm = h < 12 ? 'am' : 'pm';
+                    final h12 = h % 12 == 0 ? 12 : h % 12;
+                    _footer.finish('Daily wake set to '
+                        '$h12:${m.toString().padLeft(2, '0')}$ampm');
+                    return;
+                  }
                   setState(() {
                     _anchorHour = prevH;
                     _anchorMinute = prevM;
