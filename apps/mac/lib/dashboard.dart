@@ -10,6 +10,7 @@ import 'tray_icon.dart';
 import 'widgets/account_row.dart';
 import 'widgets/add_account_modal.dart';
 import 'widgets/confirm_modal.dart';
+import 'widgets/empty_orbit.dart';
 import 'widgets/footer.dart';
 import 'widgets/summary.dart';
 
@@ -631,6 +632,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                           'Scanning accounts…',
                           style: mono(13, color: T.t2),
                         ),
+                      )
+                    : accounts.isEmpty
+                    ? EmptyOrbit(
+                        onAdd: () => setState(() => _addingAccount = true),
                       )
                     : _TopListFade(
                         child: ListView.separated(
