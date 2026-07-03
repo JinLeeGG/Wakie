@@ -60,8 +60,9 @@ class TrayIconPainter extends CustomPainter {
           Rect.fromCircle(center: c, radius: ringR),
           start,
           87 * math.pi / 180,
+          // Bright white sweep over the dim white ring; the amber stays the core.
           false,
-          ringPaint(_amber)..strokeCap = StrokeCap.round,
+          ringPaint(const Color(0xFFFFFFFF))..strokeCap = StrokeCap.round,
         );
         canvas.drawCircle(c, coreR, core);
       case TrayState.attention:
