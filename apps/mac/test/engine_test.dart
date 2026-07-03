@@ -145,7 +145,8 @@ void main() {
       core.Provider.claude: _FakeClaude(core.ProviderStatus.unknown),
     });
     final a = (await engine.load()).single;
-    expect(a.session.reset, '…');
+    expect(a.session.known, isFalse);
+    expect(a.session.reset, '');
   });
 
   test('refreshAccount re-reads a single discovered account by id', () async {
@@ -710,7 +711,7 @@ void main() {
 
     final rows = await engine.load();
 
-    expect(rows.single.session.reset, '…');
+    expect(rows.single.session.known, isFalse);
     expect(rows.single.status, RunStatus.ok);
   });
 

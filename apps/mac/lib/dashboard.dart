@@ -302,8 +302,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       // degrades it to unknown rather than throwing). Retry once before
       // reporting — and never claim "refreshed" over an empty read.
       final unknown = fresh != null &&
-          fresh.session.reset == '…' &&
-          fresh.weekly.reset == '…' &&
+          !fresh.session.known &&
+          !fresh.weekly.known &&
           fresh.status != RunStatus.signin;
       if (unknown && !retried) {
         Future.delayed(const Duration(seconds: 4), () {
