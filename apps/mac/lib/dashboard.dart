@@ -124,6 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late int _anchorMinute = widget.morningAnchorMinute;
   late bool _launchAtLogin = widget.launchAtLogin;
   late bool _darkWake = widget.darkWake;
+  bool _darkWakeBusy = false; // one configure (admin prompt) at a time
 
   @override
   void initState() {
@@ -505,7 +506,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _reload(footer: true);
                 },
                 onAddAccount: () => setState(() => _addingAccount = true),
-                nextWake: formatClock(_nextWake()),
+                // No wake is scheduled while the toggle is off — promising a
+                // time there would be a lie.
+                nextWake: _darkWake ? formatClock(_nextWake()) : '—',
                 launchAtLogin: _launchAtLogin,
                 onLaunchAtLogin: (on) {
                   setState(() => _launchAtLogin = on);
@@ -513,14 +516,26 @@ class _DashboardScreenState extends State<DashboardScreen>
                 },
                 darkWake: _darkWake,
                 onDarkWake: (on) async {
-                  final handler = widget.onSetDarkWake;
-                  if (handler == null) return null;
+                  // One configure at a time: a second tap while the admin
+                  // prompt is up would race a second osascript against the
+                  // same plist/pmset state.
+                  if (_darkWakeBusy) return null;
                   setState(() => _darkWake = on); // optimistic
+                  final handler = widget.onSetDarkWake;
+                  if (handler == null) return null; // mock/goldens: just flip
                   // No progress bar here: the work is a blocking admin prompt,
                   // so a trickling bar just climbs while the user types their
                   // password. The toggle itself is the feedback; only a real
                   // failure surfaces (and snaps the toggle back).
-                  final error = await handler(on);
+                  _darkWakeBusy = true;
+                  String? error;
+                  try {
+                    error = await handler(on);
+                  } catch (e) {
+                    error = '$e'; // sync IO / launchctl can throw, not return
+                  } finally {
+                    _darkWakeBusy = false;
+                  }
                   if (!mounted) return error;
                   if (error != null) {
                     setState(() => _darkWake = !on); // snap back on failure
