@@ -42,11 +42,11 @@ class _Planet {
 
 // Asymmetric, breathing-room arrangement: left mid, center high, right low.
 const _planets = <_Planet>[
-  _Planet(Provider.anti, 'Antigravity', Offset(116, 132), 84, 7.2, 0.0, //
+  _Planet(Provider.anti, 'Antigravity', Offset(104, 122), 84, 7.2, 0.0, //
       0xFFE4ECFF, 0xFF8EA9F5, 0xFF3A4A9E, Color(0xFFFFFFFF)),
-  _Planet(Provider.claude, 'Claude', Offset(262, 92), 92, 8.6, 2.1, //
+  _Planet(Provider.claude, 'Claude', Offset(260, 80), 92, 8.6, 2.1, //
       0xFFF9CBAE, 0xFFD9835F, 0xFF6E3620, Color(0xFFFFFFFF)),
-  _Planet(Provider.codex, 'Codex', Offset(404, 148), 84, 7.9, 4.4, //
+  _Planet(Provider.codex, 'Codex', Offset(414, 140), 84, 7.9, 4.4, //
       0xFFFFFFFF, 0xFFC4C9D3, 0xFF4A4E56, Color(0xFF2A2D35)),
 ];
 
@@ -90,108 +90,129 @@ class _EmptyOrbitState extends State<EmptyOrbit>
 
   @override
   Widget build(BuildContext context) {
+    // One FittedBox around stage + watermark, so a short slot scales the whole
+    // scene down together instead of the column overflowing.
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: SizedBox(
-              width: _stageW,
-              height: _stageH,
-              child: AnimatedBuilder(
-                animation: _clock,
-                builder: (context, _) => _buildStage(),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: SizedBox(
+          width: _stageW,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: _stageW,
+                height: _stageH,
+                child: AnimatedBuilder(
+                  animation: _clock,
+                  builder: (context, _) => _buildStage(),
+                ),
               ),
-            ),
+              const SizedBox(height: 22),
+              _watermark(),
+            ],
           ),
-          const SizedBox(height: 22),
-          _watermark(),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildStage() {
     final t = _clock.value;
+    // Live centers (resting position + drift) — shared by the planets, their
+    // name chips, and the constellation lines, so everything moves as one.
+    final centers = [
+      for (final p in _planets)
+        Offset(p.pos.dx,
+            p.pos.dy + 4.0 * math.sin(2 * math.pi * (t / p.bobPeriod) + p.bobPhase)),
+    ];
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
             child: CustomPaint(painter: _StarfieldPainter(_stars, t))),
-        for (var i = 0; i < _planets.length; i++) _planet(i, t),
+        // Hairlines joining the three — your AI constellation, drifting with it.
+        Positioned.fill(
+            child: CustomPaint(painter: _ConstellationPainter(centers))),
+        for (var i = 0; i < _planets.length; i++) _planet(i, centers[i]),
+        for (var i = 0; i < _planets.length; i++) _chip(i, centers[i]),
       ],
     );
   }
 
-  Widget _planet(int i, double t) {
+  Widget _planet(int i, Offset center) {
     final p = _planets[i];
     final hovered = _hover == i;
-    // A few pixels of slow drift — alive, never busy.
-    final bob = 4.0 * math.sin(2 * math.pi * (t / p.bobPeriod) + p.bobPhase);
     return Positioned(
-      left: p.pos.dx - p.d / 2,
-      top: p.pos.dy - p.d / 2 + bob,
+      left: center.dx - p.d / 2,
+      top: center.dy - p.d / 2,
       width: p.d,
-      height: p.d + 26, // room for the name below
-      child: Column(
-        children: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hover = i),
-            onExit: (_) => setState(() => _hover = null),
-            child: GestureDetector(
-              onTap: widget.onAdd,
-              child: AnimatedScale(
-                scale: hovered ? 1.06 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: p.d,
-                  height: p.d,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      // Grounding shadow into space, warming up on hover.
-                      BoxShadow(
-                        color: _c(0x000000, 0x30),
-                        blurRadius: 18,
-                        spreadRadius: -4,
-                        offset: const Offset(0, 8),
-                      ),
-                      if (hovered)
-                        BoxShadow(
-                          color: _c(0xFFC465, 0x38),
-                          blurRadius: 28,
-                          spreadRadius: -2,
-                        ),
-                    ],
+      height: p.d,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = i),
+        onExit: (_) => setState(() => _hover = null),
+        child: GestureDetector(
+          onTap: widget.onAdd,
+          child: AnimatedScale(
+            scale: hovered ? 1.06 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  // Grounding shadow into space, warming up on hover.
+                  BoxShadow(
+                    color: _c(0x000000, 0x30),
+                    blurRadius: 18,
+                    spreadRadius: -4,
+                    offset: const Offset(0, 8),
                   ),
-                  child: ClipOval(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned.fill(
-                            child: CustomPaint(painter: _SpherePainter(p))),
-                        SvgPicture.asset(
-                          p.provider.icon,
-                          width: p.d * 0.40,
-                          height: p.d * 0.40,
-                          colorFilter:
-                              ColorFilter.mode(p.tint, BlendMode.srcIn),
-                        ),
-                      ],
+                  if (hovered)
+                    BoxShadow(
+                      color: _c(0xFFC465, 0x38),
+                      blurRadius: 28,
+                      spreadRadius: -2,
                     ),
-                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned.fill(
+                        child: CustomPaint(painter: _SpherePainter(p))),
+                    SvgPicture.asset(
+                      p.provider.icon,
+                      width: p.d * 0.40,
+                      height: p.d * 0.40,
+                      colorFilter: ColorFilter.mode(p.tint, BlendMode.srcIn),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 9),
-          AnimatedOpacity(
-            opacity: hovered ? 1 : 0,
-            duration: const Duration(milliseconds: 160),
+        ),
+      ),
+    );
+  }
+
+  /// The name label under a planet — its own stage layer (not stacked inside
+  /// the planet's box, which is what overflowed), fading in on hover.
+  Widget _chip(int i, Offset center) {
+    final p = _planets[i];
+    return Positioned(
+      left: center.dx - 60,
+      top: center.dy + p.d / 2 + 10,
+      width: 120,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _hover == i ? 1 : 0,
+          duration: const Duration(milliseconds: 160),
+          child: Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -199,11 +220,11 @@ class _EmptyOrbitState extends State<EmptyOrbit>
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: T.hair),
               ),
-              child:
-                  Text(p.label, style: mono(10, color: T.t1, letterSpacing: 0.4)),
+              child: Text(p.label,
+                  style: mono(10, color: T.t1, letterSpacing: 0.4)),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -301,6 +322,33 @@ class _SpherePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SpherePainter old) => false;
+}
+
+/// Hairlines linking the three planets into a constellation — drawn edge to
+/// edge with a small gap off each sphere, so they read as a star chart, not
+/// wires. They drift with the planets' bobbing, which keeps the scene alive.
+class _ConstellationPainter extends CustomPainter {
+  final List<Offset> centers;
+  _ConstellationPainter(this.centers);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = _c(0xFFFFFF, 0x16);
+    for (var i = 0; i < centers.length - 1; i++) {
+      final a = centers[i], b = centers[i + 1];
+      final delta = b - a;
+      final dir = delta / delta.distance;
+      final ra = _planets[i].d / 2 + 14;
+      final rb = _planets[i + 1].d / 2 + 14;
+      canvas.drawLine(a + dir * ra, b - dir * rb, line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConstellationPainter old) => true; // drifts every frame
 }
 
 /// A faint, slowly twinkling starfield — just enough atmosphere to keep the
