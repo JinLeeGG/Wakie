@@ -9,10 +9,12 @@ import '../theme.dart';
 
 /// The empty-dashboard hero (docs/design/dashboard-empty.html): a tilted orrery
 /// with the WakieAI star at the center and the three provider "planets" gliding
-/// along elliptical orbits — nothing in orbit yet — over a "Add your first
-/// account" call to action. Planets pass behind the star at the back of their
-/// orbit and swell to the front, and the whole system pauses on hover so a
-/// planet can be read and clicked.
+/// along elliptical orbits, over a "Add your first account" call to action.
+///
+/// The planets are lit as real spheres: the star is the light source, so each
+/// planet's bright side faces the star and its terminator sweeps as it orbits.
+/// They swell to the front, slip behind the star at the back, twinkle over a
+/// faint starfield, and the whole system pauses on hover to be read and clicked.
 class EmptyOrbit extends StatefulWidget {
   final VoidCallback onAdd;
   const EmptyOrbit({super.key, required this.onAdd});
@@ -23,50 +25,62 @@ class EmptyOrbit extends StatefulWidget {
 
 // Design canvas for the orrery; the whole thing scales down to fit its slot.
 const double _stageW = 520;
-const double _stageH = 280;
-const double _sphere = 40; // planet diameter at 1× depth
-const double _sun = 66;
+const double _stageH = 290;
+const double _sphere = 46; // planet diameter at 1× depth
+const double _sun = 62;
+const Offset _center = Offset(_stageW / 2, _stageH / 2);
+
+Color _c(int hex, [int? a]) =>
+    Color(a == null ? hex : ((a << 24) | (hex & 0xFFFFFF)));
 
 class _Orbit {
   final Provider provider;
   final String label;
   final double rx, ry, dur, phase;
-  final List<Color> sphere; // radial gradient, light → mid → shadow
-  final Color tint; // icon color on the sphere
+  final int hi, mid, shadow, atmo; // sphere tones, 0xFFRRGGBB
+  final Color tint; // brand glyph color on the sphere
   const _Orbit(this.provider, this.label, this.rx, this.ry, this.dur,
-      this.phase, this.sphere, this.tint);
+      this.phase, this.hi, this.mid, this.shadow, this.atmo, this.tint);
 }
 
 const _orbits = <_Orbit>[
-  _Orbit(Provider.anti, 'Antigravity', 112, 38, 40, 0.15,
-      [Color(0xFFD2DDFF), Color(0xFF8EA9F5), Color(0xFF485EC3)], Color(0xFFFFFFFF)),
-  _Orbit(Provider.claude, 'Claude', 165, 56, 58, 0.55,
-      [Color(0xFFF4BDA3), Color(0xFFD9835F), Color(0xFF8C4632)], Color(0xFFFFFFFF)),
-  _Orbit(Provider.codex, 'Codex', 218, 75, 78, 0.83,
-      [Color(0xFFF6F8FB), Color(0xFFC4C9D3), Color(0xFF6A6F78)], Color(0xFF2A2D35)),
+  _Orbit(Provider.anti, 'Antigravity', 112, 38, 40, 0.15, //
+      0xFFE4ECFF, 0xFF7E9BF2, 0xFF243073, 0xFF6E8BF5, Color(0xFFFFFFFF)),
+  _Orbit(Provider.claude, 'Claude', 166, 56, 58, 0.55, //
+      0xFFF9CBAE, 0xFFD9835F, 0xFF4A2214, 0xFFE08A55, Color(0xFFFFFFFF)),
+  _Orbit(Provider.codex, 'Codex', 220, 76, 78, 0.83, //
+      0xFFFFFFFF, 0xFFBFC4CE, 0xFF34383F, 0xFFD8DEE8, Color(0xFF2A2D35)),
 ];
+
+class _Star {
+  final double x, y, r, base, twinkle, phase;
+  const _Star(this.x, this.y, this.r, this.base, this.twinkle, this.phase);
+}
 
 class _EmptyOrbitState extends State<EmptyOrbit>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   final ValueNotifier<double> _clock = ValueNotifier(0);
-  double _time = 0;
-  Duration _last = Duration.zero;
-  bool _paused = false;
-  int? _hover; // hovered planet index → its name chip + system frozen
+  int? _hover;
+  late final List<_Star> _stars;
 
   @override
   void initState() {
     super.initState();
+    final rng = math.Random(7);
+    _stars = List.generate(52, (_) {
+      return _Star(
+        rng.nextDouble() * _stageW,
+        rng.nextDouble() * _stageH,
+        0.5 + rng.nextDouble() * 1.1,
+        0.10 + rng.nextDouble() * 0.35,
+        0.3 + rng.nextDouble() * 0.7,
+        rng.nextDouble() * math.pi * 2,
+      );
+    });
+    // Free-running clock — the system orbits continuously, hover never stops it.
     _ticker = createTicker((elapsed) {
-      final dt = (elapsed - _last).inMicroseconds / 1e6;
-      _last = elapsed;
-      // Own accumulator (not raw elapsed) so a hover can freeze time cleanly and
-      // resume without the planets jumping forward.
-      if (!_paused) {
-        _time += dt;
-        _clock.value = _time;
-      }
+      _clock.value = elapsed.inMicroseconds / 1e6;
     })..start();
   }
 
@@ -77,10 +91,6 @@ class _EmptyOrbitState extends State<EmptyOrbit>
     super.dispose();
   }
 
-  void _setPaused(bool v) {
-    if (_paused != v) setState(() => _paused = v);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -89,20 +99,16 @@ class _EmptyOrbitState extends State<EmptyOrbit>
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: MouseRegion(
-              onEnter: (_) => _setPaused(true),
-              onExit: (_) => _setPaused(false),
-              child: SizedBox(
-                width: _stageW,
-                height: _stageH,
-                child: AnimatedBuilder(
-                  animation: _clock,
-                  builder: (context, _) => _buildStage(),
-                ),
+            child: SizedBox(
+              width: _stageW,
+              height: _stageH,
+              child: AnimatedBuilder(
+                animation: _clock,
+                builder: (context, _) => _buildStage(),
               ),
             ),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           _Cta(onTap: widget.onAdd),
         ],
       ),
@@ -110,8 +116,8 @@ class _EmptyOrbitState extends State<EmptyOrbit>
   }
 
   Widget _buildStage() {
-    const center = Offset(_stageW / 2, _stageH / 2);
-    final glowPulse = 0.5 + 0.5 * math.sin(_time / 6 * 2 * math.pi);
+    final t = _clock.value;
+    final pulse = 0.5 + 0.5 * math.sin(t / 5 * 2 * math.pi);
 
     final back = <Widget>[];
     final front = <Widget>[];
@@ -119,38 +125,42 @@ class _EmptyOrbitState extends State<EmptyOrbit>
 
     for (var i = 0; i < _orbits.length; i++) {
       final o = _orbits[i];
-      final angle = 2 * math.pi * (_time / o.dur + o.phase);
+      final angle = 2 * math.pi * (t / o.dur + o.phase);
       final pos = Offset(
-        center.dx + o.rx * math.cos(angle),
-        center.dy + o.ry * math.sin(angle),
+        _center.dx + o.rx * math.cos(angle),
+        _center.dy + o.ry * math.sin(angle),
       );
       final depth = math.sin(angle); // -1 far/behind … +1 near/front
       final f = (depth + 1) / 2;
-      final scale = 0.8 + 0.35 * f;
-      final opacity = 0.74 + 0.26 * f;
+      final scale = 0.78 + 0.4 * f;
+      final opacity = 0.72 + 0.28 * f;
+      // Light comes from the star; the lit hemisphere faces it.
+      final toStar = _center - pos;
+      final len = toStar.distance;
+      final light =
+          len == 0 ? Alignment.center : Alignment(toStar.dx / len, toStar.dy / len);
 
-      final planet = _planet(o, i, pos, scale, opacity);
+      final planet = _planet(o, i, pos, scale, opacity, light);
       (depth < 0 ? back : front).add(planet);
-
-      if (_hover == i) {
-        chips.add(_nameChip(o.label, pos, scale));
-      }
+      if (_hover == i) chips.add(_nameChip(o.label, pos, scale));
     }
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Positioned.fill(child: CustomPaint(painter: _OrbitsPainter())),
-        _sunGlow(center, glowPulse),
+        Positioned.fill(
+            child: CustomPaint(painter: _BackdropPainter(_stars, t))),
+        _sunGlow(pulse),
         ...back,
-        _sunMark(center),
+        _sunMark(pulse),
         ...front,
         ...chips,
       ],
     );
   }
 
-  Widget _planet(_Orbit o, int i, Offset pos, double scale, double opacity) {
+  Widget _planet(_Orbit o, int i, Offset pos, double scale, double opacity,
+      Alignment light) {
     return Positioned(
       left: pos.dx - _sphere / 2,
       top: pos.dy - _sphere / 2,
@@ -166,7 +176,7 @@ class _EmptyOrbitState extends State<EmptyOrbit>
             opacity: opacity,
             child: Transform.scale(
               scale: scale,
-              child: _Sphere(orbit: o, lit: _hover == i),
+              child: _Planet(orbit: o, light: light, lit: _hover == i),
             ),
           ),
         ),
@@ -177,28 +187,27 @@ class _EmptyOrbitState extends State<EmptyOrbit>
   Widget _nameChip(String label, Offset pos, double scale) {
     return Positioned(
       left: pos.dx - 60,
-      top: pos.dy + _sphere / 2 * scale + 6,
+      top: pos.dy + _sphere / 2 * scale + 7,
       width: 120,
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: const Color(0xD10A0C12),
+            color: _c(0x0A0C12, 0xD8),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: T.hair),
           ),
-          child: Text(label,
-              style: mono(10, color: T.t1, letterSpacing: 0.4)),
+          child: Text(label, style: mono(10, color: T.t1, letterSpacing: 0.4)),
         ),
       ),
     );
   }
 
-  Widget _sunGlow(Offset center, double pulse) {
-    final size = _sun * (2.6 + 0.12 * pulse);
+  Widget _sunGlow(double pulse) {
+    final size = _sun * (3.1 + 0.18 * pulse);
     return Positioned(
-      left: center.dx - size / 2,
-      top: center.dy - size / 2,
+      left: _center.dx - size / 2,
+      top: _center.dy - size / 2,
       width: size,
       height: size,
       child: IgnorePointer(
@@ -206,125 +215,329 @@ class _EmptyOrbitState extends State<EmptyOrbit>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [
-              Color.fromRGBO(255, 190, 95, 0.13 + 0.10 * pulse),
-              const Color(0x00FFBE5F),
-            ], stops: const [0.0, 0.72]),
+              _c(0xFFC46A, (0x2E + (0x22 * pulse)).round()),
+              _c(0xFF9A3C, 0x12),
+              _c(0xFF9A3C, 0x00),
+            ], stops: const [0.0, 0.42, 0.75]),
           ),
         ),
       ),
     );
   }
 
-  Widget _sunMark(Offset center) {
+  Widget _sunMark(double pulse) {
+    const box = 156.0;
     return Positioned(
-      left: center.dx - _sun / 2,
-      top: center.dy - _sun / 2,
-      width: _sun,
-      height: _sun,
+      left: _center.dx - box / 2,
+      top: _center.dy - box / 2,
+      width: box,
+      height: box,
       child: IgnorePointer(
-        child: CustomPaint(painter: _SunPainter()),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _CoronaPainter(pulse))),
+            _wordmark(pulse),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// The glowing WakieAI wordmark at the heart of the system — the "star".
+  /// Brand rule: "Wakie" amber, "AI" white.
+  Widget _wordmark(double pulse) {
+    final glow = 7.0 + 3.0 * pulse;
+    TextStyle base(Color color, double g) => TextStyle(
+          fontFamily: T.mono,
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          height: 1.0,
+          letterSpacing: 0.2,
+          color: color,
+          shadows: [Shadow(color: color, blurRadius: g)],
+        );
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: 'Wakie', style: base(T.amberDeep, glow)),
+        TextSpan(text: 'AI', style: base(const Color(0xFFFFFFFF), glow * 0.85)),
+      ]),
     );
   }
 }
 
-/// Solid provider sphere: a shaded orb with the brand glyph, a drop shadow, and
-/// an amber focus ring when hovered.
-class _Sphere extends StatelessWidget {
+/// A provider planet rendered as a lit sphere: shaded base + specular under the
+/// brand glyph, then the terminator and limb darkening over it so the glyph
+/// sits on the surface. A soft atmosphere ring and ambient shadow ground it.
+class _Planet extends StatelessWidget {
   final _Orbit orbit;
+  final Alignment light;
   final bool lit;
-  const _Sphere({required this.orbit, required this.lit});
+  const _Planet({required this.orbit, required this.light, required this.lit});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          center: const Alignment(-0.34, -0.46),
-          radius: 0.95,
-          colors: orbit.sphere,
-          stops: const [0.0, 0.52, 1.0],
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // Ambient occlusion into space + faint atmosphere on the lit limb.
+        Positioned.fill(
+          child: CustomPaint(painter: _AtmoPainter(orbit, light, lit)),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x99000000),
-            blurRadius: lit ? 24 : 15,
-            spreadRadius: -5,
-            offset: const Offset(0, 7),
+        ClipOval(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                  child: CustomPaint(painter: _SphereLoPainter(orbit, light))),
+              SvgPicture.asset(
+                orbit.provider.icon,
+                width: _sphere * 0.46,
+                height: _sphere * 0.46,
+                colorFilter: ColorFilter.mode(orbit.tint, BlendMode.srcIn),
+              ),
+              Positioned.fill(
+                  child: CustomPaint(painter: _SphereHiPainter(orbit, light))),
+            ],
           ),
-          if (lit)
-            const BoxShadow(
-                color: Color(0x66FFC465), blurRadius: 0, spreadRadius: 3),
-        ],
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          orbit.provider.icon,
-          width: 21,
-          height: 21,
-          colorFilter: ColorFilter.mode(orbit.tint, BlendMode.srcIn),
         ),
-      ),
+      ],
     );
   }
 }
 
-/// The three faint HUD orbit ellipses.
-class _OrbitsPainter extends CustomPainter {
+/// Base + lit hemisphere + specular (behind the glyph).
+class _SphereLoPainter extends CustomPainter {
+  final _Orbit o;
+  final Alignment light;
+  _SphereLoPainter(this.o, this.light);
+
   @override
   void paint(Canvas canvas, Size size) {
-    const center = Offset(_stageW / 2, _stageH / 2);
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0x38FFE0B2) // rgba(255,224,178,.22)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2);
-    for (final o in _orbits) {
-      canvas.drawOval(
-        Rect.fromCenter(center: center, width: o.rx * 2, height: o.ry * 2),
-        stroke,
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final rect = Offset.zero & size;
+
+    // Base body.
+    canvas.drawCircle(c, r, Paint()..color = _c(o.mid));
+
+    // Sunlit hemisphere — highlight fades toward the terminator.
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: Alignment(light.x * 0.6, light.y * 0.6),
+          radius: 0.95,
+          colors: [_c(o.hi), _c(o.hi, 0x00)],
+          stops: const [0.0, 0.62],
+        ).createShader(rect),
+    );
+
+    // Tight specular glint, just off the sub-solar point toward the viewer.
+    final sp = c + Offset(light.x, light.y) * r * 0.52;
+    canvas.drawCircle(
+      sp,
+      r * 0.30,
+      Paint()
+        ..shader = RadialGradient(colors: [
+          _c(0xFFFFFF, 0xD0),
+          _c(0xFFFFFF, 0x00),
+        ]).createShader(Rect.fromCircle(center: sp, radius: r * 0.30))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.6),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SphereLoPainter old) => old.light != light;
+}
+
+/// Terminator (dark side) + limb darkening (over the glyph).
+class _SphereHiPainter extends CustomPainter {
+  final _Orbit o;
+  final Alignment light;
+  _SphereHiPainter(this.o, this.light);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final rect = Offset.zero & size;
+
+    // Night side, opposite the star.
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: Alignment(-light.x * 0.5, -light.y * 0.5),
+          radius: 1.0,
+          colors: [_c(o.shadow, 0xE0), _c(o.shadow, 0x66), _c(o.shadow, 0x00)],
+          stops: const [0.0, 0.5, 0.92],
+        ).createShader(rect),
+    );
+
+    // Limb darkening — a thin dark rim all around reads as curvature.
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [_c(0x000000, 0x00), _c(0x000000, 0x00), _c(0x000000, 0x82)],
+          stops: const [0.0, 0.7, 1.0],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SphereHiPainter old) => old.light != light;
+}
+
+/// Ambient shadow into space + a Fresnel atmosphere crescent on the lit limb.
+class _AtmoPainter extends CustomPainter {
+  final _Orbit o;
+  final Alignment light;
+  final bool lit;
+  _AtmoPainter(this.o, this.light, this.lit);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+
+    // Soft dark halo so the sphere separates from the backdrop (no hard,
+    // un-physical drop shadow — planets float in space).
+    canvas.drawCircle(
+      c,
+      r * 1.16,
+      Paint()
+        ..color = _c(0x000000, 0x40)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+
+    // Atmosphere: a faint colored glow, brightest on the star-facing limb.
+    final ap = c + Offset(light.x, light.y) * r * 0.55;
+    canvas.drawCircle(
+      ap,
+      r * 1.28,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [_c(o.atmo, lit ? 0x5A : 0x38), _c(o.atmo, 0x00)],
+          stops: const [0.55, 1.0],
+        ).createShader(Rect.fromCircle(center: ap, radius: r * 1.28))
+        ..blendMode = BlendMode.screen,
+    );
+
+    if (lit) {
+      canvas.drawCircle(
+        c,
+        r + 1.2,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.4
+          ..color = _c(0xFFC465, 0x99)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.4),
       );
     }
   }
 
   @override
-  bool shouldRepaint(_OrbitsPainter old) => false;
+  bool shouldRepaint(_AtmoPainter old) => old.light != light || old.lit != lit;
 }
 
-/// The WakieAI star: white ring + amber radial core.
-class _SunPainter extends CustomPainter {
+/// The warm luminous halo behind the WakieAI wordmark — the "starlight" that
+/// lights the planets. Bright enough to read as a light source, soft enough to
+/// keep the wordmark legible; no solid disc so the letters stay the focal point.
+class _CoronaPainter extends CustomPainter {
+  final double pulse;
+  _CoronaPainter(this.pulse);
+
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final ringR = size.width * 0.40;
-    final coreR = size.width * 0.30;
+    final r = size.width * 0.40 * (1 + 0.04 * pulse);
 
     canvas.drawCircle(
       c,
-      ringR,
+      r,
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.058
-        ..color = const Color(0xFFFFFFFF)
-        ..isAntiAlias = true,
+        ..shader = RadialGradient(
+          colors: [
+            _c(0xFFE7B0, (0x4E + 0x1E * pulse).round().clamp(0, 255)),
+            _c(0xF6A83C, 0x2C),
+            _c(0xF6A83C, 0x00),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCircle(center: c, radius: r))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
-    canvas.drawCircle(
-      c,
-      coreR,
+
+    // Anamorphic bloom streak — a cinematic "bright source" cue.
+    final w = size.width * 0.95;
+    canvas.drawRect(
+      Rect.fromCenter(center: c, width: w, height: 2.4),
       Paint()
-        ..isAntiAlias = true
-        ..shader = const RadialGradient(
-          center: Alignment(-0.24, -0.4),
-          radius: 0.72,
-          colors: [Color(0xFFFFE1A3), Color(0xFFF6B23C), Color(0xFFD1892A)],
-          stops: [0.0, 0.55, 1.0],
-        ).createShader(Rect.fromCircle(center: c, radius: coreR)),
+        ..shader = const LinearGradient(colors: [
+          Color(0x00FFE9A8),
+          Color(0x66FFF2C8),
+          Color(0x00FFE9A8),
+        ]).createShader(Rect.fromCenter(center: c, width: w, height: 2.4))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
     );
   }
 
   @override
-  bool shouldRepaint(_SunPainter old) => false;
+  bool shouldRepaint(_CoronaPainter old) => old.pulse != pulse;
+}
+
+/// Starfield (twinkling) + depth-shaded orbit ellipses + warm ambient glow.
+class _BackdropPainter extends CustomPainter {
+  final List<_Star> stars;
+  final double time;
+  _BackdropPainter(this.stars, this.time);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Twinkling starfield.
+    final star = Paint();
+    for (final s in stars) {
+      final tw = 0.6 + 0.4 * math.sin(time * s.twinkle + s.phase);
+      star.color = _c(0xFFFFFF, (s.base * tw * 255).round().clamp(0, 255));
+      canvas.drawCircle(Offset(s.x, s.y), s.r, star);
+    }
+
+    // Orbit ellipses — brighter on the near (front/bottom) arc, dim at the back.
+    for (final o in _orbits) {
+      final rect = Rect.fromCenter(
+          center: _center, width: o.rx * 2, height: o.ry * 2);
+      canvas.drawArc(
+        rect,
+        math.pi, // back (top) half
+        math.pi,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = _c(0xFFE0B2, 0x1C)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8),
+      );
+      canvas.drawArc(
+        rect,
+        0, // front (bottom) half
+        math.pi,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = _c(0xFFE9C79A, 0x40)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BackdropPainter old) => old.time != time;
 }
 
 /// Amber primary action — "Add your first account".
@@ -353,12 +566,16 @@ class _CtaState extends State<_Cta> {
           transform: Matrix4.translationValues(0, _hover ? -1 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
           decoration: BoxDecoration(
-            color: T.amber,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFD07A), Color(0xFFF6B23C)],
+            ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Color.fromRGBO(255, 196, 101, _hover ? 0.55 : 0.42),
-                blurRadius: _hover ? 30 : 24,
+                color: _c(0xFFC465, _hover ? 0x8C : 0x6A),
+                blurRadius: _hover ? 32 : 24,
                 spreadRadius: -10,
                 offset: const Offset(0, 9),
               ),
