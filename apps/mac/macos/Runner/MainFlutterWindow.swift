@@ -80,6 +80,11 @@ class MainFlutterWindow: NSWindow {
       contentView.layer?.masksToBounds = true
     }
 
+    // Re-fit whenever the user drags the panel onto a different display.
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(windowScreenChanged),
+      name: NSWindow.didChangeScreenNotification, object: self)
+
     positionOnScreen(self.screen ?? NSScreen.main)
     self.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
@@ -94,29 +99,50 @@ class MainFlutterWindow: NSWindow {
       ?? NSScreen.main
   }
 
-  /// Sizes the window to a fraction of the given display, keeping the design
-  /// aspect ratio and clamping, then centers it within that display.
-  private func positionOnScreen(_ screen: NSScreen?) {
-    guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return }
+  /// Size that fits [screen]: ~half its width, aspect-preserved, clamped so it
+  /// never gets tiny on small displays or huge on large ones.
+  private func contentSize(for screen: NSScreen?) -> NSSize {
+    guard let visible = (screen ?? NSScreen.main)?.visibleFrame else {
+      return NSSize(width: designWidth, height: designHeight)
+    }
     let aspect = designWidth / designHeight
-
-    // Target ~50% of the display width, clamped to a sensible absolute range so
-    // it never gets tiny on small screens or huge on large ones.
     var w = min(max(visible.width * 0.52, 900.0), 1040.0)
     var h = w / aspect
-
     let maxH = visible.height * 0.86
     if h > maxH { h = maxH; w = h * aspect }
+    return NSSize(width: w.rounded(), height: h.rounded())
+  }
 
-    self.setContentSize(NSSize(width: w.rounded(), height: h.rounded()))
+  /// Native corner radius matched to the scaled panel radius (22 @ 900).
+  private func applyCornerRadius(forWidth width: CGFloat) {
+    self.contentView?.layer?.cornerRadius = (22.0 * (width / designWidth)).rounded()
+  }
 
-    // Center within the target display's visible area.
+  /// Sizes the window to the given display and centers it there — for a fresh
+  /// show/toggle onto a display.
+  private func positionOnScreen(_ screen: NSScreen?) {
+    guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return }
+    let size = contentSize(for: screen)
+    self.setContentSize(size)
     let frame = self.frame
     let x = visible.origin.x + (visible.width - frame.width) / 2
     let y = visible.origin.y + (visible.height - frame.height) / 2
     self.setFrameOrigin(NSPoint(x: x.rounded(), y: y.rounded()))
+    applyCornerRadius(forWidth: size.width)
+  }
 
-    // Keep the native corner radius matched to the scaled panel radius (22 @ 900).
-    self.contentView?.layer?.cornerRadius = (22.0 * (w / designWidth)).rounded()
+  /// The window was dragged onto a different display: re-fit it to that
+  /// display's size, keeping it where the user dropped it but nudged fully
+  /// on-screen — so a big-monitor size doesn't spill off a laptop screen.
+  @objc private func windowScreenChanged() {
+    guard let visible = self.screen?.visibleFrame else { return }
+    let size = contentSize(for: self.screen)
+    self.setContentSize(size)
+    let frame = self.frame
+    var origin = frame.origin
+    origin.x = min(max(origin.x, visible.minX), visible.maxX - frame.width)
+    origin.y = min(max(origin.y, visible.minY), visible.maxY - frame.height)
+    self.setFrameOrigin(NSPoint(x: origin.x.rounded(), y: origin.y.rounded()))
+    applyCornerRadius(forWidth: size.width)
   }
 }
