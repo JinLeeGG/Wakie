@@ -75,9 +75,20 @@ class CodexAdapter implements ProviderAdapter {
   Future<RunOutcome> startSession(Account a, {String? model}) async {
     final startedAt = DateTime.now();
     try {
+      // ChatGPT-plan accounts reject every cheaper model id outright (400
+      // "not supported when using Codex with a ChatGPT account"), so the
+      // cheapest chainable request is the account's default model with
+      // reasoning effort forced down from the configured default.
       final result = await Process.run(
         executable,
-        ['exec', if (model != null) ...['--model', model], 'hi'],
+        [
+          'exec',
+          if (model != null)
+            ...['--model', model]
+          else
+            ...['-c', 'model_reasoning_effort=low'],
+          'hi',
+        ],
         environment: envFor(a),
       );
       return RunOutcome(
