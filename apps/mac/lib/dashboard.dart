@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'engine.dart' show SignInResult, SignInState;
 import 'models.dart';
 import 'theme.dart';
+import 'tray_icon.dart';
 import 'widgets/account_row.dart';
 import 'widgets/add_account_modal.dart';
 import 'widgets/confirm_modal.dart';
@@ -17,6 +18,10 @@ class DashboardScreen extends StatefulWidget {
   /// When null (tests/goldens) the dashboard renders the static [mockAccounts]
   /// so widget/golden output stays deterministic.
   final Stream<List<Account>> Function()? source;
+
+  /// Reports the menu-bar icon state (working while busy, attention when an
+  /// account needs action, else idle) so the tray reflects it. Null in tests.
+  final void Function(TrayState state)? onTrayState;
 
   /// Re-reads one account's usage live (per-account Update). Returns the
   /// refreshed row, or null if it can't be resolved. Null in tests/goldens.
@@ -67,6 +72,7 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     super.key,
     this.source,
+    this.onTrayState,
     this.onUpdateAccount,
     this.onRemoveAccount,
     this.onSetAutoStart,
@@ -132,10 +138,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   late bool _darkWake = widget.darkWake;
   bool _darkWakeBusy = false; // one configure (admin prompt) at a time
 
+  TrayState? _lastTray;
+
   @override
   void initState() {
     super.initState();
     if (widget.source != null) _reload();
+    // The footer's running flag drives the "working" tray state; account/
+    // loading changes are picked up by the post-frame report in build().
+    _footer.addListener(_reportTray);
     _tagTimer = Timer.periodic(const Duration(seconds: 7), (_) async {
       setState(() => _tagFaded = true);
       await Future.delayed(const Duration(milliseconds: 500));
@@ -186,6 +197,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (next == null || at.isBefore(next)) next = at;
     }
     return next;
+  }
+
+  /// Maps the dashboard's live state to a menu-bar icon state and reports it
+  /// (de-duped): busy → working, any account low/awaiting-signin → attention,
+  /// else idle.
+  void _reportTray() {
+    final report = widget.onTrayState;
+    if (report == null) return;
+    final TrayState s;
+    if (_loading || _footer.running) {
+      s = TrayState.working;
+    } else if (_accounts.any((a) =>
+        a.status == RunStatus.low || a.status == RunStatus.signin)) {
+      s = TrayState.attention;
+    } else {
+      s = TrayState.idle;
+    }
+    if (s != _lastTray) {
+      _lastTray = s;
+      report(s);
+    }
   }
 
   void _setHovered(String id, bool hovering) {
@@ -406,6 +438,13 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Re-derive the tray state after each build so account/loading changes
+    // reach the menu bar (de-duped inside _reportTray).
+    if (widget.onTrayState != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _reportTray();
+      });
+    }
     // The footer advertises ⌘R / ⌘N — wire them for real (autofocus so the
     // panel catches the keys the moment it opens). Per-account Update stays a
     // row action; there's no focused "current row" for a global ↵ to target.

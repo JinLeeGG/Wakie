@@ -6,6 +6,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'dashboard.dart';
 import 'engine.dart';
 import 'theme.dart';
+import 'tray_icon.dart';
 
 const _window = MethodChannel('wakieai/window');
 
@@ -30,6 +31,7 @@ class WakieApp extends StatefulWidget {
 
 class _WakieAppState extends State<WakieApp> with TrayListener {
   final Engine _engine = Engine.production();
+  final TrayIcon _tray = TrayIcon();
 
   @override
   void initState() {
@@ -39,7 +41,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
   }
 
   Future<void> _initTray() async {
-    await trayManager.setIcon('assets/tray/tray_icon.png', isTemplate: true);
+    await _tray.init();
     await trayManager.setToolTip('WakieAI');
     await trayManager.setContextMenu(Menu(items: [
       MenuItem(key: 'show', label: 'Open WakieAI'),
@@ -67,6 +69,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
   @override
   void dispose() {
     trayManager.removeListener(this);
+    _tray.dispose();
     super.dispose();
   }
 
@@ -82,6 +85,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
       ),
       home: DashboardScreen(
         source: _engine.watch,
+        onTrayState: _tray.set,
         onUpdateAccount: (a) => _engine.refreshAccount(a.id),
         onRemoveAccount: (a) => _engine.removeAccount(a.id),
         onSetAutoStart: (a, enabled) => _engine.setAutoStart(a.id, enabled),
