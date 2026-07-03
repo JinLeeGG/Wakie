@@ -42,11 +42,11 @@ class _Planet {
 
 // Asymmetric, breathing-room arrangement: left mid, center high, right low.
 const _planets = <_Planet>[
-  _Planet(Provider.anti, 'Antigravity', Offset(104, 122), 84, 7.2, 0.0, //
+  _Planet(Provider.anti, 'Antigravity', Offset(88, 128), 88, 7.2, 0.0, //
       0xFFE4ECFF, 0xFF8EA9F5, 0xFF3A4A9E, Color(0xFFFFFFFF)),
-  _Planet(Provider.claude, 'Claude', Offset(260, 80), 92, 8.6, 2.1, //
+  _Planet(Provider.claude, 'Claude', Offset(260, 76), 98, 8.6, 2.1, //
       0xFFF9CBAE, 0xFFD9835F, 0xFF6E3620, Color(0xFFFFFFFF)),
-  _Planet(Provider.codex, 'Codex', Offset(414, 140), 84, 7.9, 4.4, //
+  _Planet(Provider.codex, 'Codex', Offset(432, 144), 88, 7.9, 4.4, //
       0xFFFFFFFF, 0xFFC4C9D3, 0xFF4A4E56, Color(0xFF2A2D35)),
 ];
 
@@ -90,11 +90,12 @@ class _EmptyOrbitState extends State<EmptyOrbit>
 
   @override
   Widget build(BuildContext context) {
-    // One FittedBox around stage + watermark, so a short slot scales the whole
-    // scene down together instead of the column overflowing.
+    // One FittedBox around stage + watermark: contain scales the whole scene
+    // UP to fill the slot (scaleDown left it floating small in a big panel)
+    // and down together when the slot is short, so it can never overflow.
     return Center(
       child: FittedBox(
-        fit: BoxFit.scaleDown,
+        fit: BoxFit.contain,
         child: SizedBox(
           width: _stageW,
           child: Column(
@@ -229,23 +230,25 @@ class _EmptyOrbitState extends State<EmptyOrbit>
     );
   }
 
-  /// The WakieAI wordmark where the CTA used to live — a quiet watermark.
+  /// The WakieAI wordmark where the CTA used to live — present, not shouting:
+  /// full-strength brand colors with a soft warm halo.
   /// Brand rule: "Wakie" amber, "AI" white.
   Widget _watermark() {
     TextStyle base(Color color) => TextStyle(
           fontFamily: T.mono,
           fontWeight: FontWeight.w700,
-          fontSize: 19,
+          fontSize: 27,
           height: 1.0,
-          letterSpacing: 0.4,
+          letterSpacing: 0.8,
           color: color,
+          shadows: [Shadow(color: color.withValues(alpha: 0.35), blurRadius: 14)],
         );
     return Opacity(
-      opacity: 0.6,
+      opacity: 0.92,
       child: Text.rich(
         TextSpan(children: [
           TextSpan(text: 'Wakie', style: base(T.amberDeep)),
-          TextSpan(text: 'AI', style: base(const Color(0xFFFFFFFF))),
+          TextSpan(text: 'AI', style: base(const Color(0xFFF3F4F7))),
         ]),
       ),
     );
