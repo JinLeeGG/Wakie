@@ -230,8 +230,7 @@ class _EmptyOrbitState extends State<EmptyOrbit>
     );
   }
 
-  /// The WakieAI wordmark where the CTA used to live — present, not shouting:
-  /// full-strength brand colors with a soft warm halo.
+  /// The WakieAI wordmark where the CTA used to live — big, flat, crisp.
   /// Brand rule: "Wakie" amber, "AI" white.
   Widget _watermark() {
     TextStyle base(Color color) => TextStyle(
@@ -241,7 +240,6 @@ class _EmptyOrbitState extends State<EmptyOrbit>
           height: 1.0,
           letterSpacing: 0.8,
           color: color,
-          shadows: [Shadow(color: color.withValues(alpha: 0.18), blurRadius: 8)],
         );
     return Opacity(
       opacity: 0.92,
