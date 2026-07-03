@@ -127,6 +127,26 @@ void main() {
       expect(live.map((e) => e.$1.id), ['claude-personal']);
     });
 
+    test('dedupe matches case/whitespace variants of the same login', () async {
+      // Providers can echo the login with different casing between two
+      // detects; 'Me@Gmail.com ' and 'me@gmail.com' are one identity.
+      final claude = _PerAccountAdapter((a) => Preflight(PreflightState.ok,
+          email: a.configHome == null ? 'Me@Gmail.com ' : 'me@gmail.com'));
+      final store = Store.memory()
+        ..addExtraAccount(ExtraAccount(
+          id: 'claude-personal',
+          provider: Provider.claude,
+          label: 'personal',
+          configHome: '/tmp/wakieai-claude-personal',
+          addedAt: DateTime(2026),
+        ));
+
+      final live =
+          await discoverLiveAccounts({Provider.claude: claude}, store);
+
+      expect(live.map((e) => e.$1.id), ['claude-personal']);
+    });
+
     test('keeps the ambient default when identities differ or are unknown',
         () async {
       final claude = _PerAccountAdapter((a) => Preflight(PreflightState.ok,

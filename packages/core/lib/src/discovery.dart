@@ -4,6 +4,12 @@ import 'preflight.dart';
 import 'provider.dart';
 import 'store.dart';
 
+/// Canonical identity key for a login email — the one definition of "same
+/// account", shared by discovery's ambient-vs-extra dedupe below and the
+/// engine's post-sign-in duplicate check, so the two layers can't disagree
+/// on case/whitespace variants of the same login.
+String accountIdentityKey(String email) => email.trim().toLowerCase();
+
 /// The ambient default account candidate for each provider (not yet probed).
 /// Each uses `configHome: null` so the CLI runs with no env override — the
 /// Keychain-backed default (PRD §7.2). Additional isolated accounts are
@@ -87,12 +93,13 @@ Future<List<(Account, Preflight)>> discoverLiveAccounts(
       if (preflights[i].isOk &&
           preflights[i].email != null &&
           !store.isRemoved(candidates[i].id))
-        (candidates[i].provider, preflights[i].email!),
+        (candidates[i].provider, accountIdentityKey(preflights[i].email!)),
   };
   bool duplicatesAnExtra(int i) =>
       i < defaults.length &&
       preflights[i].email != null &&
-      extraIdentities.contains((candidates[i].provider, preflights[i].email!));
+      extraIdentities.contains(
+          (candidates[i].provider, accountIdentityKey(preflights[i].email!)));
 
   return [
     for (var i = 0; i < candidates.length; i++)
