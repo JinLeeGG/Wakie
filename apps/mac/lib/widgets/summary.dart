@@ -393,9 +393,22 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
                 decoration: const BoxDecoration(
                   border: Border(top: BorderSide(color: T.hair)),
                 ),
-                child: Text(
-                  'Your Mac wakes at this time each day to refresh status and start any due sessions.',
-                  style: sans(11.5, color: T.t3, height: 1.45),
+                child: Text.rich(
+                  TextSpan(
+                    style: sans(11.5, color: T.t3, height: 1.45),
+                    children: [
+                      const TextSpan(text: 'Your Mac wakes at this time each '
+                          'day to '),
+                      TextSpan(
+                        text: 'start any due sessions',
+                        style: sans(11.5,
+                            color: T.amber,
+                            weight: FontWeight.w600,
+                            height: 1.45),
+                      ),
+                      const TextSpan(text: ' — and refresh status.'),
+                    ],
+                  ),
                 ),
               ),
             ],
