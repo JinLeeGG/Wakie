@@ -426,7 +426,16 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _confirmRemove() {
     final removed = _pendingRemove;
     setState(() {
-      if (removed != null) _accounts.remove(removed);
+      if (removed != null) {
+        // Never remove by instance alone: while the confirm modal is open a
+        // scan emission or Update can swap the row for a fresh object, and an
+        // identity remove() silently misses it — the row looked deleted, then
+        // "came back". Match by id too (mock rows carry none, hence both).
+        _accounts.remove(removed);
+        if (removed.id.isNotEmpty) {
+          _accounts.removeWhere((x) => x.id == removed.id);
+        }
+      }
       _pendingRemove = null;
     });
     if (removed != null) widget.onRemoveAccount?.call(removed);

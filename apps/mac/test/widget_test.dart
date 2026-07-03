@@ -1,5 +1,8 @@
 // Basic smoke test for the WakieAI dashboard.
 
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -92,6 +95,62 @@ void main() {
 
     expect(claudeWork, lessThan(claudePersonal));
     expect(claudePersonal, lessThan(claudeSide));
+  });
+
+  testWidgets('Remove still lands when a status update swapped the row object',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    Account row(int pct) => Account(
+          id: 'claude-1',
+          provider: Provider.claude,
+          name: 'Claude · Personal',
+          plan: 'a@b.com · Pro',
+          session: Meter(pct, Tone.ok, '4:30am'),
+          weekly: Meter(pct, Tone.ok, 'Jul 7 (5:00pm)'),
+          status: RunStatus.ok,
+        );
+
+    final updates = StreamController<List<Account>>();
+    addTearDown(updates.close);
+    Account? removed;
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFF070810)),
+          child: DashboardScreen(
+            source: () => updates.stream,
+            onRemoveAccount: (a) => removed = a,
+          ),
+        ),
+      ),
+    );
+    updates.add([row(10)]);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Hover the row to reveal Remove, open the confirm modal.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.text('Claude · Personal')));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.text('Remove').first, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 250));
+
+    // While the modal is open, a status update replaces the row with a fresh
+    // object (same id) — this used to make the identity remove() a no-op.
+    updates.add([row(55)]);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // The modal's confirm button (the overlay is last in the stack).
+    await tester.tap(find.text('Remove').last, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(removed?.id, 'claude-1');
+    expect(find.text('Claude · Personal'), findsNothing);
   });
 
   testWidgets('Unknown session disables auto-start toggle', (tester) async {

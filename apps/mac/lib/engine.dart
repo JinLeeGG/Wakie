@@ -434,6 +434,9 @@ class Engine {
     try {
       final account = entry.$1;
       final pf = await _adapters[account.provider]!.detect(account);
+      // Removed while detect was in flight? Don't resurrect the id into
+      // _live — the awake tick would keep acting on a deleted account.
+      if (!_live.containsKey(id)) return null;
       _live[id] = (account, pf);
       if (!pf.isOk) {
         return _toRow(
@@ -468,6 +471,9 @@ class Engine {
     // can take a few minutes). Only a still-not-signed-in account that's past
     // the timeout is treated as abandoned and removed.
     final pf = await _adapters[account.provider]!.detect(account);
+    // Removed while detect was in flight? Returning ready would re-add the
+    // row the user just deleted; report pending and let the id die out.
+    if (!_live.containsKey(id)) return const SignInResult(SignInState.pending);
     _live[id] = (account, pf);
     if (!pf.isOk) {
       if (DateTime.now().difference(account.addedAt) > _signinTimeout) {
