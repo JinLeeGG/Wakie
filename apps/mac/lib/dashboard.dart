@@ -466,7 +466,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           if (_pendingRemove != null)
             ConfirmModal(
-              name: _pendingRemove!.name,
+              account: _pendingRemove!,
               onCancel: () => setState(() => _pendingRemove = null),
               onRemove: _confirmRemove,
             ),

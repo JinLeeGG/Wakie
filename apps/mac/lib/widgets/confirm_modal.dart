@@ -1,20 +1,24 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../models.dart';
 import '../theme.dart';
 
-/// Destructive confirm for removing an account — same surface language as the
-/// Add account modal (solid, crisp), with a solid-red primary so the
-/// irreversible action reads at a glance.
+/// Remove-account confirm. Rather than a generic "trash icon + question", it
+/// shows the actual account about to be cut loose — its provider badge, name,
+/// and email, framed as a system-voice DISCONNECT — so it reads as this app,
+/// not a stock dialog. The destructive button stays outlined until hovered,
+/// then arms solid red.
 class ConfirmModal extends StatefulWidget {
-  final String name;
+  final Account account;
   final VoidCallback onCancel;
   final VoidCallback onRemove;
 
   const ConfirmModal({
     super.key,
-    required this.name,
+    required this.account,
     required this.onCancel,
     required this.onRemove,
   });
@@ -35,6 +39,12 @@ class _ConfirmModalState extends State<ConfirmModal>
     _c.dispose();
     super.dispose();
   }
+
+  String get _providerName => switch (widget.account.provider) {
+        Provider.claude => 'Claude',
+        Provider.codex => 'Codex',
+        Provider.anti => 'Antigravity',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +80,13 @@ class _ConfirmModalState extends State<ConfirmModal>
   }
 
   Widget _box() {
+    final a = widget.account;
+    final sep = a.plan.lastIndexOf(' · ');
+    final email = sep == -1 ? a.plan : a.plan.substring(0, sep);
+    final tier = sep == -1 ? '' : a.plan.substring(sep + 3);
+
     return Container(
-      width: 400,
+      width: 420,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xF5161820),
@@ -87,80 +102,55 @@ class _ConfirmModalState extends State<ConfirmModal>
       ),
       child: Stack(
         children: [
+          // A faint red glow bleeds in from the corner — danger, quietly.
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 120,
+            top: -50,
+            left: -30,
             child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [T.white(.055), Colors.transparent],
+              child: Container(
+                width: 240,
+                height: 190,
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [Color(0x24FF7A85), Color(0x00FF7A85)],
                   ),
                 ),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0x1FFF7A85),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: const Color(0x3DFF7A85)),
-                  ),
-                  child: const Icon(Icons.delete_outline_rounded,
-                      size: 21, color: T.crit),
-                ),
-                const SizedBox(height: 18),
-                Text('Remove account?',
-                    style: sans(19, weight: FontWeight.w700, color: T.t1)),
-                const SizedBox(height: 8),
-                Text.rich(
-                  TextSpan(children: [
-                    TextSpan(
-                        text: widget.name,
-                        style: sans(13, weight: FontWeight.w600, color: T.t1)),
-                    TextSpan(
-                        text: ' will be disconnected from WakieAI.',
-                        style: sans(13, color: T.t2, height: 1.5)),
-                  ]),
-                ),
-                const SizedBox(height: 24),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: _DialogButton(
-                        label: 'Cancel',
-                        fg: T.t2,
-                        bg: T.white(.04),
-                        hoverBg: T.white(.08),
-                        border: T.hair2,
-                        onTap: widget.onCancel,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _DialogButton(
-                        label: 'Remove',
-                        fg: const Color(0xFF2A0A0D),
-                        bg: T.crit,
-                        hoverBg: const Color(0xFFFF98A1),
-                        border: Colors.transparent,
-                        glow: T.crit,
-                        bold: true,
-                        onTap: widget.onRemove,
-                      ),
-                    ),
+                    const Icon(Icons.link_off_rounded, size: 15, color: T.crit),
+                    const SizedBox(width: 9),
+                    Text('DISCONNECT',
+                        style: mono(11,
+                            weight: FontWeight.w600,
+                            color: T.crit,
+                            letterSpacing: 2)),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                _accountCard(a, email, tier),
+                const SizedBox(height: 16),
+                Text(
+                  'WakieAI stops tracking this account and forgets its usage. '
+                  'Your $_providerName login on this Mac is untouched.',
+                  style: mono(12.5, color: T.t2, height: 1.55),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _GhostButton(label: 'Keep', onTap: widget.onCancel),
+                    const SizedBox(width: 6),
+                    _DangerButton(label: 'Disconnect', onTap: widget.onRemove),
                   ],
                 ),
               ],
@@ -170,33 +160,121 @@ class _ConfirmModalState extends State<ConfirmModal>
       ),
     );
   }
+
+  Widget _accountCard(Account a, String email, String tier) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      decoration: BoxDecoration(
+        color: T.white(.03),
+        borderRadius: BorderRadius.circular(12),
+        // Tinted red so it reads as the row marked for removal.
+        border: Border.all(color: const Color(0x33FF7A85)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              color: a.provider.badgeBg,
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: T.hair2),
+            ),
+            child: Center(
+              child: SvgPicture.asset(a.provider.icon, width: 20, height: 20),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Flexible(
+                      child: Text(a.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              sans(15.5, weight: FontWeight.w600, color: T.t1)),
+                    ),
+                    if (tier.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(tier.toUpperCase(),
+                            style: mono(10,
+                                weight: FontWeight.w600,
+                                color: T.amber,
+                                letterSpacing: 0.5)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: mono(11.5, color: T.t3)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _DialogButton extends StatefulWidget {
+/// "Keep" — a quiet ghost, so the eye lands on Disconnect.
+class _GhostButton extends StatefulWidget {
   final String label;
-  final Color fg;
-  final Color bg;
-  final Color hoverBg;
-  final Color border;
-  final Color? glow;
-  final bool bold;
   final VoidCallback onTap;
-  const _DialogButton({
-    required this.label,
-    required this.fg,
-    required this.bg,
-    required this.hoverBg,
-    required this.border,
-    this.glow,
-    this.bold = false,
-    required this.onTap,
-  });
+  const _GhostButton({required this.label, required this.onTap});
 
   @override
-  State<_DialogButton> createState() => _DialogButtonState();
+  State<_GhostButton> createState() => _GhostButtonState();
 }
 
-class _DialogButtonState extends State<_DialogButton> {
+class _GhostButtonState extends State<_GhostButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          decoration: BoxDecoration(
+            color: _hover ? T.white(.05) : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Text(widget.label,
+              style: sans(14,
+                  weight: FontWeight.w600, color: _hover ? T.t1 : T.t2)),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Disconnect" — outlined at rest, arms solid red on hover, so committing to
+/// the destructive action is a deliberate beat.
+class _DangerButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _DangerButton({required this.label, required this.onTap});
+
+  @override
+  State<_DangerButton> createState() => _DangerButtonState();
+}
+
+class _DangerButtonState extends State<_DangerButton> {
   bool _hover = false;
 
   @override
@@ -210,28 +288,26 @@ class _DialogButtonState extends State<_DialogButton> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           transform: Matrix4.translationValues(0, _hover ? -1 : 0, 0),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           decoration: BoxDecoration(
-            color: _hover ? widget.hoverBg : widget.bg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: widget.border),
-            boxShadow: widget.glow != null
+            color: _hover ? T.crit : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+                color: _hover ? T.crit : const Color(0x66FF7A85), width: 1.5),
+            boxShadow: _hover
                 ? [
                     BoxShadow(
-                      color: widget.glow!.withValues(alpha: _hover ? .32 : .2),
-                      blurRadius: _hover ? 16 : 10,
-                      offset: Offset(0, _hover ? 4 : 2),
+                      color: T.crit.withValues(alpha: .28),
+                      blurRadius: 14,
+                      offset: const Offset(0, 3),
                     ),
                   ]
                 : null,
           ),
-          child: Text(
-            widget.label,
-            style: sans(14.5,
-                weight: widget.bold ? FontWeight.w700 : FontWeight.w600,
-                color: widget.fg),
-          ),
+          child: Text(widget.label,
+              style: sans(14,
+                  weight: FontWeight.w700,
+                  color: _hover ? const Color(0xFF2A0A0D) : T.crit)),
         ),
       ),
     );
