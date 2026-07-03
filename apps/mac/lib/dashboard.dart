@@ -843,8 +843,9 @@ class _ColHead extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 4, 28, 6),
       child: Row(
         children: [
-          // AUTO-START sits over the switches at the account cell's right edge,
+          // AUTO sits over the switches at the account cell's right edge,
           // naming the column so the toggle reads as a setting, not a badge.
+          // Terse now that the header explains itself on hover.
           SizedBox(
             width: 272,
             child: Row(
@@ -852,7 +853,7 @@ class _ColHead extends StatelessWidget {
                 label('Account', 'Your logged-in AI accounts — provider, name, '
                     'and email.'),
                 const Spacer(),
-                label('Auto-start', 'When on, a fresh session starts the moment '
+                label('Auto', 'When on, a fresh session starts the moment '
                     "this account's window resets — keeps a full window rolling "
                     '(token maxxing).'),
               ],
@@ -860,7 +861,7 @@ class _ColHead extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: label('Current Session', 'The rolling 5-hour usage window — '
+            child: label('Current', 'The rolling 5-hour usage window — '
                 '% left and when it resets. Free plans have none ("—").'),
           ),
           const SizedBox(width: 16),
