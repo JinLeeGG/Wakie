@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wakieai/engine.dart';
 import 'package:wakieai/models.dart';
@@ -74,6 +76,16 @@ class _CountingClaude extends _FakeClaude {
     reads++;
     return super.readStatus(a);
   }
+}
+
+/// readStatus blocks on [gate] when set — for concurrency-guard tests.
+class _GatedClaude extends _FakeClaude {
+  Completer<core.ProviderStatus>? gate;
+  _GatedClaude() : super(const core.ProviderStatus());
+
+  @override
+  Future<core.ProviderStatus> readStatus(core.Account a) =>
+      gate?.future ?? super.readStatus(a);
 }
 
 void main() {
@@ -613,6 +625,66 @@ void main() {
 
       expect(await engine.awakeTick(), isEmpty);
       expect(adapter.starts, 0); // backing off after the recent failure
+    });
+  });
+
+  group('concurrency guards', () {
+    test('a second read of the same account is refused while one is in flight',
+        () async {
+      final adapter = _GatedClaude();
+      final store = core.Store.memory()
+        ..setAutoStart('claude-default', false);
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: core.UsageWindow(
+            usedPct: 100,
+            resetAt: DateTime.now().subtract(const Duration(minutes: 5))),
+        lastCheckedAt: DateTime.now().subtract(const Duration(hours: 1)),
+      ));
+
+      adapter.gate = Completer<core.ProviderStatus>(); // block the tick's read
+      final tick = engine.awakeTick();
+      await Future<void>.delayed(Duration.zero); // let the tick reach the read
+
+      // Update on the same account while the tick holds it → refused, no
+      // second pty scrape on the same config home.
+      expect(await engine.refreshAccount('claude-default'), isNull);
+
+      adapter.gate!.complete(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 0, resetLabel: '8:00pm')));
+      adapter.gate = null;
+      expect((await tick).map((r) => r.id), ['claude-default']);
+
+      // Once released, Update works again.
+      expect(await engine.refreshAccount('claude-default'), isNotNull);
+    });
+
+    test('awakeTick skips a pass while a full scan is in flight', () async {
+      final adapter = _GatedClaude();
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: core.UsageWindow(
+            usedPct: 100,
+            resetAt: DateTime.now().subtract(const Duration(minutes: 5))),
+        lastCheckedAt: DateTime.now().subtract(const Duration(hours: 1)),
+      ));
+
+      adapter.gate = Completer<core.ProviderStatus>(); // hold phase-2 reads
+      final scan = engine.watch().last;
+      await Future<void>.delayed(Duration.zero); // scan discovers, then reads
+
+      expect(await engine.awakeTick(), isEmpty); // deferred to the scan
+
+      adapter.gate!.complete(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 0, resetLabel: '8:00pm')));
+      adapter.gate = null;
+      await scan;
     });
   });
 
