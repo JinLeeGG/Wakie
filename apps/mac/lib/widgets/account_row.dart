@@ -389,12 +389,14 @@ class _AutoStartToggle extends StatelessWidget {
             height: 28,
             margin: const EdgeInsets.only(left: 8),
             decoration: BoxDecoration(
-              color: on ? const Color(0x26FFC465) : T.white(.04),
+              // Off is a ghost — outline only, dim bolt — so the amber "on"
+              // reads as the lit state of a pressable, not a random badge.
+              color: on ? const Color(0x26FFC465) : Colors.transparent,
               borderRadius: BorderRadius.circular(9),
               border: Border.all(color: on ? const Color(0x66FFC465) : T.hair),
             ),
             child: Icon(Icons.bolt,
-                size: 15, color: on ? T.amber : T.t3),
+                size: 15, color: on ? T.amber : T.white(.28)),
           ),
         ),
       ),

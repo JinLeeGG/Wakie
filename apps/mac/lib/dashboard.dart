@@ -627,7 +627,18 @@ class _ColHead extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 4, 28, 6),
       child: Row(
         children: [
-          SizedBox(width: 252, child: label('Account')),
+          // AUTO sits over the bolt toggles at the account cell's right edge,
+          // naming the column so the toggle reads as a setting, not a badge.
+          SizedBox(
+            width: 252,
+            child: Row(
+              children: [
+                label('Account'),
+                const Spacer(),
+                label('Auto'),
+              ],
+            ),
+          ),
           const SizedBox(width: 16),
           Expanded(child: label('Session · 5h')),
           const SizedBox(width: 16),
