@@ -418,13 +418,13 @@ class Engine {
   /// live set (ambient defaults + other extras), ignoring [id] itself.
   String? _duplicateOf(String id, core.Provider provider, String? email) {
     if (email == null || email.isEmpty) return null;
-    final target = email.toLowerCase().trim();
+    final target = core.accountIdentityKey(email);
     for (final e in _live.values) {
       final (other, otherPf) = e;
       if (other.id == id || other.provider != provider || !otherPf.isOk) {
         continue;
       }
-      if ((otherPf.email ?? '').toLowerCase().trim() == target) {
+      if (core.accountIdentityKey(otherPf.email ?? '') == target) {
         return _displayName(other);
       }
     }
