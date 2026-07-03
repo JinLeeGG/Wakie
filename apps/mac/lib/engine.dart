@@ -830,8 +830,7 @@ Meter _meter(core.UsageWindow w, {required bool weekly}) {
       : remaining < 50
       ? Tone.warn
       : Tone.ok;
-  return Meter(remaining, tone, _resetLabel(w, weekly: weekly),
-      resetAt: core.resolveResetAt(w)?.toLocal());
+  return Meter(remaining, tone, _resetLabel(w, weekly: weekly));
 }
 
 /// Unifies every provider's reset wording to one absolute unit: a bare clock

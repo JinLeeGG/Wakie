@@ -42,12 +42,7 @@ class Meter {
   /// plans expose no 5h session window, only a weekly quota). Rendered as
   /// "—" — an unknown must never masquerade as an exhausted 0%.
   final bool known;
-
-  /// Absolute instant this window resets, when resolvable — powers the
-  /// hover tooltip's "resets in Xh Ym". Null for mock rows / unknown windows.
-  final DateTime? resetAt;
-
-  const Meter(this.pct, this.tone, this.reset, {this.known = true, this.resetAt});
+  const Meter(this.pct, this.tone, this.reset, {this.known = true});
 }
 
 /// Friendly "time until [at]" for reset tooltips: "5h 12m", "3d 4h", "12m",
