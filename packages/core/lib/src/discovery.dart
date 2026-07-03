@@ -4,26 +4,6 @@ import 'preflight.dart';
 import 'provider.dart';
 import 'store.dart';
 
-/// Each provider's CLI binary, for [terminalCommandFor].
-const _executables = {
-  Provider.claude: 'claude',
-  Provider.codex: 'codex',
-  Provider.antigravity: 'agy',
-};
-
-/// The shell command that runs [account]'s CLI in a terminal — the adapter's
-/// own [ProviderAdapter.envFor] as an env prefix, so switching accounts is
-/// typing a different command instead of re-logging-in (which overwrites the
-/// ambient login and is how duplicate identities happen in the first place).
-/// For an ambient account this is just the bare binary.
-String terminalCommandFor(ProviderAdapter adapter, Account account) {
-  final env = adapter.envFor(account);
-  final binary = _executables[account.provider]!;
-  final prefix =
-      env.entries.map((e) => '${e.key}="${e.value}"').join(' ');
-  return prefix.isEmpty ? binary : '$prefix $binary';
-}
-
 /// The ambient default account candidate for each provider (not yet probed).
 /// Each uses `configHome: null` so the CLI runs with no env override — the
 /// Keychain-backed default (PRD §7.2). Additional isolated accounts are
