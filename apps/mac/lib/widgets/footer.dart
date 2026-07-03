@@ -1,8 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme.dart';
+
+const _logoSvg =
+    '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
+    '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
 
 /// Drives the footer progress bar off *real* work, not a canned timeline.
 ///
@@ -98,8 +103,6 @@ class DashboardFooter extends StatefulWidget {
   final VoidCallback onRefreshAll;
   final VoidCallback onAddAccount;
 
-  /// Next scheduled wake (the morning anchor's next occurrence), preformatted.
-  final String nextWake;
   final bool launchAtLogin;
   final ValueChanged<bool>? onLaunchAtLogin;
 
@@ -114,7 +117,6 @@ class DashboardFooter extends StatefulWidget {
     required this.controller,
     required this.onRefreshAll,
     required this.onAddAccount,
-    this.nextWake = '—',
     this.launchAtLogin = false,
     this.onLaunchAtLogin,
     this.darkWake = false,
@@ -193,15 +195,7 @@ class _DashboardFooterState extends State<DashboardFooter> {
                     const SizedBox(width: 18),
                     _launchToggle(),
                     const SizedBox(width: 22),
-                    Text.rich(TextSpan(children: [
-                      TextSpan(
-                          text: 'next wake ',
-                          style: mono(13.5, color: T.t2)),
-                      TextSpan(
-                          text: widget.nextWake,
-                          style: mono(13.5,
-                              weight: FontWeight.w600, color: T.amber)),
-                    ])),
+                    _brand(),
                   ],
                 ),
               ),
@@ -209,6 +203,32 @@ class _DashboardFooterState extends State<DashboardFooter> {
           ),
         );
       },
+    );
+  }
+
+  // App identity, demoted from the header to sign off the panel quietly.
+  Widget _brand() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 15,
+          height: 15,
+          child: SvgPicture.string(_logoSvg),
+        ),
+        const SizedBox(width: 7),
+        Text.rich(TextSpan(children: [
+          TextSpan(
+              text: 'Wakie',
+              style: mono(12.5, weight: FontWeight.w600, color: T.amber)),
+          TextSpan(
+              text: 'AI',
+              style: mono(12.5, weight: FontWeight.w600, color: T.t1)),
+          TextSpan(
+              text: '  1.0.0',
+              style: mono(10, color: T.t3, letterSpacing: 0.4)),
+        ])),
+      ],
     );
   }
 

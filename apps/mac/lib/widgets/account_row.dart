@@ -77,13 +77,6 @@ class _AccountRowState extends State<AccountRow>
               const SizedBox(width: 16),
               Expanded(child: _MeterView(a.weekly)),
               const SizedBox(width: 16),
-              SizedBox(
-                width: 62,
-                child: Text(a.last,
-                    textAlign: TextAlign.right,
-                    style: mono(12.5, color: T.t2)),
-              ),
-              const SizedBox(width: 16),
               SizedBox(width: 190, child: _end(a)),
             ],
           ),
@@ -166,7 +159,12 @@ class _AccountRowState extends State<AccountRow>
           AnimatedOpacity(
             duration: const Duration(milliseconds: 160),
             opacity: _hover ? 0 : 1,
-            child: _StatusPill(a.status),
+            // OK is the quiet default — no pill. A label only appears when
+            // something needs the eye (Fresh / Low / Sign in), so anything
+            // in this column is worth reading.
+            child: a.status == RunStatus.ok
+                ? const SizedBox.shrink()
+                : _StatusPill(a.status),
           ),
           IgnorePointer(
             ignoring: !_hover,

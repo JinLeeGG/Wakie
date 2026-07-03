@@ -698,7 +698,6 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
         : 'signing in — complete it in your browser',
     session: session,
     weekly: _meter(s.weekly, weekly: true),
-    last: pf.isOk ? 'just now' : '—',
     status: !pf.isOk
         ? RunStatus.signin
         // Unknown usage (still loading, or a missed read) is not "low" —
