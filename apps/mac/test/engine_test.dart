@@ -686,6 +686,49 @@ void main() {
     });
   });
 
+  group('setMorningAnchor with dark wake enabled', () {
+    test('reprograms the schedule to the new time', () async {
+      final calls = <(bool, int, int)>[];
+      final store = core.Store.memory()..setDarkWake(true);
+      final engine = Engine.withAdapters({},
+          store: store, configureDarkWake: (e, h, m) async {
+        calls.add((e, h, m));
+        return null;
+      });
+
+      final err = await engine.setMorningAnchor(6, 30);
+
+      expect(err, isNull);
+      expect(calls, [(true, 6, 30)]);
+      expect(engine.morningAnchorHour, 6);
+    });
+
+    test('a cancelled reprogram reverts the anchor', () async {
+      final store = core.Store.memory()..setDarkWake(true);
+      final engine = Engine.withAdapters({},
+          store: store, configureDarkWake: (_, _, _) async => 'Cancelled.');
+
+      final err = await engine.setMorningAnchor(6, 30);
+
+      expect(err, 'Cancelled.');
+      expect(engine.morningAnchorHour, 8); // reverted to the default
+    });
+
+    test('dark wake off → anchor persists without touching the schedule',
+        () async {
+      var configured = 0;
+      final engine = Engine.withAdapters({}, configureDarkWake: (_, _, _) async {
+        configured++;
+        return null;
+      });
+
+      await engine.setMorningAnchor(6, 30);
+
+      expect(configured, 0);
+      expect(engine.morningAnchorHour, 6);
+    });
+  });
+
   test('morning anchor defaults to 8:00am and setMorningAnchor persists via the store',
       () async {
     final store = core.Store.memory();
@@ -694,7 +737,7 @@ void main() {
     expect(engine.morningAnchorHour, 8);
     expect(engine.morningAnchorMinute, 0);
 
-    engine.setMorningAnchor(7, 15);
+    await engine.setMorningAnchor(7, 15);
     expect(engine.morningAnchorHour, 7);
     expect(engine.morningAnchorMinute, 15);
     expect(store.morningAnchorHour, 7); // same store, reflected immediately
