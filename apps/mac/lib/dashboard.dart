@@ -850,31 +850,26 @@ class _ColHead extends StatelessWidget {
             width: 272,
             child: Row(
               children: [
-                label('Account', 'Your logged-in AI accounts — provider, name, '
-                    'and email.'),
+                label('Account', 'Your logged-in AI accounts.'),
                 const Spacer(),
-                label('Auto', 'When on, a fresh session starts the moment '
-                    "this account's window resets — keeps a full window rolling "
-                    '(token maxxing).'),
+                label('Auto', 'Auto-starts a session when this window resets.'),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: label('Current', 'The rolling 5-hour usage window — '
-                '% left and when it resets. Free plans have none ("—").'),
+            child: label(
+                'Current', '5-hour session window — % left and reset time.'),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: label('Weekly',
-                'The weekly usage quota — % left and when it resets.'),
+            child:
+                label('Weekly', 'Weekly quota — % left and reset time.'),
           ),
           const SizedBox(width: 16),
           SizedBox(
             width: 190,
-            child: label('Status',
-                'Account health — shown only when it needs an eye: Low, Fresh, '
-                'or Sign in.',
+            child: label('Status', 'Shown only when an account needs attention.',
                 align: TextAlign.right),
           ),
         ],
