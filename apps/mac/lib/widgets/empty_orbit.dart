@@ -29,21 +29,22 @@ Color _c(int hex, [int? a]) =>
 class _Planet {
   final String label;
   final String asset; // the provider's real app icon
+  final Color bg; // fill behind the icon's transparent margins
   final Offset pos; // resting center on the stage
-  final double d; // icon size
+  final double d; // planet diameter
   final double bobPeriod, bobPhase; // slow vertical drift
-  const _Planet(
-      this.label, this.asset, this.pos, this.d, this.bobPeriod, this.bobPhase);
+  const _Planet(this.label, this.asset, this.bg, this.pos, this.d,
+      this.bobPeriod, this.bobPhase);
 }
 
 // Asymmetric, breathing-room arrangement: left mid, center high, right low.
 const _planets = <_Planet>[
-  _Planet('Antigravity', 'assets/icons/antigravity_logo.png', //
-      Offset(88, 128), 92, 7.2, 0.0),
-  _Planet('Claude', 'assets/icons/claude_logo.png', //
-      Offset(260, 76), 102, 8.6, 2.1),
-  _Planet('Codex', 'assets/icons/codex_logo.png', //
-      Offset(432, 144), 92, 7.9, 4.4),
+  _Planet('Antigravity', 'assets/icons/antigravity_app.png',
+      Color(0xFF1B1C21), Offset(88, 128), 92, 7.2, 0.0),
+  _Planet('Claude', 'assets/icons/claude_app.png', //
+      Color(0xFFD97757), Offset(260, 76), 102, 8.6, 2.1),
+  _Planet('Codex', 'assets/icons/codex_app.png', //
+      Color(0xFFEDF1F7), Offset(432, 144), 92, 7.9, 4.4),
 ];
 
 class _Star {
@@ -159,7 +160,7 @@ class _EmptyOrbitState extends State<EmptyOrbit>
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // Warm halo behind the icon on hover.
+                // Warm halo behind the planet on hover.
                 AnimatedOpacity(
                   opacity: hovered ? 1 : 0,
                   duration: const Duration(milliseconds: 200),
@@ -175,11 +176,38 @@ class _EmptyOrbitState extends State<EmptyOrbit>
                     ),
                   ),
                 ),
-                Image.asset(
-                  p.asset,
+                // The real app icon circle-cropped into a planet: zoomed a
+                // touch past its transparent margins, then lit with a soft
+                // key-light + limb shade so the disc reads as a sphere.
+                Container(
                   width: p.d,
                   height: p.d,
-                  filterQuality: FilterQuality.medium,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: p.bg,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _c(0x000000, 0x38),
+                        blurRadius: 18,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Transform.scale(
+                          scale: 1.16,
+                          child: Image.asset(p.asset,
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.medium),
+                        ),
+                        const CustomPaint(painter: _PlanetShade()),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -239,6 +267,55 @@ class _EmptyOrbitState extends State<EmptyOrbit>
       ),
     );
   }
+}
+
+/// Sphere lighting laid over the circle-cropped icon: a soft top-left
+/// key-light, a lower-right shade, and limb darkening — enough to turn a flat
+/// disc into a planet without hiding the artwork.
+class _PlanetShade extends CustomPainter {
+  const _PlanetShade();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final rect = Offset.zero & size;
+
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.4, -0.5),
+          radius: 0.9,
+          colors: [_c(0xFFFFFF, 0x30), _c(0xFFFFFF, 0x00)],
+          stops: const [0.0, 0.65],
+        ).createShader(rect),
+    );
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.5, 0.65),
+          radius: 1.0,
+          colors: [_c(0x000000, 0x46), _c(0x000000, 0x00)],
+          stops: const [0.0, 0.7],
+        ).createShader(rect),
+    );
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [_c(0x000000, 0x00), _c(0x000000, 0x00), _c(0x000000, 0x55)],
+          stops: const [0.0, 0.78, 1.0],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_PlanetShade old) => false;
 }
 
 /// Hairlines linking the three planets into a constellation — drawn edge to

@@ -4,16 +4,17 @@ import 'package:flutter/widgets.dart';
 enum Provider { claude, codex, anti }
 
 extension ProviderAsset on Provider {
-  // Glyph-only logos lifted from each provider's real desktop app icon
-  // (test/tools/gen_provider_logos.dart) — full-color, transparent background.
+  // Each provider's real desktop app icon, extracted from the installed
+  // app's .icns — shown as-is (full-bleed in badges, circle-cropped as the
+  // empty-state planets) rather than re-drawn.
   String get icon => switch (this) {
-    Provider.claude => 'assets/icons/claude_logo.png',
-    Provider.codex => 'assets/icons/codex_logo.png',
-    Provider.anti => 'assets/icons/antigravity_logo.png',
+    Provider.claude => 'assets/icons/claude_app.png',
+    Provider.codex => 'assets/icons/codex_app.png',
+    Provider.anti => 'assets/icons/antigravity_app.png',
   };
 
-  // Badge background = each app icon's own background, so the badges read as
-  // miniature versions of the real icons.
+  // Fill behind the icon, matching its own background — covers the icon's
+  // transparent margins (and the Codex cloud, which floats with no square).
   Color get badgeBg => switch (this) {
     Provider.claude => const Color(0xFFD97757), // terracotta squircle
     Provider.codex => const Color(0xFFEDF1F7), // cloud floats on light

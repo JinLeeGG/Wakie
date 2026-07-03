@@ -146,9 +146,10 @@ class _ConfirmModalState extends State<ConfirmModal>
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: T.hair2),
             ),
-            child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
               child: Image.asset(a.provider.icon,
-                  width: 19, height: 19, filterQuality: FilterQuality.medium),
+                  fit: BoxFit.cover, filterQuality: FilterQuality.medium),
             ),
           ),
           const SizedBox(width: 12),
