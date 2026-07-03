@@ -153,7 +153,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
-    if (widget.source != null) _reload();
+    // Go through the footer (progress bar) even on the first scan, so the tray
+    // "working" spinner and the footer bar always show together.
+    if (widget.source != null) _refreshAll();
     // The footer's running flag drives the "working" tray state; account/
     // loading changes are picked up by the post-frame report in build().
     _footer.addListener(_reportTray);
@@ -350,8 +352,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       onDone: () {
         if (mounted) setState(() => _loading = false);
         if (footer) _footer.finish('All accounts up to date');
+        _retryUnknowns();
       },
     );
+  }
+
+  /// Re-reads accounts that came back with no data at all (both windows "—") —
+  /// the fragile Claude/Antigravity TUI scrape occasionally returns an empty
+  /// panel. Only when it's a *partial* miss (others read fine), so a genuine
+  /// offline state isn't hammered; _update carries its own single retry.
+  void _retryUnknowns() {
+    final unknowns = _accounts
+        .where((a) =>
+            a.id.isNotEmpty &&
+            !a.session.known &&
+            !a.weekly.known &&
+            a.status != RunStatus.signin)
+        .toList();
+    if (unknowns.isEmpty || unknowns.length == _accounts.length) return;
+    for (final a in unknowns) {
+      _update(a);
+    }
   }
 
   /// Per-account Update: show the footer bar and, if wired, re-read just this
