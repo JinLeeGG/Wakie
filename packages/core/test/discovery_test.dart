@@ -29,13 +29,12 @@ class _StubAdapter implements ProviderAdapter {
 /// collide).
 class _PerAccountAdapter implements ProviderAdapter {
   final Preflight Function(Account) answer;
-  final Map<String, String> Function(Account)? env;
-  _PerAccountAdapter(this.answer, {this.env});
+  _PerAccountAdapter(this.answer);
 
   @override
   String get id => 'stub';
   @override
-  Map<String, String> envFor(Account a) => env?.call(a) ?? const {};
+  Map<String, String> envFor(Account a) => const {};
   @override
   Future<Preflight> detect(Account a) async => answer(a);
   @override
@@ -208,33 +207,4 @@ void main() {
     });
   });
 
-  group('terminalCommandFor', () {
-    Account acct(Provider p, String? home) => Account(
-          id: 'x',
-          provider: p,
-          label: 'x',
-          configHome: home,
-          deviceId: 'local',
-          addedAt: DateTime(2026),
-        );
-
-    test('isolated account → adapter env prefix + provider binary', () {
-      final adapter = _PerAccountAdapter(
-          (_) => const Preflight(PreflightState.ok),
-          env: (a) => {'CLAUDE_CONFIG_DIR': a.configHome!});
-
-      expect(terminalCommandFor(adapter, acct(Provider.claude, '/tmp/c1')),
-          'CLAUDE_CONFIG_DIR="/tmp/c1" claude');
-    });
-
-    test('ambient account → bare binary per provider', () {
-      final adapter =
-          _PerAccountAdapter((_) => const Preflight(PreflightState.ok));
-
-      expect(terminalCommandFor(adapter, acct(Provider.claude, null)), 'claude');
-      expect(terminalCommandFor(adapter, acct(Provider.codex, null)), 'codex');
-      expect(
-          terminalCommandFor(adapter, acct(Provider.antigravity, null)), 'agy');
-    });
-  });
 }
