@@ -385,7 +385,14 @@ class Engine {
           _toRow(a, pf, _cachedStatus(a.id),
               name: _nameFor(a), autoStart: _autoStartFor(a)),
       ];
-      out.add(List.of(rows));
+      // Every emission re-checks removal: the user can hit Remove while this
+      // scan is still reading, and a stale snapshot must not resurrect the
+      // row when the next read completes.
+      void emit() => out.add([
+            for (final r in rows)
+              if (!_store.isRemoved(r.id)) r,
+          ]);
+      emit();
 
       // Phase 2: fill each account's usage as its read completes, in
       // parallel. Uses _readReady (not readStatus directly) so an isolated
@@ -402,7 +409,7 @@ class Engine {
               autoStart: _autoStartFor(visible[i].$1),
             );
             _store.cacheStatus(visible[i].$1.id, s);
-            out.add(List.of(rows));
+            emit();
           }),
       ]);
     } finally {

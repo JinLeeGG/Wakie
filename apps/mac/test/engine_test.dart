@@ -381,6 +381,32 @@ void main() {
     expect(command, isNot(contains('BROWSER=')));
   });
 
+  test('a row removed mid-scan does not reappear in later emissions',
+      () async {
+    final gate = Completer<core.ProviderStatus>();
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _GatedClaude()..gate = gate},
+    );
+
+    final emissions = <List<Account>>[];
+    final done = Completer<void>();
+    engine.watch().listen(emissions.add, onDone: done.complete);
+
+    // Wait for phase 1 (accounts listed, usage read still gated open).
+    while (emissions.isEmpty) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    expect(emissions.first.single.id, 'claude-default');
+
+    // Remove while the scan is still loading, then let the read land.
+    engine.removeAccount('claude-default');
+    gate.complete(const core.ProviderStatus());
+    await done.future;
+
+    // The completed read must not resurrect the removed row.
+    expect(emissions.last, isEmpty);
+  });
+
   test('removeAccount deletes an extra account\'s isolated config dir', () async {
     String? deleted;
     final store = core.Store.memory();
