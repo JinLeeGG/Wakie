@@ -197,18 +197,20 @@ class _AccountRowState extends State<AccountRow>
                 mainAxisAlignment: MainAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _pillButton(
+                  _PillButton(
                     label: 'Remove',
                     fg: T.crit,
                     bg: const Color(0x14FF7A85),
+                    hoverBg: const Color(0x29FF7A85),
                     border: const Color(0x40FF7A85),
                     onTap: widget.onRemove,
                   ),
                   const SizedBox(width: 8),
-                  _pillButton(
+                  _PillButton(
                     label: 'Update ↵',
                     fg: const Color(0xFF1A1205),
                     bg: T.amber,
+                    hoverBg: const Color(0xFFFFD07E),
                     border: const Color(0x99FFC465),
                     onTap: widget.onUpdate,
                   ),
@@ -221,27 +223,53 @@ class _AccountRowState extends State<AccountRow>
     );
   }
 
-  Widget _pillButton({
-    required String label,
-    required Color fg,
-    required Color bg,
-    required Color border,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
+}
+
+/// A hover-reactive action pill (the row's Remove / Update): the fill deepens
+/// and it lifts a hair on hover, so it feels live like the app's other buttons.
+class _PillButton extends StatefulWidget {
+  final String label;
+  final Color fg;
+  final Color bg;
+  final Color hoverBg;
+  final Color border;
+  final VoidCallback onTap;
+  const _PillButton({
+    required this.label,
+    required this.fg,
+    required this.bg,
+    required this.hoverBg,
+    required this.border,
+    required this.onTap,
+  });
+
+  @override
+  State<_PillButton> createState() => _PillButtonState();
+}
+
+class _PillButtonState extends State<_PillButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 130),
+          transform: Matrix4.translationValues(0, _hover ? -1 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
           decoration: BoxDecoration(
-            color: bg,
+            color: _hover ? widget.hoverBg : widget.bg,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: border),
+            border: Border.all(color: widget.border),
           ),
           child: Text(
-            label,
-            style: mono(12, weight: FontWeight.w600, color: fg),
+            widget.label,
+            style: mono(12, weight: FontWeight.w600, color: widget.fg),
           ),
         ),
       ),
