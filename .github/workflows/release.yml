@@ -1,0 +1,57 @@
+# Build, sign, notarize, and publish the Mac DMG on a version tag.
+#
+# Trigger: push a tag like `v1.0.0` (or run manually from the Actions tab).
+# It reuses apps/mac/scripts/package.sh unchanged — this workflow only stands up
+# the signing identity and notary profile it expects, from repo secrets.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   MACOS_CERT_P12_BASE64   base64 of the "Developer ID Application" .p12
+#                           (export from Keychain, then: base64 -i cert.p12 | pbcopy)
+#   MACOS_CERT_PASSWORD     the password set when exporting that .p12
+#   NOTARY_APPLE_ID         Apple ID email of the developer account
+#   NOTARY_TEAM_ID          the Team ID (8GJTN3VYTJ)
+#   NOTARY_PASSWORD         an app-specific password for that Apple ID
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # attach the DMG to the GitHub Release
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # Imports the Developer ID cert into a temporary keychain and puts it on
+      # the search list, so codesign in package.sh finds the identity.
+      - uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
+
+      # package.sh notarizes via the "wakieai" keychain profile; create it here.
+      - name: Store notary credentials
+        run: |
+          xcrun notarytool store-credentials wakieai \
+            --apple-id "${{ secrets.NOTARY_APPLE_ID }}" \
+            --team-id "${{ secrets.NOTARY_TEAM_ID }}" \
+            --password "${{ secrets.NOTARY_PASSWORD }}"
+
+      - name: Build, sign, notarize, staple
+        working-directory: apps/mac
+        run: scripts/package.sh
+
+      - name: Publish DMG to the Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/mac/build/dist/WakieAI.dmg
+          fail_on_unmatched_files: true
