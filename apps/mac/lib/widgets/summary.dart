@@ -40,8 +40,7 @@ class SummaryBar extends StatelessWidget {
                 children: [
                   Text('$accountCount',
                       style: mono(22, weight: FontWeight.w600, color: T.t1)),
-                  Text('+',
-                      style: mono(24, weight: FontWeight.w400, color: T.t1)),
+                  const Icon(Icons.add_rounded, size: 20, color: T.t1),
                 ],
               ),
             ),
@@ -301,7 +300,7 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
                       duration: const Duration(milliseconds: 160),
                       turns: _open ? 0.5 : 0,
                       child: Icon(Icons.keyboard_arrow_down,
-                          size: 16, color: _open ? T.amber : T.t3),
+                          size: 20, color: _open ? T.amber : T.t3),
                     ),
                   ],
                 ),
