@@ -80,10 +80,15 @@ class ClaudeAdapter implements ProviderAdapter {
         ['-p', '--model', model ?? 'haiku', 'hi'],
         environment: envFor(a),
       );
+      // A rejected prompt ("You've hit your session limit · resets 4:20am")
+      // prints to stdout, not stderr — fall back to it so the failure carries
+      // a reason instead of an empty string.
+      final err = (result.stderr as String).trim();
+      final out = (result.stdout as String).trim();
       return RunOutcome(
         ok: result.exitCode == 0,
         startedAt: startedAt,
-        error: result.exitCode == 0 ? null : (result.stderr as String).trim(),
+        error: result.exitCode == 0 ? null : (err.isNotEmpty ? err : out),
       );
     } on ProcessException catch (e) {
       return RunOutcome(ok: false, startedAt: startedAt, error: e.message);

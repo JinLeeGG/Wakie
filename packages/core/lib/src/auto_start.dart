@@ -12,6 +12,13 @@ import 'store.dart';
 /// and Antigravity (🟠) default off; the user can opt in per account.
 bool defaultAutoStart(Provider p) => p == Provider.claude;
 
+/// The provider's actual quota refresh can lag the reset time it prints by a
+/// few seconds. Firing the chain the instant the clock crosses that time hits a
+/// still-exhausted window — Claude rejects it with "you've hit your session
+/// limit" (exit 1), which then surfaces as a false "session start failed"
+/// alert. Wait this out so the first attempt lands on a genuinely fresh window.
+const _resetGrace = Duration(minutes: 2);
+
 /// "Token maxxing" (PRD §6/§15 D1): for each account whose session window has
 /// already reset and whose auto-start toggle is on, starts a fresh session
 /// (cheapest model, minimal prompt) so a new window opens — then re-reads and
@@ -38,7 +45,7 @@ Future<void> chainExpiredSessions(
     if (!enabled) continue;
 
     final resetAt = resolveResetAt(status.session);
-    if (resetAt == null || at.isBefore(resetAt)) continue;
+    if (resetAt == null || at.isBefore(resetAt.add(_resetGrace))) continue;
 
     log?.call('wakieai: ${account.id} session window lapsed at $resetAt — starting a new one');
     final adapter = adapters[account.provider]!;
