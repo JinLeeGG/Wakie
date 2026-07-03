@@ -132,7 +132,8 @@ class _PillState extends State<_Pill> {
   }
 }
 
-/// Options offered for the daily dark-wake time (PRD §9.2 "아침 앵커").
+/// Quick-pick presets for the daily dark-wake time (PRD §9.2 "아침 앵커");
+/// any other time is typed into the menu's custom field.
 const _morningAnchorOpts = <(String, int, int)>[
   ('6:00am', 6, 0),
   ('7:00am', 7, 0),
@@ -140,6 +141,27 @@ const _morningAnchorOpts = <(String, int, int)>[
   ('9:00am', 9, 0),
   ('10:00am', 10, 0),
 ];
+
+/// Parses a wake time as the user types it: "7", "7:30", "7:30am", "12:10 AM",
+/// "23:45". Bare hours are 24h ("14" → 2pm); am/pm uses clock convention
+/// (12am → 0h, 12pm → 12h). Returns (hour, minute) or null if unparseable.
+(int, int)? parseAnchorTime(String input) {
+  final m = RegExp(r'^\s*(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?\s*$',
+          caseSensitive: false)
+      .firstMatch(input);
+  if (m == null) return null;
+  var hour = int.parse(m.group(1)!);
+  final minute = int.parse(m.group(2) ?? '0');
+  final ampm = m.group(3)?.toLowerCase();
+  if (minute > 59) return null;
+  if (ampm != null) {
+    if (hour < 1 || hour > 12) return null;
+    hour = hour % 12 + (ampm == 'pm' ? 12 : 0);
+  } else if (hour > 23) {
+    return null;
+  }
+  return (hour, minute);
+}
 
 String _fmtAnchor(int hour, int minute) {
   final ampm = hour < 12 ? 'am' : 'pm';
@@ -191,13 +213,9 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
                 options: [for (final o in _morningAnchorOpts) o.$1],
                 onSelect: (v) {
                   final picked = _morningAnchorOpts.firstWhere((o) => o.$1 == v);
-                  setState(() {
-                    _hour = picked.$2;
-                    _minute = picked.$3;
-                  });
-                  widget.onChanged?.call(picked.$2, picked.$3);
-                  _close();
+                  _pick(picked.$2, picked.$3);
                 },
+                onCustom: _pick,
               ),
             ),
           ),
@@ -206,6 +224,15 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
     });
     Overlay.of(context).insert(_menu!);
     setState(() {});
+  }
+
+  void _pick(int hour, int minute) {
+    setState(() {
+      _hour = hour;
+      _minute = minute;
+    });
+    widget.onChanged?.call(hour, minute);
+    _close();
   }
 
   void _close() {
@@ -249,7 +276,7 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('MORNING WAKE',
+                Text('DAILY WAKE',
                     style: mono(12.5, weight: FontWeight.w500, color: T.t2, letterSpacing: 1.3)),
                 const SizedBox(height: 6),
                 Row(
@@ -279,11 +306,13 @@ class _Menu extends StatefulWidget {
   final String value;
   final List<String> options;
   final ValueChanged<String> onSelect;
+  final void Function(int hour, int minute) onCustom;
 
   const _Menu({
     required this.value,
     required this.options,
     required this.onSelect,
+    required this.onCustom,
   });
 
   @override
@@ -347,6 +376,10 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
               ),
               for (final o in widget.options)
                 _Opt(o, o == widget.value, () => widget.onSelect(o)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(3, 6, 3, 0),
+                child: _CustomTimeField(onSubmit: widget.onCustom),
+              ),
               Container(
                 margin: const EdgeInsets.fromLTRB(3, 5, 3, 0),
                 padding: const EdgeInsets.fromLTRB(6, 8, 6, 3),
@@ -361,6 +394,63 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Free-form time entry for wake times the presets don't cover (e.g. a
+/// night owl's 12:10am). Enter submits; unparseable input turns the border
+/// red until the next edit.
+class _CustomTimeField extends StatefulWidget {
+  final void Function(int hour, int minute) onSubmit;
+  const _CustomTimeField({required this.onSubmit});
+
+  @override
+  State<_CustomTimeField> createState() => _CustomTimeFieldState();
+}
+
+class _CustomTimeFieldState extends State<_CustomTimeField> {
+  final _ctl = TextEditingController();
+  bool _bad = false;
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final t = parseAnchorTime(_ctl.text);
+    if (t == null) {
+      setState(() => _bad = true);
+      return;
+    }
+    widget.onSubmit(t.$1, t.$2);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: BorderSide(color: color),
+        );
+    return TextField(
+      controller: _ctl,
+      onChanged: (_) {
+        if (_bad) setState(() => _bad = false);
+      },
+      onSubmitted: (_) => _submit(),
+      style: mono(14, weight: FontWeight.w500, color: T.t1),
+      cursorColor: T.amber,
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: 'custom — e.g. 12:10am',
+        hintStyle: mono(12.5, color: T.t3),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        enabledBorder: border(_bad ? T.crit : T.hair),
+        focusedBorder: border(_bad ? T.crit : const Color(0x73F6B23C)),
       ),
     );
   }

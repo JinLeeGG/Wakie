@@ -67,7 +67,7 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 1500));
-    await tester.tap(find.text('MORNING WAKE'));
+    await tester.tap(find.text('DAILY WAKE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
