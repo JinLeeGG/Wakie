@@ -110,9 +110,11 @@ class _AccountRowState extends State<AccountRow>
             borderRadius: BorderRadius.circular(11),
             border: Border.all(color: T.hair2),
           ),
-          child: Center(
+          // The real app icon, full-bleed — the badge IS the icon.
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
             child: Image.asset(a.provider.icon,
-                width: 20, height: 20, filterQuality: FilterQuality.medium),
+                fit: BoxFit.cover, filterQuality: FilterQuality.medium),
           ),
         ),
         const SizedBox(width: 12),

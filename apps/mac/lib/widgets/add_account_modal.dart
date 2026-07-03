@@ -296,10 +296,10 @@ class _ProviderRowState extends State<_ProviderRow> {
                   color: widget.provider.badgeBg,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
                   child: Image.asset(widget.provider.icon,
-                      width: 22, height: 22,
-                      filterQuality: FilterQuality.medium),
+                      fit: BoxFit.cover, filterQuality: FilterQuality.medium),
                 ),
               ),
               const SizedBox(width: 13),
