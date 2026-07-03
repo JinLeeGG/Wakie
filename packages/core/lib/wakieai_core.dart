@@ -24,6 +24,7 @@ export 'src/privileged.dart';
 export 'src/production_adapters.dart';
 export 'src/provider.dart';
 export 'src/reset_time.dart';
+export 'src/resleep.dart';
 export 'src/status.dart';
 export 'src/store.dart';
 export 'src/vt.dart';
