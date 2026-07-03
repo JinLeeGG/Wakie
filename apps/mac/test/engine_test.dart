@@ -344,6 +344,43 @@ void main() {
     expect(commands[core.Provider.antigravity], contains(' agy'));
   });
 
+  test('a second Claude account signs in via a private browser window',
+      () async {
+    final commands = <String>[];
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
+      runHidden: (cmd) async => commands.add(cmd),
+      privateBrowserPrefix: () async => 'BROWSER="/x/pb" ',
+    );
+    await engine.load(); // ambient default Claude account is signed in
+
+    await engine.addAccount(Provider.claude, 'second');
+
+    // The private window has no claude.ai session, so the browser can't
+    // silently re-authorize the already-signed-in account.
+    expect(commands.single, startsWith('BROWSER="/x/pb" '));
+    expect(commands.single, contains('claude auth login'));
+  });
+
+  test('the first Claude account keeps the normal browser (session reuse)',
+      () async {
+    var prefixerCalls = 0;
+    String? command;
+    final engine = Engine.withAdapters(
+      {},
+      runHidden: (cmd) async => command = cmd,
+      privateBrowserPrefix: () async {
+        prefixerCalls++;
+        return 'BROWSER="/x/pb" ';
+      },
+    );
+
+    await engine.addAccount(Provider.claude, 'first');
+
+    expect(prefixerCalls, 0);
+    expect(command, isNot(contains('BROWSER=')));
+  });
+
   test('removeAccount deletes an extra account\'s isolated config dir', () async {
     String? deleted;
     final store = core.Store.memory();
