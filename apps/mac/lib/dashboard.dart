@@ -51,9 +51,9 @@ class DashboardScreen extends StatefulWidget {
   final void Function(int hour, int minute)? onSetMorningAnchor;
 
   /// One awake-cycle pass (auto-start lapsed windows + alerts) — run
-  /// periodically while the app is open. Returns ids whose status changed.
-  /// Null in tests/goldens.
-  final Future<List<String>> Function()? onAwakeTick;
+  /// periodically while the app is open. Returns the refreshed rows to swap
+  /// in. Null in tests/goldens.
+  final Future<List<Account>> Function()? onAwakeTick;
 
   /// "Launch at login" — current state + toggle handler (installs/removes the
   /// login item). Null handler in tests/goldens.
@@ -187,20 +187,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _awakeTick() async {
     if (_ticking) return;
     final tick = widget.onAwakeTick;
-    final updater = widget.onUpdateAccount;
     if (tick == null) return;
     _ticking = true;
     try {
-      final changedIds = await tick();
-      if (!mounted || updater == null) return;
-      // Refresh the affected rows so new windows/alerts show immediately.
-      for (final id in changedIds) {
-        final i = _accounts.indexWhere((a) => a.id == id);
-        if (i == -1) continue;
-        final fresh = await updater(_accounts[i]);
-        if (!mounted) return;
-        if (fresh != null) setState(() => _accounts[i] = fresh);
-      }
+      // The tick returns fully-built rows from the status it just cached —
+      // swap them in as-is. (Re-reading them live here would double the
+      // scrape and overwrite the engine's failure backoff.)
+      final rows = await tick();
+      if (!mounted || rows.isEmpty) return;
+      setState(() {
+        for (final row in rows) {
+          final i = _accounts.indexWhere((a) => a.id == row.id);
+          if (i != -1) _accounts[i] = row;
+        }
+      });
     } finally {
       _ticking = false;
     }
