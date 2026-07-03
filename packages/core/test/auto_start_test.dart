@@ -85,6 +85,38 @@ void main() {
     expect(store.statusFor('claude-default'), isNull);
   });
 
+  test('just-passed reset is held back by the grace period (not fired early)', () async {
+    // resetAt one minute before `now` — inside the 2-minute grace. The real
+    // quota may not have refreshed yet, so the chain must wait a tick.
+    final claude = _FakeAdapter(Provider.claude);
+    final store = Store.memory();
+    final account = _account(Provider.claude, 'claude-default');
+    final barelyLapsed = ProviderStatus(
+        session: UsageWindow(usedPct: 100, resetAt: DateTime(2026, 6, 1, 14, 59)));
+
+    await chainExpiredSessions({Provider.claude: claude}, store,
+        [(account, preflight, barelyLapsed)],
+        now: now);
+
+    expect(claude.startCalls, 0);
+    expect(store.statusFor('claude-default'), isNull);
+  });
+
+  test('reset older than the grace period fires the chain', () async {
+    final claude = _FakeAdapter(Provider.claude,
+        afterStart: const ProviderStatus(
+            session: UsageWindow(usedPct: 0, resetLabel: '8:00pm')));
+    final store = Store.memory();
+    final account = _account(Provider.claude, 'claude-default');
+    final lapsed = ProviderStatus(
+        session: UsageWindow(usedPct: 100, resetAt: DateTime(2026, 6, 1, 14, 57)));
+
+    await chainExpiredSessions(
+        {Provider.claude: claude}, store, [(account, preflight, lapsed)], now: now);
+
+    expect(claude.startCalls, 1);
+  });
+
   test('Codex defaults to auto-start off even when lapsed', () async {
     final codex = _FakeAdapter(Provider.codex);
     final store = Store.memory();
