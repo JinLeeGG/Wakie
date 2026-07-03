@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -45,6 +46,58 @@ Future<void> _runLoginHidden(String command) async {
     '-lc',
     command,
   ], mode: ProcessStartMode.detached);
+}
+
+/// Builds a `BROWSER=<shim>` env prefix that makes `claude auth login` open
+/// its OAuth URL in a *private* window of the default browser. The browser's
+/// live claude.ai session would otherwise skip the login screen and authorize
+/// the already-signed-in account again — exactly wrong when adding a second
+/// account. Returns '' when the default browser has no private-window flag
+/// (Safari) or anything fails: the login then opens normally, as before.
+/// Injected so tests never probe LaunchServices or write shims to disk.
+typedef PrivateBrowserPrefixer = Future<String> Function();
+
+/// Private-window CLI flags by default-browser bundle id (lowercase, as
+/// LaunchServices records them). Unlisted browsers fall back to a normal open.
+const _privateWindowFlags = <String, String>{
+  'com.google.chrome': '--incognito',
+  'com.google.chrome.canary': '--incognito',
+  'com.brave.browser': '--incognito',
+  'com.vivaldi.vivaldi': '--incognito',
+  'com.microsoft.edgemac': '--inprivate',
+  'org.mozilla.firefox': '-private-window',
+};
+
+Future<String> _realPrivateBrowserPrefix() async {
+  try {
+    final home = Platform.environment['HOME'];
+    if (home == null) return '';
+    final plist = await Process.run('plutil', [
+      '-convert', 'json', '-o', '-',
+      '$home/Library/Preferences/com.apple.LaunchServices/'
+          'com.apple.launchservices.secure.plist',
+    ]);
+    if (plist.exitCode != 0) return '';
+    final handlers =
+        (jsonDecode(plist.stdout as String)['LSHandlers'] as List?) ??
+            const [];
+    String? bundle;
+    for (final h in handlers) {
+      if (h is Map && h['LSHandlerURLScheme'] == 'https') {
+        bundle = (h['LSHandlerRoleAll'] as String?)?.toLowerCase();
+      }
+    }
+    final flag = _privateWindowFlags[bundle];
+    if (flag == null) return '';
+    final dir = await Directory.systemTemp.createTemp('wakieai_browser');
+    final shim = File('${dir.path}/private_browser');
+    await shim.writeAsString(
+        '#!/bin/bash\nexec open -nb "$bundle" --args $flag "\$1"\n');
+    await Process.run('chmod', ['+x', shim.path]);
+    return 'BROWSER="${shim.path}" ';
+  } catch (_) {
+    return ''; // best-effort: fall back to the normal browser
+  }
 }
 
 /// Opens a visible Terminal for a login that needs one — Antigravity (`agy`)
@@ -221,6 +274,7 @@ class Engine {
   final Future<void> Function(String title, String body) _notify;
   final LoginItemInstaller _installLoginItem;
   final DarkWakeConfigurer _configureDarkWake;
+  final PrivateBrowserPrefixer _privateBrowserPrefix;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
@@ -237,6 +291,7 @@ class Engine {
     this._notify,
     this._installLoginItem,
     this._configureDarkWake,
+    this._privateBrowserPrefix,
   );
 
   factory Engine.production() => Engine._(
@@ -250,6 +305,7 @@ class Engine {
     core.showMacNotification,
     _realInstallLoginItem,
     _realConfigureDarkWake,
+    _realPrivateBrowserPrefix,
   );
 
   @visibleForTesting
@@ -264,6 +320,7 @@ class Engine {
     Future<void> Function(String, String)? notify,
     LoginItemInstaller? installLoginItem,
     DarkWakeConfigurer? configureDarkWake,
+    PrivateBrowserPrefixer? privateBrowserPrefix,
   }) => Engine._(
     a,
     store ?? core.Store.memory(),
@@ -275,6 +332,7 @@ class Engine {
     notify ?? (_, _) async {},
     installLoginItem ?? (_) async {},
     configureDarkWake ?? (_, _, _) async => null,
+    privateBrowserPrefix ?? () async => '',
   );
 
   /// Emits account rows in two phases so the dashboard fills fast:
@@ -547,6 +605,11 @@ class Engine {
       removeAccount(staleId);
     }
 
+    // Whether this provider already has a signed-in account — decided before
+    // this attempt is seeded into _live. First account: reuse the browser's
+    // session (convenient). Second on: force a fresh login (see below).
+    final hasExisting = _live.values.any((e) => e.$1.provider == provider);
+
     final safeLabel = label.trim().isEmpty ? 'extra' : label.trim();
     final id = '${provider.name}-${DateTime.now().millisecondsSinceEpoch}';
     final configHome = '${core.Store.defaultAccountsDir()}/$id';
@@ -582,7 +645,13 @@ class Engine {
     try {
       switch (provider) {
         case core.Provider.claude:
-          await _runHidden('CLAUDE_CONFIG_DIR="$configHome" claude auth login');
+          // From the second account on, the browser's live claude.ai session
+          // would skip the login screen and re-authorize the same account —
+          // a private window has no session, so it always asks who to sign
+          // in as. ('' when the default browser can't do this, e.g. Safari.)
+          final private = hasExisting ? await _privateBrowserPrefix() : '';
+          await _runHidden(
+              '${private}CLAUDE_CONFIG_DIR="$configHome" claude auth login');
         case core.Provider.codex:
           await _runHidden('CODEX_HOME="$configHome" codex login');
         case core.Provider.antigravity:
