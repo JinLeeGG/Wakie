@@ -8,6 +8,17 @@ Future<void> _loadFont(String family, String path) async {
   await loader.load();
 }
 
+/// Decode every Image widget's asset (runAsync lets the real async decode
+/// finish), then pump so they paint — PNG logos render as blanks otherwise.
+Future<void> _precacheImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final element in find.byType(Image).evaluate()) {
+      await precacheImage((element.widget as Image).image, element);
+    }
+  });
+  await tester.pump();
+}
+
 void main() {
   setUpAll(() async {
     await _loadFont('InstrumentSans', 'assets/fonts/InstrumentSans.ttf');
@@ -38,6 +49,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 1500));
     await tester.pump(const Duration(milliseconds: 500));
+    await _precacheImages(tester);
 
     await expectLater(
       find.byType(MaterialApp),
@@ -67,6 +79,7 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 1500));
+    await _precacheImages(tester);
     await tester.tap(find.text('DAILY WAKE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
