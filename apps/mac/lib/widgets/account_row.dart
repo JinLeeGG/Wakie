@@ -12,6 +12,10 @@ class AccountRow extends StatefulWidget {
   final VoidCallback onUpdate;
   final ValueChanged<bool>? onAutoStartChanged;
 
+  /// Hover enter (true) / exit (false) — lets the summary bar count down to
+  /// this row's session reset while the cursor is over it.
+  final ValueChanged<bool>? onHover;
+
   const AccountRow({
     super.key,
     required this.account,
@@ -19,6 +23,7 @@ class AccountRow extends StatefulWidget {
     required this.onRemove,
     required this.onUpdate,
     this.onAutoStartChanged,
+    this.onHover,
   });
 
   @override
@@ -63,8 +68,14 @@ class _AccountRowState extends State<AccountRow>
         );
       },
       child: MouseRegion(
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
+        onEnter: (_) {
+          setState(() => _hover = true);
+          widget.onHover?.call(true);
+        },
+        onExit: (_) {
+          setState(() => _hover = false);
+          widget.onHover?.call(false);
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -285,37 +296,18 @@ class _MeterView extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            _ResetLabel(meter),
+            Text(
+              meter.reset,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: mono(13.5, color: T.t3),
+            ),
           ],
         ),
         const SizedBox(height: 6),
         _Bar(pct: meter.known ? meter.pct : 0, color: meter.tone.text),
       ],
-    );
-  }
-}
-
-/// The reset time, with a hover tooltip counting down to it ("resets in
-/// 5h 12m") — how long until this window (and its auto-start) comes around.
-class _ResetLabel extends StatelessWidget {
-  final Meter meter;
-  const _ResetLabel(this.meter);
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Text(
-      meter.reset,
-      maxLines: 1,
-      overflow: TextOverflow.clip,
-      softWrap: false,
-      style: mono(13.5, color: T.t3),
-    );
-    final at = meter.resetAt;
-    if (at == null) return text;
-    return Tooltip(
-      message: 'resets in ${untilLabel(at)}',
-      waitDuration: const Duration(milliseconds: 250),
-      child: text,
     );
   }
 }

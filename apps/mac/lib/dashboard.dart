@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'engine.dart' show SignInResult, SignInState, formatClock;
+import 'engine.dart' show SignInResult, SignInState;
 import 'models.dart';
 import 'theme.dart';
 import 'widgets/account_row.dart';
@@ -108,6 +108,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   // without a timer of its own.
   DateTime? _lastRefresh;
 
+  // Row currently under the cursor — the Resets-in card counts down to this
+  // account's session reset instead of the soonest one.
+  String? _hoveredId;
+
   Account? _pendingRemove;
   bool _addingAccount = false;
 
@@ -184,11 +188,28 @@ class _DashboardScreenState extends State<DashboardScreen>
     return next;
   }
 
-  /// That reset in the rows' clock format.
-  String _nextResetLabel() {
-    if (widget.source == null) return '4:30am'; // static mock (deterministic)
-    final next = _nextResetAt();
-    return next == null ? '—' : formatClock(next);
+  void _setHovered(String id, bool hovering) {
+    final next = hovering ? id : (_hoveredId == id ? null : _hoveredId);
+    if (next == _hoveredId) return;
+    setState(() => _hoveredId = next);
+  }
+
+  /// The Resets-in card's value: a countdown to the hovered row's session
+  /// reset, or — with nothing hovered — to the soonest reset across accounts.
+  /// "—" for a hovered account with no session window (free plans), and a
+  /// fixed value under the static mock so goldens stay deterministic.
+  String _resetCardValue() {
+    final id = _hoveredId;
+    if (id != null) {
+      final i = _accounts.indexWhere((a) => a.id == id);
+      if (i != -1) {
+        final at = _accounts[i].sessionResetAt;
+        return at == null ? '—' : untilLabel(at);
+      }
+    }
+    final soonest = _nextResetAt();
+    if (soonest != null) return untilLabel(soonest);
+    return widget.source == null ? '4h 30m' : '—';
   }
 
   Future<void> _awakeTick() async {
@@ -495,8 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 runningLow: _accounts
                     .where((a) => a.status == RunStatus.low)
                     .length,
-                nextReset: _nextResetLabel(),
-                nextResetAt: _nextResetAt(),
+                nextReset: _resetCardValue(),
                 onAddAccount: () => setState(() => _addingAccount = true),
                 morningAnchorHour: _anchorHour,
                 morningAnchorMinute: _anchorMinute,
@@ -545,6 +565,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               animDelayMs: 70 + i * 60,
                               onRemove: () => _askRemove(account),
                               onUpdate: () => _update(account),
+                              onHover: (h) => _setHovered(account.id, h),
                               onAutoStartChanged: (enabled) =>
                                   _setAutoStart(account, enabled),
                             );

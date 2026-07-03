@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../models.dart';
 import '../theme.dart';
 
 class SummaryBar extends StatelessWidget {
   final int accountCount;
   final int runningLow;
-  final String nextReset;
 
-  /// Absolute instant of that next reset, when known — powers the card's
-  /// hover tooltip ("resets in 5h 12m"). Null keeps the card non-interactive.
-  final DateTime? nextResetAt;
+  /// The Resets-in card's value — a countdown ("5h 12m") to the hovered row's
+  /// session reset, or the soonest one. Animated on change by the card.
+  final String nextReset;
   final VoidCallback onAddAccount;
   final int morningAnchorHour;
   final int morningAnchorMinute;
@@ -21,7 +19,6 @@ class SummaryBar extends StatelessWidget {
     required this.accountCount,
     required this.runningLow,
     required this.nextReset,
-    this.nextResetAt,
     required this.onAddAccount,
     this.morningAnchorHour = 8,
     this.morningAnchorMinute = 0,
@@ -62,18 +59,24 @@ class SummaryBar extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
-              label: 'Next reset',
-              value: () {
-                final text = Text(nextReset,
-                    style: mono(22, weight: FontWeight.w600, color: T.t1));
-                final at = nextResetAt;
-                if (at == null) return text;
-                return Tooltip(
-                  message: 'resets in ${untilLabel(at)}',
-                  waitDuration: const Duration(milliseconds: 250),
-                  child: text,
-                );
-              }(),
+              label: 'Resets in',
+              // Counts down to the hovered row (or the soonest reset); the new
+              // value drops in from above so the number reads as ticking down.
+              value: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                transitionBuilder: (child, anim) => ClipRect(
+                  child: SlideTransition(
+                    position:
+                        Tween(begin: const Offset(0, -0.7), end: Offset.zero)
+                            .animate(anim),
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+                ),
+                child: Text(nextReset,
+                    key: ValueKey(nextReset),
+                    style: mono(22, weight: FontWeight.w600, color: T.t1)),
+              ),
             ),
           ),
           const SizedBox(width: 11),
