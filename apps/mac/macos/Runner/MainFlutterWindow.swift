@@ -9,6 +9,11 @@ class MainFlutterWindow: NSWindow {
   private let designWidth: CGFloat = 1000
   private let designHeight: CGFloat = 640
 
+  // One-shot mouse-up watcher: while the user is still dragging the panel across
+  // displays we hold off resizing (a mid-drag resize slips the window out from
+  // under the cursor); this fires the refit the moment they drop it.
+  private var dropMonitor: Any?
+
   override func awakeFromNib() {
     let macOSWindowUtilsViewController = MacOSWindowUtilsViewController()
     self.contentViewController = macOSWindowUtilsViewController
@@ -139,18 +144,57 @@ class MainFlutterWindow: NSWindow {
     applyCornerRadius(forWidth: size.width)
   }
 
-  /// The window was dragged onto a different display: re-fit it to that
-  /// display's size, keeping it where the user dropped it but nudged fully
-  /// on-screen — so a big-monitor size doesn't spill off a laptop screen.
+  /// The window crossed onto a different display. If the user is still dragging
+  /// it, defer the resize until they drop it — resizing mid-drag makes the panel
+  /// slip out from under the cursor. Otherwise (e.g. a display reconfiguration)
+  /// refit right away.
   @objc private func windowScreenChanged() {
+    let dragging = NSEvent.pressedMouseButtons & 1 != 0
+    if dragging {
+      guard dropMonitor == nil else { return } // already waiting for the drop
+      dropMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) {
+        [weak self] event in
+        guard let self = self else { return event }
+        if let monitor = self.dropMonitor {
+          NSEvent.removeMonitor(monitor)
+          self.dropMonitor = nil
+        }
+        self.refitToCurrentScreen()
+        return event
+      }
+    } else {
+      refitToCurrentScreen()
+    }
+  }
+
+  /// Resize the panel to fit its current display, pivoting around the cursor so
+  /// the point the user was holding stays put, then animate into place and keep
+  /// it fully on-screen.
+  private func refitToCurrentScreen() {
     guard let visible = self.screen?.visibleFrame else { return }
-    let size = contentSize(for: self.screen)
-    self.setContentSize(size)
-    let frame = self.frame
-    var origin = frame.origin
-    origin.x = min(max(origin.x, visible.minX), visible.maxX - frame.width)
-    origin.y = min(max(origin.y, visible.minY), visible.maxY - frame.height)
-    self.setFrameOrigin(NSPoint(x: origin.x.rounded(), y: origin.y.rounded()))
-    applyCornerRadius(forWidth: size.width)
+    let content = contentSize(for: self.screen)
+    let newSize = self.frameRect(forContentRect:
+      NSRect(origin: .zero, size: content)).size
+
+    // Keep the cursor's relative position within the panel constant across the
+    // resize, so it grows/shrinks around the grab point instead of jumping.
+    let mouse = NSEvent.mouseLocation
+    let old = self.frame
+    let relX = old.width > 0 ? (mouse.x - old.minX) / old.width : 0.5
+    let relY = old.height > 0 ? (mouse.y - old.minY) / old.height : 0.5
+
+    var origin = NSPoint(x: mouse.x - relX * newSize.width,
+                         y: mouse.y - relY * newSize.height)
+    origin.x = min(max(origin.x, visible.minX), visible.maxX - newSize.width)
+    origin.y = min(max(origin.y, visible.minY), visible.maxY - newSize.height)
+
+    let target = NSRect(x: origin.x.rounded(), y: origin.y.rounded(),
+                        width: newSize.width, height: newSize.height)
+    applyCornerRadius(forWidth: content.width)
+    NSAnimationContext.runAnimationGroup { ctx in
+      ctx.duration = 0.18
+      ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+      self.animator().setFrame(target, display: true)
+    }
   }
 }
