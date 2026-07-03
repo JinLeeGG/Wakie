@@ -86,13 +86,13 @@ void main() {
   });
 
   test('just-passed reset is held back by the grace period (not fired early)', () async {
-    // resetAt one minute before `now` — inside the 2-minute grace. The real
-    // quota may not have refreshed yet, so the chain must wait a tick.
+    // resetAt 30s before `now` — inside the 1-minute grace. The real quota may
+    // not have refreshed yet, so the chain must wait a tick.
     final claude = _FakeAdapter(Provider.claude);
     final store = Store.memory();
     final account = _account(Provider.claude, 'claude-default');
     final barelyLapsed = ProviderStatus(
-        session: UsageWindow(usedPct: 100, resetAt: DateTime(2026, 6, 1, 14, 59)));
+        session: UsageWindow(usedPct: 100, resetAt: DateTime(2026, 6, 1, 14, 59, 30)));
 
     await chainExpiredSessions({Provider.claude: claude}, store,
         [(account, preflight, barelyLapsed)],
