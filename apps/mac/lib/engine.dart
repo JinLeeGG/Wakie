@@ -264,7 +264,20 @@ class Engine {
     return controller.stream;
   }
 
+  /// True while a full [_run] scan is in flight. The awake tick skips those
+  /// passes: the scan is already refreshing every row, and a slow scan read
+  /// completing after a tick's chain would overwrite the fresh post-chain
+  /// status with the stale pre-chain one (making the next tick chain again —
+  /// double session spend).
+  bool _scanning = false;
+
+  /// Accounts with a live read/chain in flight — one subprocess per account
+  /// at a time; two concurrent pty scrapes of the same CLI home interleave
+  /// and can corrupt both reads.
+  final Set<String> _inFlight = {};
+
   Future<void> _run(StreamController<List<Account>> out) async {
+    _scanning = true;
     try {
       // Discover everything (including pending extras) so [_live] can track
       // in-flight sign-ins for [pollSignins] — but only *signed-in* accounts
@@ -301,6 +314,7 @@ class Engine {
           }),
       ]);
     } finally {
+      _scanning = false;
       await out.close();
     }
   }
@@ -317,16 +331,21 @@ class Engine {
   Future<Account?> refreshAccount(String id) async {
     final entry = _live[id];
     if (entry == null) return null;
-    final account = entry.$1;
-    final pf = await _adapters[account.provider]!.detect(account);
-    _live[id] = (account, pf);
-    if (!pf.isOk) {
-      return _toRow(account, pf, core.ProviderStatus.unknown,
-          autoStart: _autoStartFor(account));
+    if (!_inFlight.add(id)) return null; // this account is already being read
+    try {
+      final account = entry.$1;
+      final pf = await _adapters[account.provider]!.detect(account);
+      _live[id] = (account, pf);
+      if (!pf.isOk) {
+        return _toRow(account, pf, core.ProviderStatus.unknown,
+            autoStart: _autoStartFor(account));
+      }
+      final status = await _readReady(account);
+      _store.cacheStatus(id, status);
+      return _toRow(account, pf, status, autoStart: _autoStartFor(account));
+    } finally {
+      _inFlight.remove(id);
     }
-    final status = await _readReady(account);
-    _store.cacheStatus(id, status);
-    return _toRow(account, pf, status, autoStart: _autoStartFor(account));
   }
 
   /// Polls a pending (added, signing-in) account. Cheap by default — just
@@ -591,6 +610,9 @@ class Engine {
   /// just cached — the caller swaps them in directly (re-reading them live
   /// would double the scrape and stamp over the failure backoff).
   Future<List<Account>> awakeTick({DateTime? now}) async {
+    // A full scan is already refreshing every row; ticking through it would
+    // race its reads (and a slow scan read would overwrite a fresh chain).
+    if (_scanning) return const [];
     final at = now ?? DateTime.now();
     final changed = <Account>[];
     for (final (account, pf) in _live.values.toList()) {
@@ -611,38 +633,43 @@ class Engine {
         continue;
       }
 
-      if (_autoStartFor(account)) {
-        // Materialize the reset we just resolved into the window, so the
-        // chain sees the same lapse decision. Left unresolved, a label-only
-        // window ("2:30am", "4h 25m") would be re-anchored to the current
-        // clock inside chainExpiredSessions, always land in the future, and
-        // the chain would silently never start (Claude/Antigravity parsers
-        // emit labels only — only Codex carries an absolute resetAt).
-        final session = core.UsageWindow(
-          usedPct: cached.session.usedPct,
-          resetLabel: cached.session.resetLabel,
-          resetAt: resetAt,
-        );
-        await core.chainExpiredSessions(
-          _adapters,
-          _store,
-          [(account, pf, core.ProviderStatus(session: session, weekly: cached.weekly))],
-          now: at,
-          log: debugPrint,
-        );
-      } else {
-        _store.cacheStatus(account.id, await _readReady(account));
-      }
-
-      final current = _store.statusFor(account.id);
-      if (current != null) {
-        for (final alert
-            in core.evaluateAlerts(account.id, cached, current, now: at)) {
-          await _notify('WakieAI', alert.message);
+      if (!_inFlight.add(account.id)) continue; // an Update is reading it now
+      try {
+        if (_autoStartFor(account)) {
+          // Materialize the reset we just resolved into the window, so the
+          // chain sees the same lapse decision. Left unresolved, a label-only
+          // window ("2:30am", "4h 25m") would be re-anchored to the current
+          // clock inside chainExpiredSessions, always land in the future, and
+          // the chain would silently never start (Claude/Antigravity parsers
+          // emit labels only — only Codex carries an absolute resetAt).
+          final session = core.UsageWindow(
+            usedPct: cached.session.usedPct,
+            resetLabel: cached.session.resetLabel,
+            resetAt: resetAt,
+          );
+          await core.chainExpiredSessions(
+            _adapters,
+            _store,
+            [(account, pf, core.ProviderStatus(session: session, weekly: cached.weekly))],
+            now: at,
+            log: debugPrint,
+          );
+        } else {
+          _store.cacheStatus(account.id, await _readReady(account));
         }
+
+        final current = _store.statusFor(account.id);
+        if (current != null) {
+          for (final alert
+              in core.evaluateAlerts(account.id, cached, current, now: at)) {
+            await _notify('WakieAI', alert.message);
+          }
+        }
+        changed.add(_toRow(account, pf, _cachedStatus(account.id),
+            autoStart: _autoStartFor(account)));
+      } finally {
+        _inFlight.remove(account.id);
       }
-      changed.add(_toRow(account, pf, _cachedStatus(account.id),
-          autoStart: _autoStartFor(account)));
     }
     return changed;
   }
