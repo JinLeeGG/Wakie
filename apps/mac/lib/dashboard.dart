@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'engine.dart' show SignInResult, SignInState, formatClock;
 import 'models.dart';
@@ -11,10 +10,6 @@ import 'widgets/add_account_modal.dart';
 import 'widgets/confirm_modal.dart';
 import 'widgets/footer.dart';
 import 'widgets/summary.dart';
-
-const _logoSvg =
-    '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
-    '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
 
 class DashboardScreen extends StatefulWidget {
   /// Streams live account data (two-phase: accounts first, usage as it loads).
@@ -118,8 +113,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   Timer? _awakeTimer;
   bool _ticking = false; // re-entrancy guard for the awake tick
 
-  // Morning anchor + launch-at-login mirrored into state so the footer's
-  // "next wake" and toggle track edits live (widget values are initial only).
+  // Morning anchor + launch-at-login mirrored into state so the summary
+  // bar and toggles track edits live (widget values are initial only).
   late int _anchorHour = widget.morningAnchorHour;
   late int _anchorMinute = widget.morningAnchorMinute;
   late bool _launchAtLogin = widget.launchAtLogin;
@@ -176,15 +171,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (next == null || at.isBefore(next)) next = at;
     }
     return next == null ? '—' : formatClock(next);
-  }
-
-  /// Next occurrence of the morning anchor (today if still ahead, else
-  /// tomorrow) — what the footer's "next wake" promises.
-  DateTime _nextWake() {
-    final now = DateTime.now();
-    var at = DateTime(now.year, now.month, now.day, _anchorHour, _anchorMinute);
-    if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
-    return at;
   }
 
   Future<void> _awakeTick() async {
@@ -340,7 +326,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             plan: a.plan,
             session: a.session,
             weekly: a.weekly,
-            last: a.last,
             status: a.status,
             autoStart: enabled,
           ));
@@ -506,9 +491,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _reload(footer: true);
                 },
                 onAddAccount: () => setState(() => _addingAccount = true),
-                // No wake is scheduled while the toggle is off — promising a
-                // time there would be a lie.
-                nextWake: _darkWake ? formatClock(_nextWake()) : '—',
                 launchAtLogin: _launchAtLogin,
                 onLaunchAtLogin: (on) {
                   setState(() => _launchAtLogin = on);
@@ -551,67 +533,31 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // The brand lives in the footer now — up here the rotating tagline IS the
+  // header, full-size, with the device pill riding its centerline.
   Widget _header() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(26, 16, 26, 12),
+      padding: const EdgeInsets.fromLTRB(26, 20, 26, 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // brand
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 9),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: SvgPicture.string(_logoSvg),
-                      ),
-                      const SizedBox(width: 9),
-                      Text.rich(
-                        TextSpan(children: [
-                          TextSpan(
-                            text: 'Wakie',
-                            style: mono(13,
-                                weight: FontWeight.w600, color: T.amber),
-                          ),
-                          TextSpan(
-                            text: 'AI',
-                            style: mono(13,
-                                weight: FontWeight.w600, color: T.t1),
-                          ),
-                        ]),
-                      ),
-                      const SizedBox(width: 6),
-                      Text('1.0.0',
-                          style: mono(10,
-                              color: T.t3, letterSpacing: 0.4)),
-                    ],
-                  ),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 500),
+              opacity: _tagFaded ? 0 : 1,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 500),
+                offset: _tagFaded ? const Offset(0, -0.25) : Offset.zero,
+                child: Text(
+                  taglines[_tagIdx],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: sans(31, weight: FontWeight.w600, color: T.t1),
                 ),
-                // tagline
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 500),
-                  opacity: _tagFaded ? 0 : 1,
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 500),
-                    offset: _tagFaded ? const Offset(0, -0.25) : Offset.zero,
-                    child: Text(
-                      taglines[_tagIdx],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                      style: sans(25, weight: FontWeight.w600, color: T.t1),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
+          const SizedBox(width: 16),
           const _DevicePill(),
         ],
       ),
@@ -686,10 +632,6 @@ class _ColHead extends StatelessWidget {
           Expanded(child: label('Session · 5h')),
           const SizedBox(width: 16),
           Expanded(child: label('Weekly')),
-          const SizedBox(width: 16),
-          SizedBox(
-              width: 62,
-              child: label('Last', align: TextAlign.right)),
           const SizedBox(width: 16),
           SizedBox(
               width: 190,

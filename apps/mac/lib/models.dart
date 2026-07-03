@@ -54,7 +54,6 @@ class Account {
   final String plan; // subtitle, e.g. "name@gmail.com · Pro"
   final Meter session;
   final Meter weekly;
-  final String last;
   final RunStatus status;
 
   /// Session-chaining toggle (D1 "token maxxing"): when on, the engine
@@ -72,7 +71,6 @@ class Account {
     required this.plan,
     required this.session,
     required this.weekly,
-    required this.last,
     required this.status,
     this.autoStart = false,
     this.sessionResetAt,
@@ -87,7 +85,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo1@gmail.com · Pro',
     session: Meter(12, Tone.crit, '4:30am'),
     weekly: Meter(34, Tone.warn, 'Jul 7 (5:00pm)'),
-    last: '2h ago',
     status: RunStatus.low,
     autoStart: true,
   ),
@@ -97,7 +94,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo2@gmail.com · Max',
     session: Meter(88, Tone.ok, '9:15am'),
     weekly: Meter(92, Tone.ok, 'Jul 7 (9:15am)'),
-    last: '6h ago',
     status: RunStatus.ok,
     autoStart: true,
   ),
@@ -107,7 +103,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo1@gmail.com · Plus',
     session: Meter(100, Tone.ok, '1:20pm'),
     weekly: Meter(59, Tone.ok, 'Jul 6 (2:00pm)'),
-    last: '5m ago',
     status: RunStatus.fresh,
   ),
   Account(
@@ -116,7 +111,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo1@gmail.com',
     session: Meter(45, Tone.warn, '11:55am'),
     weekly: Meter(38, Tone.warn, 'Jul 7 (11:00am)'),
-    last: '1h ago',
     status: RunStatus.ok,
   ),
   Account(
@@ -125,7 +119,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo2@gmail.com · Pro',
     session: Meter(76, Tone.ok, '2:05pm'),
     weekly: Meter(64, Tone.ok, 'Jul 6 (6:30pm)'),
-    last: '18m ago',
     status: RunStatus.fresh,
   ),
   Account(
@@ -134,7 +127,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo3@gmail.com · Pro',
     session: Meter(41, Tone.warn, '3:40pm'),
     weekly: Meter(70, Tone.ok, 'Jul 8 (8:00am)'),
-    last: '40m ago',
     status: RunStatus.ok,
     autoStart: true,
   ),
@@ -144,7 +136,6 @@ const mockAccounts = <Account>[
     plan: 'wakieDemo4@gmail.com',
     session: Meter(82, Tone.ok, '5:10pm'),
     weekly: Meter(55, Tone.ok, 'Jul 7 (3:00pm)'),
-    last: '1h ago',
     status: RunStatus.ok,
   ),
 ];
