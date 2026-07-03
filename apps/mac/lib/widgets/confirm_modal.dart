@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models.dart';
 import '../theme.dart';
@@ -148,7 +147,8 @@ class _ConfirmModalState extends State<ConfirmModal>
               border: Border.all(color: T.hair2),
             ),
             child: Center(
-              child: SvgPicture.asset(a.provider.icon, width: 19, height: 19),
+              child: Image.asset(a.provider.icon,
+                  width: 19, height: 19, filterQuality: FilterQuality.medium),
             ),
           ),
           const SizedBox(width: 12),

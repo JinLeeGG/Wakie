@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models.dart';
 import '../theme.dart';
@@ -112,7 +111,8 @@ class _AccountRowState extends State<AccountRow>
             border: Border.all(color: T.hair2),
           ),
           child: Center(
-            child: SvgPicture.asset(a.provider.icon, width: 20, height: 20),
+            child: Image.asset(a.provider.icon,
+                width: 20, height: 20, filterQuality: FilterQuality.medium),
           ),
         ),
         const SizedBox(width: 12),

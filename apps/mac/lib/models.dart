@@ -4,10 +4,12 @@ import 'package:flutter/widgets.dart';
 enum Provider { claude, codex, anti }
 
 extension ProviderAsset on Provider {
+  // Glyph-only logos lifted from each provider's real desktop app icon
+  // (test/tools/gen_provider_logos.dart) — full-color, transparent background.
   String get icon => switch (this) {
-    Provider.claude => 'assets/icons/anthropic.svg',
-    Provider.codex => 'assets/icons/codex.svg',
-    Provider.anti => 'assets/icons/gemini.svg',
+    Provider.claude => 'assets/icons/claude_logo.png',
+    Provider.codex => 'assets/icons/codex_app.png',
+    Provider.anti => 'assets/icons/antigravity_logo.png',
   };
 
   // Badge background tint, from .badge.claude/.codex/.anti

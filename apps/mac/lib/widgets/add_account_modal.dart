@@ -297,8 +297,9 @@ class _ProviderRowState extends State<_ProviderRow> {
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Center(
-                  child: SvgPicture.asset(widget.provider.icon,
-                      width: 20, height: 20),
+                  child: Image.asset(widget.provider.icon,
+                      width: 22, height: 22,
+                      filterQuality: FilterQuality.medium),
                 ),
               ),
               const SizedBox(width: 13),
