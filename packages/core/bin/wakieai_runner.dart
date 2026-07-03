@@ -21,6 +21,10 @@ Future<void> main() async {
   if (darkPass) await displaySleep();
 
   try {
+    // A previous life (app quit / crashed runner) can leave a scrape's agy
+    // orphaned in a sandbox HOME — kill those before spawning new ones.
+    await killOrphanedSandboxAgys();
+
     final adapters = productionAdapters();
     final store = Store.load();
 
@@ -37,7 +41,7 @@ Future<void> main() async {
     final read = <(Account, Preflight, ProviderStatus)>[];
     await Future.wait([
       for (final (account, preflight) in live)
-        adapters[account.provider]!.readStatus(account).then((status) {
+        _readPrepared(adapters, account).then((status) {
           store.cacheStatus(account.id, status);
           read.add((account, preflight, status));
           print('wakieai: ${account.id} — '
@@ -71,4 +75,24 @@ Future<void> main() async {
       if (err != null) print('wakieai: could not re-sleep — $err');
     }
   }
+}
+
+/// Makes an isolated config home ready before its read, mirroring the app's
+/// engine: Claude skips onboarding/trust; Antigravity re-unlocks its sandbox
+/// keychain (locked again after a reboot, and agy pops the system "Keychain
+/// Not Found"/unlock dialog instead of rendering /usage without it).
+Future<ProviderStatus> _readPrepared(
+    Map<Provider, ProviderAdapter> adapters, Account account) async {
+  final home = account.configHome;
+  if (home != null) {
+    switch (account.provider) {
+      case Provider.claude:
+        await prepareClaudeConfigHome(home);
+      case Provider.antigravity:
+        await prepareAntigravityConfigHome(home);
+      case Provider.codex:
+        break; // CODEX_HOME files need no preparation
+    }
+  }
+  return adapters[account.provider]!.readStatus(account);
 }

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_window_utils/macos_window_utils.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:wakieai_core/wakieai_core.dart' as core;
 
 import 'dashboard.dart';
 import 'engine.dart';
@@ -12,6 +15,10 @@ const _window = MethodChannel('wakieai/window');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // A quit/hot-restart mid-scan can orphan a scrape's agy in a sandbox HOME,
+  // where it pesters the user with keychain dialogs — clean those up first.
+  unawaited(core.killOrphanedSandboxAgys());
 
   // Native vibrancy (real desktop blur behind the glass panel).
   await WindowManipulator.initialize(enableWindowDelegate: false);
