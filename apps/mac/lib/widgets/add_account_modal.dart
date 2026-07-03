@@ -10,6 +10,12 @@ const _logoSvg =
     '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
     '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
 
+// A stroked X sized to sit level with the "Add account" title — stroke 2.2 in
+// a 16 box reads about as heavy as the title's semibold.
+const _closeSvg =
+    '<svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="#ffffff" '
+    'stroke-width="2.2" stroke-linecap="round"/></svg>';
+
 /// Add-account flow (FR-UI-04): pick a provider + label, then hand off to
 /// [onAdd] — the caller opens that provider's interactive login, scoped to a
 /// fresh isolated config home, and registers the account. This modal never
@@ -168,10 +174,6 @@ class _AddAccountModalState extends State<AddAccountModal>
             label: 'Sign in with ${_viaTerminal ? 'Terminal' : 'browser'}',
             onTap: _submit,
           ),
-          const SizedBox(height: 10),
-          Center(
-            child: _CancelButton(onTap: widget.onCancel),
-          ),
         ],
       ),
     );
@@ -186,9 +188,6 @@ class _AddAccountModalState extends State<AddAccountModal>
   }
 
   Widget _labelField() {
-    final key = _providerKey(_provider);
-    final typed = _label.text.trim();
-    final tag = typed.isEmpty ? key : '$key · $typed';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       decoration: BoxDecoration(
@@ -196,28 +195,19 @@ class _AddAccountModalState extends State<AddAccountModal>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: T.hair),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _label,
-              autofocus: true,
-              style: sans(15.5, color: T.t1),
-              cursorColor: T.amber,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                hintText: 'e.g. Personal, Work, main',
-                hintStyle: sans(15.5, color: T.t3),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(tag, style: mono(11.5, color: T.t3)),
-        ],
+      child: TextField(
+        controller: _label,
+        autofocus: true,
+        style: sans(15.5, color: T.t1),
+        cursorColor: T.amber,
+        onSubmitted: (_) => _submit(),
+        decoration: InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          hintText: 'e.g. Personal, Work, main',
+          hintStyle: sans(15.5, color: T.t3),
+        ),
       ),
     );
   }
@@ -255,12 +245,6 @@ class _AddAccountModalState extends State<AddAccountModal>
     );
   }
 }
-
-String _providerKey(Provider p) => switch (p) {
-      Provider.claude => 'claude',
-      Provider.codex => 'codex',
-      Provider.anti => 'antigravity',
-    };
 
 String _providerName(Provider p) => switch (p) {
       Provider.claude => 'Claude',
@@ -383,9 +367,14 @@ class _CloseButtonState extends State<_CloseButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(Icons.close_rounded,
-              size: 16, color: _hover ? T.t1 : T.t2),
+          padding: const EdgeInsets.all(9),
+          child: SvgPicture.string(
+            _closeSvg,
+            width: 19,
+            height: 19,
+            colorFilter:
+                ColorFilter.mode(_hover ? T.t1 : T.t2, BlendMode.srcIn),
+          ),
         ),
       ),
     );
@@ -446,31 +435,3 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
   }
 }
 
-class _CancelButton extends StatefulWidget {
-  final VoidCallback onTap;
-  const _CancelButton({required this.onTap});
-
-  @override
-  State<_CancelButton> createState() => _CancelButtonState();
-}
-
-class _CancelButtonState extends State<_CancelButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Text('Cancel',
-              style: mono(12.5, color: _hover ? T.t2 : T.t3)),
-        ),
-      ),
-    );
-  }
-}
