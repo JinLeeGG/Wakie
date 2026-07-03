@@ -36,7 +36,7 @@ class SummaryBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('$accountCount',
-                      style: mono(20, weight: FontWeight.w600, color: T.t1)),
+                      style: mono(22, weight: FontWeight.w600, color: T.t1)),
                   Text('+',
                       style: mono(24, weight: FontWeight.w400, color: T.t1)),
                 ],
@@ -48,7 +48,7 @@ class SummaryBar extends StatelessWidget {
             child: _Pill(
               label: 'Running low',
               value: Text('$runningLow',
-                  style: mono(20,
+                  style: mono(22,
                       weight: FontWeight.w600,
                       color: runningLow > 0 ? T.warn : T.t1)),
             ),
@@ -58,7 +58,7 @@ class SummaryBar extends StatelessWidget {
             child: _Pill(
               label: 'Next reset',
               value: Text(nextReset,
-                  style: mono(20, weight: FontWeight.w600, color: T.t1)),
+                  style: mono(22, weight: FontWeight.w600, color: T.t1)),
             ),
           ),
           const SizedBox(width: 11),
@@ -132,16 +132,6 @@ class _PillState extends State<_Pill> {
   }
 }
 
-/// Quick-pick presets for the daily dark-wake time (PRD §9.2 "아침 앵커");
-/// any other time is typed into the menu's custom field.
-const _morningAnchorOpts = <(String, int, int)>[
-  ('6:00am', 6, 0),
-  ('7:00am', 7, 0),
-  ('8:00am', 8, 0),
-  ('9:00am', 9, 0),
-  ('10:00am', 10, 0),
-];
-
 /// Parses a wake time as the user types it: "7", "7:30", "7:30am", "12:10 AM",
 /// "23:45". Bare hours are 24h ("14" → 2pm); am/pm uses clock convention
 /// (12am → 0h, 12pm → 12h). Returns (hour, minute) or null if unparseable.
@@ -209,13 +199,9 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
               followerAnchor: Alignment.topLeft,
               offset: const Offset(0, 9),
               child: _Menu(
-                value: _fmtAnchor(_hour, _minute),
-                options: [for (final o in _morningAnchorOpts) o.$1],
-                onSelect: (v) {
-                  final picked = _morningAnchorOpts.firstWhere((o) => o.$1 == v);
-                  _pick(picked.$2, picked.$3);
-                },
-                onCustom: _pick,
+                hour: _hour,
+                minute: _minute,
+                onSet: _pick,
               ),
             ),
           ),
@@ -284,7 +270,7 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
                   children: [
                     Text(_fmtAnchor(_hour, _minute),
                         style:
-                            mono(20, weight: FontWeight.w600, color: T.amber)),
+                            mono(22, weight: FontWeight.w600, color: T.amber)),
                     AnimatedRotation(
                       duration: const Duration(milliseconds: 160),
                       turns: _open ? 0.5 : 0,
@@ -303,17 +289,11 @@ class _MorningAnchorPillState extends State<_MorningAnchorPill> {
 }
 
 class _Menu extends StatefulWidget {
-  final String value;
-  final List<String> options;
-  final ValueChanged<String> onSelect;
-  final void Function(int hour, int minute) onCustom;
+  final int hour;
+  final int minute;
+  final void Function(int hour, int minute) onSet;
 
-  const _Menu({
-    required this.value,
-    required this.options,
-    required this.onSelect,
-    required this.onCustom,
-  });
+  const _Menu({required this.hour, required this.minute, required this.onSet});
 
   @override
   State<_Menu> createState() => _MenuState();
@@ -370,18 +350,17 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(9, 6, 9, 7),
+                padding: const EdgeInsets.fromLTRB(9, 6, 9, 8),
                 child: Text('WAKE AT',
                     style: mono(10.5, color: T.t3, letterSpacing: 1.4)),
               ),
-              for (final o in widget.options)
-                _Opt(o, o == widget.value, () => widget.onSelect(o)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(3, 6, 3, 0),
-                child: _CustomTimeField(onSubmit: widget.onCustom),
+              _WheelPicker(
+                hour: widget.hour,
+                minute: widget.minute,
+                onSet: widget.onSet,
               ),
               Container(
-                margin: const EdgeInsets.fromLTRB(3, 5, 3, 0),
+                margin: const EdgeInsets.fromLTRB(3, 10, 3, 0),
                 padding: const EdgeInsets.fromLTRB(6, 8, 6, 3),
                 decoration: const BoxDecoration(
                   border: Border(top: BorderSide(color: T.hair)),
@@ -399,103 +378,199 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
   }
 }
 
-/// Free-form time entry for wake times the presets don't cover (e.g. a
-/// night owl's 12:10am). Enter submits; unparseable input turns the border
-/// red until the next edit.
-class _CustomTimeField extends StatefulWidget {
-  final void Function(int hour, int minute) onSubmit;
-  const _CustomTimeField({required this.onSubmit});
+/// Scroll-wheel time picker (hour : minute : AM·PM), styled to the menu: the
+/// selected row rides an amber band, the rest dim away. Spinning only moves the
+/// preview — the setter can raise an admin prompt, so nothing applies until Set.
+class _WheelPicker extends StatefulWidget {
+  final int hour; // 24h
+  final int minute;
+  final void Function(int hour, int minute) onSet;
+  const _WheelPicker({
+    required this.hour,
+    required this.minute,
+    required this.onSet,
+  });
 
   @override
-  State<_CustomTimeField> createState() => _CustomTimeFieldState();
+  State<_WheelPicker> createState() => _WheelPickerState();
 }
 
-class _CustomTimeFieldState extends State<_CustomTimeField> {
-  final _ctl = TextEditingController();
-  bool _bad = false;
+class _WheelPickerState extends State<_WheelPicker> {
+  static const _extent = 32.0;
+
+  late int _hIdx = widget.hour % 12; // index 0 renders as "12"
+  late int _minIdx = widget.minute;
+  late int _pmIdx = widget.hour >= 12 ? 1 : 0;
+
+  late final _hCtl = FixedExtentScrollController(initialItem: _hIdx);
+  late final _minCtl = FixedExtentScrollController(initialItem: _minIdx);
+  late final _pmCtl = FixedExtentScrollController(initialItem: _pmIdx);
 
   @override
   void dispose() {
-    _ctl.dispose();
+    _hCtl.dispose();
+    _minCtl.dispose();
+    _pmCtl.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    final t = parseAnchorTime(_ctl.text);
-    if (t == null) {
-      setState(() => _bad = true);
-      return;
-    }
-    widget.onSubmit(t.$1, t.$2);
-  }
+  int get _hour24 => _hIdx + (_pmIdx == 1 ? 12 : 0);
 
   @override
   Widget build(BuildContext context) {
-    OutlineInputBorder border(Color color) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9),
-          borderSide: BorderSide(color: color),
-        );
-    return TextField(
-      controller: _ctl,
-      onChanged: (_) {
-        if (_bad) setState(() => _bad = false);
-      },
-      onSubmitted: (_) => _submit(),
-      style: mono(14, weight: FontWeight.w500, color: T.t1),
-      cursorColor: T.amber,
-      decoration: InputDecoration(
-        isDense: true,
-        hintText: 'custom — e.g. 12:10am',
-        hintStyle: mono(12.5, color: T.t3),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-        enabledBorder: border(_bad ? T.crit : T.hair),
-        focusedBorder: border(_bad ? T.crit : const Color(0x73F6B23C)),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: SizedBox(
+            height: _extent * 5,
+            child: Stack(
+              children: [
+                // The center row sits in this amber band.
+                Positioned(
+                  top: _extent * 2,
+                  left: 0,
+                  right: 0,
+                  height: _extent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0x14F6B23C),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: const Color(0x33F6B23C)),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _wheel(
+                          controller: _hCtl,
+                          count: 12,
+                          selected: _hIdx,
+                          align: Alignment.centerRight,
+                          pad: const EdgeInsets.only(right: 7),
+                          label: (i) => i == 0 ? '12' : '$i',
+                          onChanged: (i) => setState(() => _hIdx = i),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 12,
+                        child: Text(':',
+                            textAlign: TextAlign.center,
+                            style: mono(17,
+                                weight: FontWeight.w600, color: T.t3)),
+                      ),
+                      Expanded(
+                        child: _wheel(
+                          controller: _minCtl,
+                          count: 60,
+                          selected: _minIdx,
+                          align: Alignment.centerLeft,
+                          pad: const EdgeInsets.only(left: 7),
+                          label: (i) => i.toString().padLeft(2, '0'),
+                          onChanged: (i) => setState(() => _minIdx = i),
+                        ),
+                      ),
+                      Expanded(
+                        child: _wheel(
+                          controller: _pmCtl,
+                          count: 2,
+                          selected: _pmIdx,
+                          align: Alignment.center,
+                          pad: EdgeInsets.zero,
+                          label: (i) => i == 0 ? 'AM' : 'PM',
+                          onChanged: (i) => setState(() => _pmIdx = i),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _SetButton(
+          label: 'Set ${_fmtAnchor(_hour24, _minIdx)}',
+          onTap: () => widget.onSet(_hour24, _minIdx),
+        ),
+      ],
+    );
+  }
+
+  Widget _wheel({
+    required FixedExtentScrollController controller,
+    required int count,
+    required int selected,
+    required Alignment align,
+    required EdgeInsets pad,
+    required String Function(int) label,
+    required ValueChanged<int> onChanged,
+  }) {
+    return ListWheelScrollView.useDelegate(
+      controller: controller,
+      itemExtent: _extent,
+      physics: const FixedExtentScrollPhysics(),
+      // Near-flat cylinder: the app is flat, so kill the 3D tilt that made
+      // each column's items look angled against the others. Rows stay level.
+      perspective: 0.001,
+      diameterRatio: 100,
+      onSelectedItemChanged: onChanged,
+      childDelegate: ListWheelChildBuilderDelegate(
+        childCount: count,
+        builder: (context, i) => Container(
+          alignment: align,
+          padding: pad,
+          child: Text(
+            label(i),
+            style: mono(17,
+                weight: FontWeight.w600,
+                color: i == selected ? T.amber : T.white(.30)),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _Opt extends StatefulWidget {
+/// Amber commit button — matches the account row's Update pill so the menu's
+/// one action reads the same as the rest of the app.
+class _SetButton extends StatefulWidget {
   final String label;
-  final bool selected;
   final VoidCallback onTap;
-  const _Opt(this.label, this.selected, this.onTap);
+  const _SetButton({required this.label, required this.onTap});
 
   @override
-  State<_Opt> createState() => _OptState();
+  State<_SetButton> createState() => _SetButtonState();
 }
 
-class _OptState extends State<_Opt> {
+class _SetButtonState extends State<_SetButton> {
   bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
-    final sel = widget.selected;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: sel
-                ? const Color(0x1AF6B23C)
-                : (_hover ? T.white(.06) : Colors.transparent),
-            borderRadius: BorderRadius.circular(9),
+            color: _hover ? const Color(0xFFFFD07E) : T.amber,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0x99FFC465)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(widget.label,
-                  style: mono(14,
-                      weight: FontWeight.w500,
-                      color: sel ? T.amber : (_hover ? T.t1 : T.t2))),
-              if (sel)
-                Text('✓', style: mono(15, color: T.amber)),
-            ],
+          child: Text(
+            widget.label,
+            style: mono(13,
+                weight: FontWeight.w600, color: const Color(0xFF1A1205)),
           ),
         ),
       ),
