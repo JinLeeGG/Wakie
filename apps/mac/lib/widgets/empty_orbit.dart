@@ -199,7 +199,7 @@ class _EmptyOrbitState extends State<EmptyOrbit>
                       fit: StackFit.expand,
                       children: [
                         Transform.scale(
-                          scale: 1.16,
+                          scale: 1.05,
                           child: Image.asset(p.asset,
                               fit: BoxFit.cover,
                               filterQuality: FilterQuality.medium),
