@@ -17,7 +17,7 @@ bool defaultAutoStart(Provider p) => p == Provider.claude;
 /// still-exhausted window — Claude rejects it with "you've hit your session
 /// limit" (exit 1), which then surfaces as a false "session start failed"
 /// alert. Wait this out so the first attempt lands on a genuinely fresh window.
-const _resetGrace = Duration(minutes: 2);
+const _resetGrace = Duration(minutes: 1);
 
 /// "Token maxxing" (PRD §6/§15 D1): for each account whose session window has
 /// already reset and whose auto-start toggle is on, starts a fresh session
