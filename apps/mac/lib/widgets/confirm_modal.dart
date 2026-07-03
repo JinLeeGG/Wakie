@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
+/// Destructive confirm for removing an account — same surface language as the
+/// Add account modal (solid, crisp), with a solid-red primary so the
+/// irreversible action reads at a glance.
 class ConfirmModal extends StatefulWidget {
   final String name;
   final VoidCallback onCancel;
@@ -45,15 +48,15 @@ class _ConfirmModalState extends State<ConfirmModal>
             child: Opacity(
               opacity: v,
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8 * v, sigmaY: 8 * v),
+                filter: ImageFilter.blur(sigmaX: 4 * v, sigmaY: 4 * v),
                 child: Container(
-                  color: Colors.black.withValues(alpha: .5 * v),
+                  color: Colors.black.withValues(alpha: .58 * v),
                   alignment: Alignment.center,
-                  child: Transform.scale(
-                    scale: 0.93 + 0.07 * v,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: child,
+                  child: Transform.translate(
+                    offset: Offset(0, (1 - v) * 14),
+                    child: Transform.scale(
+                      scale: 0.98 + 0.02 * v,
+                      child: GestureDetector(onTap: () {}, child: child),
                     ),
                   ),
                 ),
@@ -68,100 +71,167 @@ class _ConfirmModalState extends State<ConfirmModal>
 
   Widget _box() {
     return Container(
-      width: 360,
-      padding: const EdgeInsets.fromLTRB(26, 28, 26, 24),
+      width: 400,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: T.glass,
+        color: const Color(0xF5161820),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: T.hair2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .8),
-            blurRadius: 80,
+            color: Colors.black.withValues(alpha: .7),
+            blurRadius: 100,
             offset: const Offset(0, 40),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0x1AFF7A85),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x38FF7A85)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [T.white(.055), Colors.transparent],
+                  ),
+                ),
+              ),
             ),
-            child: const Icon(Icons.delete_outline, size: 18, color: T.crit),
           ),
-          const SizedBox(height: 18),
-          Text('Remove account?',
-              style: sans(18, weight: FontWeight.w700, color: T.t1)),
-          const SizedBox(height: 7),
-          Text.rich(
-            TextSpan(children: [
-              TextSpan(
-                  text: widget.name,
-                  style: mono(12, weight: FontWeight.w500, color: T.t1)),
-              TextSpan(
-                  text: ' will be disconnected from WakieAI.',
-                  style: mono(12, color: T.t2, height: 1.6)),
-            ]),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _btn(
-                  'Cancel',
-                  bg: Colors.transparent,
-                  fg: T.t2,
-                  border: T.hair2,
-                  bold: false,
-                  onTap: widget.onCancel,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0x1FFF7A85),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: const Color(0x3DFF7A85)),
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded,
+                      size: 21, color: T.crit),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _btn(
-                  'Remove',
-                  bg: const Color(0x1FFF7A85),
-                  fg: T.crit,
-                  border: const Color(0x4DFF7A85),
-                  bold: true,
-                  onTap: widget.onRemove,
+                const SizedBox(height: 18),
+                Text('Remove account?',
+                    style: sans(19, weight: FontWeight.w700, color: T.t1)),
+                const SizedBox(height: 8),
+                Text.rich(
+                  TextSpan(children: [
+                    TextSpan(
+                        text: widget.name,
+                        style: sans(13, weight: FontWeight.w600, color: T.t1)),
+                    TextSpan(
+                        text: ' will be disconnected from WakieAI.',
+                        style: sans(13, color: T.t2, height: 1.5)),
+                  ]),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DialogButton(
+                        label: 'Cancel',
+                        fg: T.t2,
+                        bg: T.white(.04),
+                        hoverBg: T.white(.08),
+                        border: T.hair2,
+                        onTap: widget.onCancel,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DialogButton(
+                        label: 'Remove',
+                        fg: const Color(0xFF2A0A0D),
+                        bg: T.crit,
+                        hoverBg: const Color(0xFFFF98A1),
+                        border: Colors.transparent,
+                        glow: T.crit,
+                        bold: true,
+                        onTap: widget.onRemove,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _btn(String label,
-      {required Color bg,
-      required Color fg,
-      required Color border,
-      required bool bold,
-      required VoidCallback onTap}) {
+class _DialogButton extends StatefulWidget {
+  final String label;
+  final Color fg;
+  final Color bg;
+  final Color hoverBg;
+  final Color border;
+  final Color? glow;
+  final bool bold;
+  final VoidCallback onTap;
+  const _DialogButton({
+    required this.label,
+    required this.fg,
+    required this.bg,
+    required this.hoverBg,
+    required this.border,
+    this.glow,
+    this.bold = false,
+    required this.onTap,
+  });
+
+  @override
+  State<_DialogButton> createState() => _DialogButtonState();
+}
+
+class _DialogButtonState extends State<_DialogButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
-        onTap: onTap,
-        child: Container(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          transform: Matrix4.translationValues(0, _hover ? -1 : 0, 0),
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: bg,
+            color: _hover ? widget.hoverBg : widget.bg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: border),
+            border: Border.all(color: widget.border),
+            boxShadow: widget.glow != null
+                ? [
+                    BoxShadow(
+                      color: widget.glow!.withValues(alpha: _hover ? .32 : .2),
+                      blurRadius: _hover ? 16 : 10,
+                      offset: Offset(0, _hover ? 4 : 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Text(label,
-              style: sans(13,
-                  weight: bold ? FontWeight.w700 : FontWeight.w500, color: fg)),
+          child: Text(
+            widget.label,
+            style: sans(14.5,
+                weight: widget.bold ? FontWeight.w700 : FontWeight.w600,
+                color: widget.fg),
+          ),
         ),
       ),
     );
