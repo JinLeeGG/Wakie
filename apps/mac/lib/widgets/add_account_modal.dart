@@ -60,9 +60,9 @@ class _AddAccountModalState extends State<AddAccountModal>
             child: Opacity(
               opacity: v,
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8 * v, sigmaY: 8 * v),
+                filter: ImageFilter.blur(sigmaX: 4 * v, sigmaY: 4 * v),
                 child: Container(
-                  color: Colors.black.withValues(alpha: .5 * v),
+                  color: Colors.black.withValues(alpha: .58 * v),
                   alignment: Alignment.center,
                   child: Transform.translate(
                     offset: Offset(0, (1 - v) * 14),
@@ -86,7 +86,9 @@ class _AddAccountModalState extends State<AddAccountModal>
       width: 452,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: T.glass,
+        // Near-opaque so the busy dashboard behind can't bleed through and
+        // muddy the content — the modal reads as a solid, crisp surface.
+        color: const Color(0xF5161820),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: T.hair2),
         boxShadow: [
