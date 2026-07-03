@@ -245,13 +245,20 @@ class _MeterView extends StatelessWidget {
             Flexible(
               child: Text.rich(
                 TextSpan(children: [
-                  TextSpan(
-                      text: '${meter.pct}%',
-                      style: mono(15,
-                          weight: FontWeight.w600, color: meter.tone.text)),
-                  TextSpan(
-                      text: ' left',
-                      style: mono(11, weight: FontWeight.w500, color: T.t3)),
+                  if (meter.known) ...[
+                    TextSpan(
+                        text: '${meter.pct}%',
+                        style: mono(15,
+                            weight: FontWeight.w600, color: meter.tone.text)),
+                    TextSpan(
+                        text: ' left',
+                        style: mono(11, weight: FontWeight.w500, color: T.t3)),
+                  ] else
+                    // No data for this window (e.g. free plans have no 5h
+                    // session) — never dress an unknown up as an empty 0%.
+                    TextSpan(
+                        text: '—',
+                        style: mono(15, weight: FontWeight.w600, color: T.t3)),
                 ]),
                 maxLines: 1,
                 overflow: TextOverflow.clip,
@@ -267,7 +274,7 @@ class _MeterView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        _Bar(pct: meter.pct, color: meter.tone.text),
+        _Bar(pct: meter.known ? meter.pct : 0, color: meter.tone.text),
       ],
     );
   }

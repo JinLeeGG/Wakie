@@ -715,7 +715,7 @@ Account _toRow(core.Account a, core.Preflight pf, core.ProviderStatus s,
 
 /// The UI shows remaining ("N% left"), while the provider reports used.
 Meter _meter(core.UsageWindow w, {required bool weekly}) {
-  if (!w.isKnown) return const Meter(0, Tone.warn, '…');
+  if (!w.isKnown) return const Meter(0, Tone.warn, '', known: false);
   final remaining = (100 - w.usedPct!).clamp(0, 100);
   final tone = remaining < 20
       ? Tone.crit

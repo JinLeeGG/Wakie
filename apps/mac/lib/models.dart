@@ -37,7 +37,12 @@ class Meter {
   final int pct;
   final Tone tone;
   final String reset;
-  const Meter(this.pct, this.tone, this.reset);
+
+  /// False when the provider reported no data for this window (e.g. free
+  /// plans expose no 5h session window, only a weekly quota). Rendered as
+  /// "—" — an unknown must never masquerade as an exhausted 0%.
+  final bool known;
+  const Meter(this.pct, this.tone, this.reset, {this.known = true});
 }
 
 class Account {
