@@ -110,9 +110,13 @@ class AntigravityAdapter implements ProviderAdapter {
   Future<RunOutcome> startSession(Account a, {String? model}) async {
     final startedAt = DateTime.now();
     try {
+      // agy has no stable alias like claude's 'haiku' — --model takes the
+      // display name from `agy models`. Flash (Low) is the cheapest; if a
+      // CLI update renames it the start fails visibly (alert) rather than
+      // silently burning a pricier model.
       final result = await Process.run(
         executable,
-        ['--print', if (model != null) ...['--model', model], 'hi'],
+        ['--print', '--model', model ?? 'Gemini 3.5 Flash (Low)', 'hi'],
         environment: envFor(a),
       );
       return RunOutcome(
