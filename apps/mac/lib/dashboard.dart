@@ -280,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// Per-account Update: show the footer bar and, if wired, re-read just this
   /// account live — the bar completes when the real read returns, swapping the
   /// row in. (Mock mode has no real read, so it finishes on a short delay.)
-  void _update(Account a) {
+  void _update(Account a, {bool retried = false}) {
     _footer.start('Refreshing ${a.name}…');
     final updater = widget.onUpdateAccount;
     if (updater == null) {
@@ -295,7 +295,24 @@ class _DashboardScreenState extends State<DashboardScreen>
         final i = _accounts.indexWhere((x) => x.id == a.id);
         if (i != -1) setState(() => _accounts[i] = fresh);
       }
-      _footer.finish('${a.name} refreshed');
+      // A cold isolated home's very first scrape can miss (the engine
+      // degrades it to unknown rather than throwing). Retry once before
+      // reporting — and never claim "refreshed" over an empty read.
+      final unknown = fresh != null &&
+          fresh.session.reset == '…' &&
+          fresh.weekly.reset == '…' &&
+          fresh.status != RunStatus.signin;
+      if (unknown && !retried) {
+        Future.delayed(const Duration(seconds: 4), () {
+          if (mounted) _update(a, retried: true);
+        });
+        return; // keep the bar running through the retry
+      }
+      if (unknown) {
+        _footer.fail('${a.name}: couldn\'t read usage — try Update');
+      } else {
+        _footer.finish('${a.name} refreshed');
+      }
     });
   }
 
