@@ -377,7 +377,10 @@ class _MenuState extends State<_Menu> with SingleTickerProviderStateMixin {
               Padding(
                 padding: const EdgeInsets.fromLTRB(9, 6, 9, 8),
                 child: Text('WAKE AT',
-                    style: mono(10.5, color: T.t3, letterSpacing: 1.4)),
+                    style: mono(12.5,
+                        weight: FontWeight.w500,
+                        color: T.t2,
+                        letterSpacing: 1.3)),
               ),
               _WheelPicker(
                 hour: widget.hour,
