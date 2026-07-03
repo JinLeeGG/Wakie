@@ -161,15 +161,11 @@ const mockAccounts = <Account>[
 
 const taglines = <String>[
   "Let's Token Maxxing.",
-  'Say good morning to AI agents.',
-  'Rise and grind, AI edition.',
-  'Your Mac woke up. Did you?',
-  "We hit snooze. Your AI doesn't.",
-  'While you dream, we refresh.',
-  'Set it. Sleep. Repeat.',
-  'Claude is up. Are you?',
-  'Your AI does the night shift.',
-  "Tokens don't refresh themselves.",
-  'Keeping your context warm.',
-  'AI: on. Coffee: optional.',
+  "Your Claude has been refreshed. Let's grind.",
+  "Dedicate your Tokens!!",
+  "Do you need more usage?",
+  "Touch grass. We'll touch tokens.",
+  "Please don't sue us for this.",
+  "Squeeze every last token",
+  "I mean, make your money worth.",
 ];
