@@ -52,6 +52,8 @@ class FooterController extends ChangeNotifier {
 
   void finish(String doneLabel) {
     _trickle?.cancel();
+    _hide?.cancel();
+    running = true; // self-starting: a result must render even without start()
     label = doneLabel;
     done = true;
     failed = false;
@@ -69,6 +71,8 @@ class FooterController extends ChangeNotifier {
   /// visible reaction is worse than one that failed loudly.
   void fail(String message) {
     _trickle?.cancel();
+    _hide?.cancel();
+    running = true; // self-starting: a failure must render even without start()
     label = message;
     done = false;
     failed = true;
