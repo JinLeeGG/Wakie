@@ -536,8 +536,23 @@ class Engine {
 
   int get morningAnchorHour => _store.morningAnchorHour;
   int get morningAnchorMinute => _store.morningAnchorMinute;
-  void setMorningAnchor(int hour, int minute) =>
-      _store.setMorningAnchor(hour, minute);
+
+  /// Persists the anchor and, when dark wake is enabled, reprograms the
+  /// LaunchAgent + pmset schedule to match (one admin prompt) — otherwise the
+  /// promised wake time and the installed schedule silently drift apart. On
+  /// failure the anchor reverts, so store, UI, and hardware stay consistent.
+  Future<String?> setMorningAnchor(int hour, int minute) async {
+    final prevHour = _store.morningAnchorHour;
+    final prevMinute = _store.morningAnchorMinute;
+    _store.setMorningAnchor(hour, minute);
+    if (!_store.darkWake) return null;
+    final error = await _configureDarkWake(true, hour, minute);
+    if (error != null) {
+      _store.setMorningAnchor(prevHour, prevMinute);
+      return error;
+    }
+    return null;
+  }
 
   bool get launchAtLogin => _store.launchAtLogin;
 

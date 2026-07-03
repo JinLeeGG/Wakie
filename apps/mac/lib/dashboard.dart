@@ -46,9 +46,11 @@ class DashboardScreen extends StatefulWidget {
   final Future<List<SignInResult>> Function()? onPollSignins;
 
   /// The daily dark-wake time shown/edited in the summary bar (PRD §9.2).
+  /// The setter reprograms an enabled dark wake to match; it returns an error
+  /// to surface (anchor reverted) or null on success.
   final int morningAnchorHour;
   final int morningAnchorMinute;
-  final void Function(int hour, int minute)? onSetMorningAnchor;
+  final Future<String?> Function(int hour, int minute)? onSetMorningAnchor;
 
   /// One awake-cycle pass (auto-start lapsed windows + alerts) — run
   /// periodically while the app is open. Returns the refreshed rows to swap
@@ -456,12 +458,23 @@ class _DashboardScreenState extends State<DashboardScreen>
                 onAddAccount: () => setState(() => _addingAccount = true),
                 morningAnchorHour: _anchorHour,
                 morningAnchorMinute: _anchorMinute,
-                onSetMorningAnchor: (h, m) {
+                onSetMorningAnchor: (h, m) async {
+                  final prevH = _anchorHour, prevM = _anchorMinute;
                   setState(() {
                     _anchorHour = h;
                     _anchorMinute = m;
                   });
-                  widget.onSetMorningAnchor?.call(h, m);
+                  // With dark wake enabled this reprograms the schedule (an
+                  // admin prompt); a cancelled/failed reprogram reverts the
+                  // anchor so the UI never promises a wake the hardware
+                  // won't honor.
+                  final error = await widget.onSetMorningAnchor?.call(h, m);
+                  if (!mounted || error == null) return;
+                  setState(() {
+                    _anchorHour = prevH;
+                    _anchorMinute = prevM;
+                  });
+                  _footer.fail(error);
                 },
               ),
               const _ColHead(),
