@@ -31,6 +31,11 @@ class MainFlutterWindow: NSWindow {
         self.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         channel.invokeMethod("didShow", arguments: nil)
+      case "resurface":
+        // Bring the panel back after an admin prompt stole focus — without a
+        // didShow, so it doesn't kick off a refresh.
+        self.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
       case "hide":
         self.orderOut(nil)
       case "toggle":
