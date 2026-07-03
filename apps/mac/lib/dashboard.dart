@@ -827,10 +827,18 @@ class _ColHead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextStyle s(String _) =>
+    final style =
         mono(12.5, weight: FontWeight.w500, color: T.t2, letterSpacing: 1.3);
-    Widget label(String t, {TextAlign align = TextAlign.left}) =>
-        Text(t.toUpperCase(), textAlign: align, style: s(t));
+    // Each header explains itself on hover — the columns are terse by design.
+    Widget label(String t, String tip, {TextAlign align = TextAlign.left}) =>
+        Tooltip(
+          message: tip,
+          waitDuration: const Duration(milliseconds: 250),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.help,
+            child: Text(t.toUpperCase(), textAlign: align, style: style),
+          ),
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 4, 28, 6),
       child: Row(
@@ -840,15 +848,34 @@ class _ColHead extends StatelessWidget {
           SizedBox(
             width: 272,
             child: Row(
-              children: [label('Account'), const Spacer(), label('Auto-start')],
+              children: [
+                label('Account', 'Your logged-in AI accounts — provider, name, '
+                    'and email.'),
+                const Spacer(),
+                label('Auto-start', 'When on, a fresh session starts the moment '
+                    "this account's window resets — keeps a full window rolling "
+                    '(token maxxing).'),
+              ],
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: label('Current Session')),
+          Expanded(
+            child: label('Current Session', 'The rolling 5-hour usage window — '
+                '% left and when it resets. Free plans have none ("—").'),
+          ),
           const SizedBox(width: 16),
-          Expanded(child: label('Weekly')),
+          Expanded(
+            child: label('Weekly',
+                'The weekly usage quota — % left and when it resets.'),
+          ),
           const SizedBox(width: 16),
-          SizedBox(width: 190, child: label('Status', align: TextAlign.right)),
+          SizedBox(
+            width: 190,
+            child: label('Status',
+                'Account health — shown only when it needs an eye: Low, Fresh, '
+                'or Sign in.',
+                align: TextAlign.right),
+          ),
         ],
       ),
     );
