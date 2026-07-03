@@ -25,8 +25,11 @@ mkdir -p "$(dirname "$DEST")"
 cp -f "$CACHE_BIN" "$DEST"
 
 # Xcode's codesign pass doesn't descend into Resources; sign the runner with
-# the app's identity so a signed/notarized build stays valid.
+# the app's identity so a signed/notarized build stays valid. The entitlement
+# is required: a hardened-runtime dart exe is SIGKILLed at spawn without it
+# (see runner.entitlements).
 if [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
   codesign --force --options runtime \
+    --entitlements "$PROJECT_DIR/scripts/runner.entitlements" \
     --sign "$EXPANDED_CODE_SIGN_IDENTITY" "$DEST"
 fi
