@@ -10,6 +10,16 @@ import 'package:wakieai_core/wakieai_core.dart';
 /// during a dark wake (when the windowed app can't). The Mac GUI picks up
 /// the cached status on its next cold start.
 Future<void> main() async {
+  // Decide up front whether anyone is at the machine: an RTC wake is always
+  // a full wake (screen on), so an unattended pass keeps the display dark
+  // while it works and puts the Mac back to sleep when done. Attended runs
+  // (user awake at the anchor time) touch neither.
+  final wokeAt = await lastWakeAt();
+  Future<bool> unattended() async => unattendedWake(
+      now: DateTime.now(), wokeAt: wokeAt, idleSeconds: await hidIdleSeconds());
+  final darkPass = await unattended();
+  if (darkPass) await displaySleep();
+
   try {
     final adapters = productionAdapters();
     final store = Store.load();
@@ -52,5 +62,13 @@ Future<void> main() async {
   } catch (e, st) {
     stderr.writeln('wakieai: runner failed: $e\n$st');
     exitCode = 1;
+  } finally {
+    // Whatever happened above, don't leave an unattended Mac awake all
+    // night — but only if the user still hasn't touched it mid-pass.
+    if (darkPass && await unattended()) {
+      print('wakieai: unattended wake — going back to sleep');
+      final err = await systemSleep();
+      if (err != null) print('wakieai: could not re-sleep — $err');
+    }
   }
 }
