@@ -35,8 +35,10 @@ class TrayIconPainter extends CustomPainter {
     final s = size.width / 100.0;
     final c = Offset(50 * s, 50 * s);
     final stroke = 7 * s;
-    final ringR = 38 * s;
-    final coreR = 21 * s;
+    // Larger ring/core = less dead padding, so the glyph fills more of the
+    // menu-bar slot and reads bigger next to the system icons.
+    final ringR = 42 * s;
+    final coreR = 23 * s;
 
     Paint ringPaint(Color col) => Paint()
       ..style = PaintingStyle.stroke
@@ -63,7 +65,7 @@ class TrayIconPainter extends CustomPainter {
         );
         canvas.drawCircle(c, coreR, core);
       case TrayState.attention:
-        final badge = Offset(76 * s, 24 * s);
+        final badge = Offset(78 * s, 22 * s);
         canvas.saveLayer(Offset.zero & size, Paint());
         canvas.drawCircle(c, ringR, ringPaint(_ringLit));
         canvas.drawCircle(c, coreR, core);
