@@ -718,6 +718,8 @@ class _DashboardScreenState extends State<DashboardScreen>
         a.account.provider,
       ).compareTo(_providerOrder(b.account.provider));
       if (provider != 0) return provider;
+      final plan = _planRank(b.account).compareTo(_planRank(a.account));
+      if (plan != 0) return plan;
       return a.index.compareTo(b.index);
     });
     return [for (final entry in indexed) entry.account];
@@ -728,6 +730,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     Provider.codex => 1,
     Provider.anti => 2,
   };
+
+  /// Rank of the plan tier in the row's subtitle ("email · Max" → Max),
+  /// higher = better, so within a provider the biggest plan sorts first.
+  /// Matched by keyword so variants still rank ("Max 20x", "Google AI Pro");
+  /// unknown or absent tiers rank 0 (bottom). Only compared within one
+  /// provider, so one shared ladder covers all three.
+  int _planRank(Account a) {
+    final sep = a.plan.lastIndexOf(' · ');
+    if (sep == -1) return 0;
+    final tier = a.plan.substring(sep + 3).toLowerCase();
+    const ladder = [
+      'starter', // Antigravity's free tier
+      'plus', // Codex: Plus < Pro
+      'pro',
+      'team',
+      'enterprise',
+      'max', // Claude's top
+      'ultra', // Antigravity's top
+    ];
+    for (var i = ladder.length - 1; i >= 0; i--) {
+      if (tier.contains(ladder[i])) return i + 1;
+    }
+    return 0;
+  }
 
   /// How long since usage was last read, in words. Empty until the first
   /// read lands (the pill shows "Syncing…" then).

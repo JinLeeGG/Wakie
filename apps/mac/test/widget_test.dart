@@ -63,9 +63,35 @@ void main() {
     final codexWork = tester.getTopLeft(find.text('Codex · work')).dy;
     final antiMain = tester.getTopLeft(find.text('Antigravity · main')).dy;
 
-    expect(claudeSide, lessThan(codexMain));
-    expect(codexMain, lessThan(codexWork));
-    expect(codexWork, lessThan(antiMain));
+    expect(claudeSide, lessThan(codexWork));
+    expect(codexWork, lessThan(codexMain)); // Pro sorts above Plus
+    expect(codexMain, lessThan(antiMain));
+  });
+
+  testWidgets('Within a provider the highest plan sorts first', (tester) async {
+    tester.view.physicalSize = const Size(1000, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DecoratedBox(
+          decoration: BoxDecoration(color: Color(0xFF070810)),
+          child: DashboardScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+
+    // Claude: Work is Max, Personal/side are Pro → Max on top, Pros keep
+    // their original relative order (stable sort).
+    final claudeWork = tester.getTopLeft(find.text('Claude · Work')).dy;
+    final claudePersonal = tester.getTopLeft(find.text('Claude · Personal')).dy;
+    final claudeSide = tester.getTopLeft(find.text('Claude · side')).dy;
+
+    expect(claudeWork, lessThan(claudePersonal));
+    expect(claudePersonal, lessThan(claudeSide));
   });
 
   testWidgets('Unknown session disables auto-start toggle', (tester) async {
