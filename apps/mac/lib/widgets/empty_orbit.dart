@@ -32,19 +32,26 @@ class _Planet {
   final Color bg; // fill behind the icon's transparent margins
   final Offset pos; // resting center on the stage
   final double d; // planet diameter
+
+  /// Cover zoom for the circle crop. Where the icon's squircle edge (and its
+  /// baked-in shadow) would cross the disc, the zoom must push it fully
+  /// outside: Claude's solid area is 204/256 of the canvas → ≥1.26. Icons
+  /// whose edges can't show (transparent cloud, dark-on-dark) stay near 1 so
+  /// their artwork sits smaller.
+  final double zoom;
   final double bobPeriod, bobPhase; // slow vertical drift
-  const _Planet(this.label, this.asset, this.bg, this.pos, this.d,
+  const _Planet(this.label, this.asset, this.bg, this.pos, this.d, this.zoom,
       this.bobPeriod, this.bobPhase);
 }
 
 // Asymmetric, breathing-room arrangement: left mid, center high, right low.
 const _planets = <_Planet>[
   _Planet('Antigravity', 'assets/icons/antigravity_app.png',
-      Color(0xFF1B1C21), Offset(88, 128), 92, 7.2, 0.0),
+      Color(0xFF1B1C21), Offset(88, 128), 92, 1.05, 7.2, 0.0),
   _Planet('Claude', 'assets/icons/claude_app.png', //
-      Color(0xFFD97757), Offset(260, 76), 102, 8.6, 2.1),
+      Color(0xFFD97757), Offset(260, 76), 102, 1.26, 8.6, 2.1),
   _Planet('Codex', 'assets/icons/codex_app.png', //
-      Color(0xFFEDF1F7), Offset(432, 144), 92, 7.9, 4.4),
+      Color(0xFFEDF1F7), Offset(432, 144), 92, 1.05, 7.9, 4.4),
 ];
 
 class _Star {
@@ -199,7 +206,7 @@ class _EmptyOrbitState extends State<EmptyOrbit>
                       fit: StackFit.expand,
                       children: [
                         Transform.scale(
-                          scale: 1.05,
+                          scale: p.zoom,
                           child: Image.asset(p.asset,
                               fit: BoxFit.cover,
                               filterQuality: FilterQuality.medium),
