@@ -193,15 +193,25 @@ class _DashboardFooterState extends State<DashboardFooter> {
                   horizontal: 26,
                   vertical: 13,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(child: c.running ? _runStatus(c) : _keys()),
-                    _darkWakeToggle(),
-                    const SizedBox(width: 18),
-                    _launchToggle(),
-                    const SizedBox(width: 22),
-                    _brand(),
-                  ],
+                // Fixed row height so the footer doesn't jump when the left
+                // content swaps between the key hints and the running status.
+                child: SizedBox(
+                  height: 20,
+                  child: Row(
+                    children: [
+                      Expanded(child: c.running ? _runStatus(c) : _keys()),
+                      // While a status/warning message is up, give it the whole
+                      // width — tuck away the toggles + brand so it isn't
+                      // truncated. They return when the footer goes idle.
+                      if (!c.running) ...[
+                        _darkWakeToggle(),
+                        const SizedBox(width: 18),
+                        _launchToggle(),
+                        const SizedBox(width: 22),
+                        _brand(),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
