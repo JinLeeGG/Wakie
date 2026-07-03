@@ -237,11 +237,11 @@ class _EmptyOrbitState extends State<EmptyOrbit>
     TextStyle base(Color color) => TextStyle(
           fontFamily: T.mono,
           fontWeight: FontWeight.w700,
-          fontSize: 27,
+          fontSize: 34,
           height: 1.0,
           letterSpacing: 0.8,
           color: color,
-          shadows: [Shadow(color: color.withValues(alpha: 0.35), blurRadius: 14)],
+          shadows: [Shadow(color: color.withValues(alpha: 0.18), blurRadius: 8)],
         );
     return Opacity(
       opacity: 0.92,
