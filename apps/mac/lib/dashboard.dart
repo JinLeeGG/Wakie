@@ -13,6 +13,12 @@ import 'widgets/confirm_modal.dart';
 import 'widgets/footer.dart';
 import 'widgets/summary.dart';
 
+/// Lets the app ask the dashboard to run a full refresh — e.g. the moment the
+/// window is opened from the menu bar, so you always see current data.
+class DashboardController extends ChangeNotifier {
+  void refreshAll() => notifyListeners();
+}
+
 class DashboardScreen extends StatefulWidget {
   /// Streams live account data (two-phase: accounts first, usage as it loads).
   /// When null (tests/goldens) the dashboard renders the static [mockAccounts]
@@ -22,6 +28,9 @@ class DashboardScreen extends StatefulWidget {
   /// Reports the menu-bar icon state (working while busy, attention when an
   /// account needs action, else idle) so the tray reflects it. Null in tests.
   final void Function(TrayState state)? onTrayState;
+
+  /// Fires a full refresh when notified (the window opening from the tray).
+  final DashboardController? controller;
 
   /// Re-reads one account's usage live (per-account Update). Returns the
   /// refreshed row, or null if it can't be resolved. Null in tests/goldens.
@@ -73,6 +82,7 @@ class DashboardScreen extends StatefulWidget {
     super.key,
     this.source,
     this.onTrayState,
+    this.controller,
     this.onUpdateAccount,
     this.onRemoveAccount,
     this.onSetAutoStart,
@@ -147,6 +157,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     // The footer's running flag drives the "working" tray state; account/
     // loading changes are picked up by the post-frame report in build().
     _footer.addListener(_reportTray);
+    // Refresh everything when the app asks (window opened from the menu bar).
+    widget.controller?.addListener(_refreshAll);
     _tagTimer = Timer.periodic(const Duration(seconds: 7), (_) async {
       setState(() => _tagFaded = true);
       await Future.delayed(const Duration(milliseconds: 500));
@@ -176,6 +188,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_refreshAll);
     _sub?.cancel();
     _tagTimer?.cancel();
     _signinPoll?.cancel();

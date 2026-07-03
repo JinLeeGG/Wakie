@@ -30,6 +30,7 @@ class MainFlutterWindow: NSWindow {
         if !self.isVisible { self.positionOnScreen(target) }
         self.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        channel.invokeMethod("didShow", arguments: nil)
       case "hide":
         self.orderOut(nil)
       case "toggle":
@@ -44,11 +45,13 @@ class MainFlutterWindow: NSWindow {
           // Visible but buried on this display -> pull it forward, keep position.
           self.makeKeyAndOrderFront(nil)
           NSApp.activate(ignoringOtherApps: true)
+          channel.invokeMethod("didShow", arguments: nil)
         } else {
           // Hidden, or living on another display -> place it on the clicked one.
           self.positionOnScreen(target)
           self.makeKeyAndOrderFront(nil)
           NSApp.activate(ignoringOtherApps: true)
+          channel.invokeMethod("didShow", arguments: nil)
         }
       case "quit":
         NSApp.terminate(nil)
