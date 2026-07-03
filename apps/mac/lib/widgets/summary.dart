@@ -421,7 +421,7 @@ class _WheelPicker extends StatefulWidget {
 }
 
 class _WheelPickerState extends State<_WheelPicker> {
-  static const _extent = 32.0;
+  static const _extent = 36.0;
 
   late int _hIdx = widget.hour % 12; // index 0 renders as "12"
   late int _minIdx = widget.minute;
@@ -481,10 +481,10 @@ class _WheelPickerState extends State<_WheelPicker> {
                         ),
                       ),
                       SizedBox(
-                        width: 12,
+                        width: 14,
                         child: Text(':',
                             textAlign: TextAlign.center,
-                            style: mono(17,
+                            style: mono(22,
                                 weight: FontWeight.w600, color: T.t3)),
                       ),
                       Expanded(
@@ -550,7 +550,7 @@ class _WheelPickerState extends State<_WheelPicker> {
           padding: pad,
           child: Text(
             label(i),
-            style: mono(17,
+            style: mono(22,
                 weight: FontWeight.w600,
                 color: i == selected ? T.amber : T.white(.30)),
           ),
@@ -594,7 +594,7 @@ class _SetButtonState extends State<_SetButton> {
           ),
           child: Text(
             widget.label,
-            style: mono(13,
+            style: mono(16,
                 weight: FontWeight.w600, color: const Color(0xFF1A1205)),
           ),
         ),
