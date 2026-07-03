@@ -10,8 +10,9 @@ import 'package:tray_manager/tray_manager.dart';
 ///  - [attention] : ring + core + a red badge — an account ran low or expired.
 enum TrayState { idle, working, attention }
 
-/// The 12 pre-rendered rotation frames of the working arc.
-const trayWorkFrames = 12;
+/// Pre-rendered rotation frames of the working arc — enough (15° steps) that
+/// the spin reads smooth rather than stepping.
+const trayWorkFrames = 24;
 
 /// Draws the WakieAI status-bar icon on a 100×100 canvas — used by the asset
 /// generator (test/tools/gen_tray_icons.dart) to bake the PNGs the tray loads.
@@ -101,7 +102,7 @@ class TrayIcon {
     if (next == TrayState.working) {
       _frame = 0;
       await _show('work_0');
-      _spin = Timer.periodic(const Duration(milliseconds: 75), (_) {
+      _spin = Timer.periodic(const Duration(milliseconds: 40), (_) {
         _frame = (_frame + 1) % trayWorkFrames;
         trayManager.setIcon('assets/tray/work_$_frame.png', isTemplate: false);
       });
