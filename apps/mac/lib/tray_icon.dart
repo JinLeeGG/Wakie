@@ -25,7 +25,10 @@ class TrayIconPainter extends CustomPainter {
   static const _amber = Color(0xFFF6B23C);
   static const _crit = Color(0xFFFF7A85);
   static const _ringLit = Color(0xE0FFFFFF);
-  static const _ringDim = Color(0x47FFFFFF);
+  // Bright enough to keep the working icon's full circular footprint on a dark
+  // menu bar (0.28 vanished there and made it read small); the amber arc still
+  // reads as the sweep on top.
+  static const _ringDim = Color(0x8CFFFFFF);
 
   @override
   void paint(Canvas canvas, Size size) {
