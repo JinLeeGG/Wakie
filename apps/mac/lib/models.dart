@@ -8,15 +8,16 @@ extension ProviderAsset on Provider {
   // (test/tools/gen_provider_logos.dart) — full-color, transparent background.
   String get icon => switch (this) {
     Provider.claude => 'assets/icons/claude_logo.png',
-    Provider.codex => 'assets/icons/codex_app.png',
+    Provider.codex => 'assets/icons/codex_logo.png',
     Provider.anti => 'assets/icons/antigravity_logo.png',
   };
 
-  // Badge background tint, from .badge.claude/.codex/.anti
+  // Badge background = each app icon's own background, so the badges read as
+  // miniature versions of the real icons.
   Color get badgeBg => switch (this) {
-    Provider.claude => const Color(0x29D97757), // rgba(217,119,87,.16)
-    Provider.codex => T.white(.08),
-    Provider.anti => const Color(0x267896F0), // rgba(120,150,240,.15)
+    Provider.claude => const Color(0xFFD97757), // terracotta squircle
+    Provider.codex => const Color(0xFFEDF1F7), // cloud floats on light
+    Provider.anti => const Color(0xFF1B1C21), // dark squircle
   };
 }
 

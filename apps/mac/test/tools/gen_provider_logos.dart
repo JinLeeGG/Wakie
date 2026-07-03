@@ -30,6 +30,43 @@ Future<ui.Image> _load(String path) async {
   return (await codec.getNextFrame()).image;
 }
 
+/// Crop [px] to the glyph's alpha bounding box (+4% air), center it on a
+/// square canvas, and write it as PNG — so the glyph fills the canvas and
+/// renders at its stated size instead of drowning in the icon's margins.
+Future<void> _saveSquare(Uint8List px, int w, int h, String path) async {
+  var minX = w, minY = h, maxX = -1, maxY = -1;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      if (px[(y * w + x) * 4 + 3] > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  final bw = maxX - minX + 1, bh = maxY - minY + 1;
+  final side = (math.max(bw, bh) * 1.08).round();
+  final out = Uint8List(side * side * 4);
+  final ox = (side - bw) ~/ 2, oy = (side - bh) ~/ 2;
+  for (var y = 0; y < bh; y++) {
+    for (var x = 0; x < bw; x++) {
+      final si = ((minY + y) * w + (minX + x)) * 4;
+      final di = ((oy + y) * side + (ox + x)) * 4;
+      out[di] = px[si];
+      out[di + 1] = px[si + 1];
+      out[di + 2] = px[si + 2];
+      out[di + 3] = px[si + 3];
+    }
+  }
+  final buf = await ui.ImmutableBuffer.fromUint8List(out);
+  final desc = ui.ImageDescriptor.raw(buf,
+      width: side, height: side, pixelFormat: ui.PixelFormat.rgba8888);
+  final img = (await (await desc.instantiateCodec()).getNextFrame()).image;
+  final png = await img.toByteData(format: ui.ImageByteFormat.png);
+  File(path).writeAsBytesSync(png!.buffer.asUint8List());
+}
+
 void main() {
   test('extract claude starburst', () async {
     final img = await _load('assets/icons/claude_app.png');
@@ -78,13 +115,7 @@ void main() {
       }
     }
 
-    final buf = await ui.ImmutableBuffer.fromUint8List(out);
-    final desc = ui.ImageDescriptor.raw(buf,
-        width: w, height: h, pixelFormat: ui.PixelFormat.rgba8888);
-    final logo = (await (await desc.instantiateCodec()).getNextFrame()).image;
-    final png = await logo.toByteData(format: ui.ImageByteFormat.png);
-    File('assets/icons/claude_logo.png')
-        .writeAsBytesSync(png!.buffer.asUint8List());
+    await _saveSquare(out, w, h, 'assets/icons/claude_logo.png');
   });
 
   test('extract antigravity arch', () async {
@@ -118,12 +149,17 @@ void main() {
       out[i + 3] = (s * a).round();
     }
 
-    final buf = await ui.ImmutableBuffer.fromUint8List(out);
-    final desc = ui.ImageDescriptor.raw(buf,
-        width: w, height: h, pixelFormat: ui.PixelFormat.rgba8888);
-    final logo = (await (await desc.instantiateCodec()).getNextFrame()).image;
-    final png = await logo.toByteData(format: ui.ImageByteFormat.png);
-    File('assets/icons/antigravity_logo.png')
-        .writeAsBytesSync(png!.buffer.asUint8List());
+    await _saveSquare(out, w, h, 'assets/icons/antigravity_logo.png');
+  });
+
+  test('crop codex cloud', () async {
+    // Already a transparent cloud — just shed the margins.
+    final img = await _load('assets/icons/codex_app.png');
+    final px =
+        (await img.toByteData(format: ui.ImageByteFormat.rawRgba))!
+            .buffer
+            .asUint8List();
+    await _saveSquare(
+        px, img.width, img.height, 'assets/icons/codex_logo.png');
   });
 }

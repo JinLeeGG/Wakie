@@ -42,7 +42,7 @@ const _planets = <_Planet>[
       Offset(88, 128), 92, 7.2, 0.0),
   _Planet('Claude', 'assets/icons/claude_logo.png', //
       Offset(260, 76), 102, 8.6, 2.1),
-  _Planet('Codex', 'assets/icons/codex_app.png', //
+  _Planet('Codex', 'assets/icons/codex_logo.png', //
       Offset(432, 144), 92, 7.9, 4.4),
 ];
 
