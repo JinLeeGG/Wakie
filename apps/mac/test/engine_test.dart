@@ -518,9 +518,43 @@ void main() {
 
       final changed = await engine.awakeTick();
 
-      expect(changed, ['claude-default']);
+      expect(changed.map((r) => r.id), ['claude-default']);
       expect(adapter.starts, 1); // a new session was started
       expect(store.statusFor('claude-default')!.session.usedPct, 0); // re-read
+      // The returned row is built from the just-cached status — the caller
+      // must not re-scrape it (that would erase the failure backoff).
+      expect(changed.single.session.pct, 100); // 0% used → 100% left
+    });
+
+    test('a label-only lapsed window (Claude/agy shape) still chains', () async {
+      // Claude and Antigravity parsers emit resetLabel only, never an
+      // absolute resetAt. Regression: the chain used to re-anchor the label
+      // to the current clock, roll it into the future, and silently skip.
+      final adapter = _CountingClaude(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 0, resetLabel: '8:00pm')));
+      final store = core.Store.memory();
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load(); // Claude defaults auto-start ON
+      final readAt = DateTime.now().subtract(const Duration(hours: 20));
+      // A clock label rendering readAt+1min: anchored at readAt it resolves
+      // ~20h in the past (lapsed); re-anchored at DateTime.now() it would
+      // roll to the future — exactly the regression this test pins down.
+      final t = readAt.add(const Duration(minutes: 1));
+      final label = '${t.hour % 12 == 0 ? 12 : t.hour % 12}:'
+          '${t.minute.toString().padLeft(2, '0')}${t.hour < 12 ? 'am' : 'pm'}';
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: core.UsageWindow(usedPct: 100, resetLabel: label),
+        weekly: const core.UsageWindow(usedPct: 10),
+        lastOutcome: core.Outcome.ok,
+        lastCheckedAt: readAt,
+      ));
+
+      final changed = await engine.awakeTick();
+
+      expect(changed.map((r) => r.id), ['claude-default']);
+      expect(adapter.starts, 1); // the chain actually fired
     });
 
     test('lapsed window + auto-start OFF → refreshes only, never starts', () async {
@@ -536,7 +570,7 @@ void main() {
 
       final changed = await engine.awakeTick();
 
-      expect(changed, ['claude-default']);
+      expect(changed.map((r) => r.id), ['claude-default']);
       expect(adapter.starts, 0); // read-only: no session consumed
       expect(adapter.reads, readsAfterLoad + 1);
       expect(store.statusFor('claude-default')!.session.usedPct, 3);

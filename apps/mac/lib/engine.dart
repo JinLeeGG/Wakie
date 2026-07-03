@@ -572,11 +572,12 @@ class Engine {
   /// session (D1 token maxxing); with it off, just re-read so the row doesn't
   /// sit stale past its reset. Fires macOS notifications for alert transitions
   /// either way. Cheap when nothing has lapsed — pure clock/store math, no
-  /// subprocess. Returns the ids that changed so the caller can refresh those
-  /// rows.
-  Future<List<String>> awakeTick({DateTime? now}) async {
+  /// subprocess. Returns the refreshed rows, built from the status this pass
+  /// just cached — the caller swaps them in directly (re-reading them live
+  /// would double the scrape and stamp over the failure backoff).
+  Future<List<Account>> awakeTick({DateTime? now}) async {
     final at = now ?? DateTime.now();
-    final changed = <String>[];
+    final changed = <Account>[];
     for (final (account, pf) in _live.values.toList()) {
       if (!pf.isOk) continue;
       final cached = _store.statusFor(account.id);
@@ -596,17 +597,21 @@ class Engine {
       }
 
       if (_autoStartFor(account)) {
+        // Materialize the reset we just resolved into the window, so the
+        // chain sees the same lapse decision. Left unresolved, a label-only
+        // window ("2:30am", "4h 25m") would be re-anchored to the current
+        // clock inside chainExpiredSessions, always land in the future, and
+        // the chain would silently never start (Claude/Antigravity parsers
+        // emit labels only — only Codex carries an absolute resetAt).
+        final session = core.UsageWindow(
+          usedPct: cached.session.usedPct,
+          resetLabel: cached.session.resetLabel,
+          resetAt: resetAt,
+        );
         await core.chainExpiredSessions(
           _adapters,
           _store,
-          [
-            (
-              account,
-              pf,
-              core.ProviderStatus(
-                  session: cached.session, weekly: cached.weekly)
-            )
-          ],
+          [(account, pf, core.ProviderStatus(session: session, weekly: cached.weekly))],
           now: at,
           log: debugPrint,
         );
@@ -621,7 +626,8 @@ class Engine {
           await _notify('WakieAI', alert.message);
         }
       }
-      changed.add(account.id);
+      changed.add(_toRow(account, pf, _cachedStatus(account.id),
+          autoStart: _autoStartFor(account)));
     }
     return changed;
   }
