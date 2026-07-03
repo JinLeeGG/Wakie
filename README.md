@@ -10,7 +10,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 
 <br>
 
-![Status](https://img.shields.io/badge/status-Phase%200%20—%20Mac%20core-5FD39A?style=flat-square)
+![Status](https://img.shields.io/badge/status-Phase%201%20—%20Automation-5FD39A?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-macOS%20→%20iOS-0B1120?style=flat-square&logo=apple&logoColor=white)
 ![Built with](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0B1120?style=flat-square&logo=dart&logoColor=white)
@@ -25,7 +25,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 <br>
 
 > [!NOTE]
-> **Project status — Phase 0 (Mac core) shipped.** The macOS menu-bar app auto-detects logged-in accounts, reads live `/usage` for all three providers (Claude · Codex · Antigravity), renders the dashboard, and starts sessions on demand. Next up is Phase 1 (automation — see [Roadmap](#roadmap)). The [product spec](docs/PRD.md) and click-through [UI prototype](docs/design/) remain the source of truth for the design.
+> **Project status — Phase 1 (automation) in hand.** On top of the Phase 0 core (auto-detect · live `/usage` for Claude · Codex · Antigravity · dashboard · on-demand session start), the app now schedules a dark wake from sleep to refresh sessions, sends the morning summary, and handles add-account sign-in. It ships as a **Developer ID–signed, notarized DMG** (the Mac App Store is off the table — App Sandbox forbids the engine's core ops; see PRD §16). Next up is Phase 2 (remote — see [Roadmap](#roadmap)). The [product spec](docs/PRD.md) and click-through [UI prototype](docs/design/) remain the source of truth for the design.
 
 <br>
 
@@ -127,7 +127,7 @@ Each read path is split into a **pure parser** (screen-text or JSON → status),
 ## Roadmap
 
 - [x] **Phase 0 — Mac core.** Auto-detect accounts · scrape `/usage` · menu-bar dashboard · on-demand session start.
-- [ ] **Phase 1 — Automation.** Sleep-wake (`pmset` + LaunchAgent dark wake) · schedules · macOS notifications · add-account UX.
+- [x] **Phase 1 — Automation.** Sleep-wake (`pmset` + LaunchAgent dark wake) · schedules · macOS notifications · add-account UX · Developer ID–signed, notarized DMG.
 - [ ] **Phase 2 — Remote.** Supabase relay + iPhone app (remote dashboard/control) + push notifications.
 - [ ] **Phase 3 — Hardening.** Multi-account scale · auto-login guidance · Windows/Android exploration.
 - [x] **Phase −1 — Spec & design.** [PRD](docs/PRD.md) + full click-through UI prototype.
