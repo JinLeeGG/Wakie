@@ -60,17 +60,25 @@ class SummaryBar extends StatelessWidget {
           Expanded(
             child: _Pill(
               label: 'Resets in',
-              // Counts down to the hovered row (or the soonest reset); the new
-              // value drops in from above so the number reads as ticking down.
+              // Counts down to the hovered row (or the soonest reset). Matches
+              // the app's motion — a short easeOutCubic cross-fade with the
+              // faint downward drift of the tagline, not a hard slide.
               value: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 240),
+                duration: const Duration(milliseconds: 220),
                 switchInCurve: Curves.easeOutCubic,
-                transitionBuilder: (child, anim) => ClipRect(
+                switchOutCurve: Curves.easeIn,
+                layoutBuilder: (current, previous) =>
+                    Stack(alignment: Alignment.centerLeft, children: [
+                  ...previous,
+                  ?current,
+                ]),
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
                   child: SlideTransition(
                     position:
-                        Tween(begin: const Offset(0, -0.7), end: Offset.zero)
+                        Tween(begin: const Offset(0, -0.18), end: Offset.zero)
                             .animate(anim),
-                    child: FadeTransition(opacity: anim, child: child),
+                    child: child,
                   ),
                 ),
                 child: Text(nextReset,
