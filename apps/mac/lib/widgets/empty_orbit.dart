@@ -26,7 +26,7 @@ class EmptyOrbit extends StatefulWidget {
 // Design canvas for the orrery; the whole thing scales down to fit its slot.
 const double _stageW = 520;
 const double _stageH = 290;
-const double _sphere = 46; // planet diameter at 1× depth
+const double _sphere = 52; // planet diameter at 1× depth
 const double _sun = 62;
 const Offset _center = Offset(_stageW / 2, _stageH / 2);
 
@@ -132,8 +132,10 @@ class _EmptyOrbitState extends State<EmptyOrbit>
       );
       final depth = math.sin(angle); // -1 far/behind … +1 near/front
       final f = (depth + 1) / 2;
-      final scale = 0.78 + 0.4 * f;
-      final opacity = 0.72 + 0.28 * f;
+      // Depth reads through scale; keep the floor high so the far planet stays
+      // a legible sphere instead of a dim speck.
+      final scale = 0.84 + 0.34 * f;
+      final opacity = 0.88 + 0.12 * f;
       // Light comes from the star; the lit hemisphere faces it.
       final toStar = _center - pos;
       final len = toStar.distance;
@@ -247,15 +249,20 @@ class _EmptyOrbitState extends State<EmptyOrbit>
   /// The glowing WakieAI wordmark at the heart of the system — the "star".
   /// Brand rule: "Wakie" amber, "AI" white.
   Widget _wordmark(double pulse) {
-    final glow = 7.0 + 3.0 * pulse;
+    final glow = 8.0 + 4.0 * pulse;
     TextStyle base(Color color, double g) => TextStyle(
           fontFamily: T.mono,
           fontWeight: FontWeight.w700,
-          fontSize: 18,
+          fontSize: 20,
           height: 1.0,
           letterSpacing: 0.2,
           color: color,
-          shadows: [Shadow(color: color, blurRadius: g)],
+          // Double glow: a tight hot core plus a wide soft halo, so the
+          // letters read as the thing emitting the light.
+          shadows: [
+            Shadow(color: color, blurRadius: g * 0.5),
+            Shadow(color: color.withValues(alpha: 0.55), blurRadius: g * 2.2),
+          ],
         );
     return Text.rich(
       TextSpan(children: [
@@ -365,16 +372,17 @@ class _SphereHiPainter extends CustomPainter {
     final r = size.width / 2;
     final rect = Offset.zero & size;
 
-    // Night side, opposite the star.
+    // Night side, opposite the star — soft, with ambient bounce so the dark
+    // hemisphere still reads as a sphere, not a black bite.
     canvas.drawCircle(
       c,
       r,
       Paint()
         ..shader = RadialGradient(
-          center: Alignment(-light.x * 0.5, -light.y * 0.5),
-          radius: 1.0,
-          colors: [_c(o.shadow, 0xE0), _c(o.shadow, 0x66), _c(o.shadow, 0x00)],
-          stops: const [0.0, 0.5, 0.92],
+          center: Alignment(-light.x * 0.55, -light.y * 0.55),
+          radius: 1.05,
+          colors: [_c(o.shadow, 0xA6), _c(o.shadow, 0x46), _c(o.shadow, 0x00)],
+          stops: const [0.0, 0.48, 0.9],
         ).createShader(rect),
     );
 
@@ -384,8 +392,8 @@ class _SphereHiPainter extends CustomPainter {
       r,
       Paint()
         ..shader = RadialGradient(
-          colors: [_c(0x000000, 0x00), _c(0x000000, 0x00), _c(0x000000, 0x82)],
-          stops: const [0.0, 0.7, 1.0],
+          colors: [_c(0x000000, 0x00), _c(0x000000, 0x00), _c(0x000000, 0x5C)],
+          stops: const [0.0, 0.74, 1.0],
         ).createShader(rect),
     );
   }
@@ -456,34 +464,50 @@ class _CoronaPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final r = size.width * 0.40 * (1 + 0.04 * pulse);
+    final r = size.width * 0.48 * (1 + 0.045 * pulse);
 
+    // Inner hot heart right behind the letters, then the wide warm falloff —
+    // two stacked radials read as a genuine light source, not a tinted haze.
+    canvas.drawCircle(
+      c,
+      r * 0.46,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            _c(0xFFF3CE, (0x6E + 0x24 * pulse).round().clamp(0, 255)),
+            _c(0xFFD98A, 0x38),
+            _c(0xFFD98A, 0x00),
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(Rect.fromCircle(center: c, radius: r * 0.46))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
     canvas.drawCircle(
       c,
       r,
       Paint()
         ..shader = RadialGradient(
           colors: [
-            _c(0xFFE7B0, (0x4E + 0x1E * pulse).round().clamp(0, 255)),
-            _c(0xF6A83C, 0x2C),
+            _c(0xFFDf9A, (0x46 + 0x1A * pulse).round().clamp(0, 255)),
+            _c(0xF6A83C, 0x24),
             _c(0xF6A83C, 0x00),
           ],
           stops: const [0.0, 0.5, 1.0],
         ).createShader(Rect.fromCircle(center: c, radius: r))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
 
     // Anamorphic bloom streak — a cinematic "bright source" cue.
-    final w = size.width * 0.95;
+    final w = size.width * 1.2;
     canvas.drawRect(
-      Rect.fromCenter(center: c, width: w, height: 2.4),
+      Rect.fromCenter(center: c, width: w, height: 2.6),
       Paint()
         ..shader = const LinearGradient(colors: [
           Color(0x00FFE9A8),
-          Color(0x66FFF2C8),
+          Color(0x7AFFF2C8),
           Color(0x00FFE9A8),
-        ]).createShader(Rect.fromCenter(center: c, width: w, height: 2.4))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
+        ]).createShader(Rect.fromCenter(center: c, width: w, height: 2.6))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.8),
     );
   }
 
@@ -499,6 +523,19 @@ class _BackdropPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Warm ambient wash around the system — ties the stage to the app's amber
+    // mood instead of leaving the orrery on a cold void.
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = RadialGradient(
+          center: Alignment.center,
+          radius: 0.95,
+          colors: [_c(0xFFB45C, 0x14), _c(0xFFB45C, 0x05), _c(0xFFB45C, 0x00)],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(Offset.zero & size),
+    );
+
     // Twinkling starfield.
     final star = Paint();
     for (final s in stars) {
@@ -519,7 +556,7 @@ class _BackdropPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1
-          ..color = _c(0xFFE0B2, 0x1C)
+          ..color = _c(0xFFE0B2, 0x28)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8),
       );
       canvas.drawArc(
@@ -530,7 +567,7 @@ class _BackdropPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.2
-          ..color = _c(0xFFE9C79A, 0x40)
+          ..color = _c(0xFFE9C79A, 0x52)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0),
       );
     }
