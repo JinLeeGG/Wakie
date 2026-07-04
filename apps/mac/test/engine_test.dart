@@ -44,6 +44,26 @@ class _PendingClaude extends _FakeClaude {
   }
 }
 
+/// Extra accounts sign in *independently* (each with its own identity, derived
+/// from its config home) once [extrasLoggedIn] flips — for the parallel
+/// add-account flow. [detectGate], when set, blocks every detect so a test can
+/// interleave an addAccount with an in-flight scan.
+class _ParallelPendingClaude extends _FakeClaude {
+  bool extrasLoggedIn = false;
+  Completer<void>? detectGate;
+  _ParallelPendingClaude(super.status);
+
+  @override
+  Future<core.Preflight> detect(core.Account a) async {
+    await detectGate?.future;
+    if (a.configHome == null) return super.detect(a);
+    return extrasLoggedIn
+        ? core.Preflight(core.PreflightState.ok,
+            email: '${a.configHome!.split('/').last}@b.com', plan: 'pro')
+        : const core.Preflight(core.PreflightState.notLoggedIn);
+  }
+}
+
 /// Counts detect() calls so a test can assert an expired sign-in is dropped
 /// *without* spending a detect subprocess on it. Extra accounts never log in.
 class _CountingPendingClaude extends _FakeClaude {
@@ -459,7 +479,7 @@ void main() {
     expect(deleteCalls, 0); // nothing on disk to delete for an ambient account
   });
 
-  test('re-adding the same provider supersedes an unfinished sign-in (no block)',
+  test('Claude sign-ins run in parallel — a second add keeps the first pending',
       () async {
     var launches = 0;
     final deleted = <String>[];
@@ -473,16 +493,82 @@ void main() {
     );
 
     expect(await engine.addAccount(Provider.claude, 'one'), isNull);
+    expect(await engine.addAccount(Provider.claude, 'two'), isNull);
+
+    // Both attempts stay live: whichever logins the user completes land.
+    expect(launches, 2);
+    expect(store.extraAccounts, hasLength(2));
+    expect(engine.pendingSigninIds(), hasLength(2));
+    expect(deleted, isEmpty);
+  });
+
+  test('every completed Claude login lands as its own account', () async {
+    final store = core.Store.memory();
+    final adapter = _ParallelPendingClaude(const core.ProviderStatus());
+    final engine =
+        Engine.withAdapters({core.Provider.claude: adapter}, store: store);
+
+    await engine.addAccount(Provider.claude, 'one');
+    await engine.addAccount(Provider.claude, 'two');
+    expect(await engine.pollSignins(), isEmpty); // neither login landed yet
+
+    adapter.extrasLoggedIn = true; // both browser logins complete
+    final resolved = await engine.pollSignins();
+    expect(resolved, hasLength(2));
+    expect(resolved.map((r) => r.state), everyElement(SignInState.ready));
+    expect(resolved.map((r) => r.row!.id).toSet(), hasLength(2));
+    expect(engine.pendingSigninIds(), isEmpty);
+  });
+
+  test('re-adding Codex supersedes its unfinished sign-in (fixed OAuth port)',
+      () async {
+    var launches = 0;
+    final deleted = <String>[];
+    final store = core.Store.memory();
+    final engine = Engine.withAdapters(
+      {core.Provider.codex: _FakeClaude(const core.ProviderStatus())},
+      store: store,
+      runHidden: (_) async => launches++,
+      ensureDir: (_) async {},
+      deleteDir: deleted.add,
+    );
+
+    expect(await engine.addAccount(Provider.codex, 'one'), isNull);
     final first = store.extraAccounts.single.id;
 
-    // A second add while the first is still pending is NOT blocked — it clears
-    // the abandoned first attempt (and its dir) and proceeds.
-    expect(await engine.addAccount(Provider.claude, 'two'), isNull);
+    // Only one `codex login` can listen on its callback port — the second
+    // add clears the abandoned first attempt (and its dir) and proceeds.
+    expect(await engine.addAccount(Provider.codex, 'two'), isNull);
     expect(launches, 2);
     expect(store.extraAccounts, hasLength(1)); // only the new one remains
     expect(store.extraAccounts.single.label, 'two');
     expect(store.isRemoved(first), isTrue);
     expect(deleted, contains(startsWith(core.Store.defaultAccountsDir())));
+  });
+
+  test('a pending added mid-scan survives the scan (login still lands)',
+      () async {
+    final store = core.Store.memory();
+    final adapter = _ParallelPendingClaude(const core.ProviderStatus());
+    final engine =
+        Engine.withAdapters({core.Provider.claude: adapter}, store: store);
+
+    // Scan blocks inside discovery's detect — after it has already read the
+    // store's extras — while the user adds an account.
+    adapter.detectGate = Completer<void>();
+    final scan = engine.watch().drain<void>();
+    await Future<void>.delayed(Duration.zero); // let the scan reach detect
+    await engine.addAccount(Provider.claude, 'work');
+    adapter.detectGate!.complete();
+    adapter.detectGate = null;
+    await scan;
+
+    // The scan's stale snapshot must not orphan the new pending — the poll
+    // keeps watching it, so the completed login lands.
+    expect(engine.pendingSigninIds(), hasLength(1));
+    adapter.extrasLoggedIn = true;
+    final resolved = await engine.pollSignins();
+    expect(resolved.single.state, SignInState.ready);
   });
 
   test('a pending account is NOT a visible row; it appears only once signed in',

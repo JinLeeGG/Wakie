@@ -381,9 +381,18 @@ class Engine {
         _store,
         includePendingExtras: true,
       );
+      // Merge, don't clear+replace: an addAccount that ran while discovery
+      // was in flight seeded a pending sign-in this snapshot doesn't know.
+      // Dropping it would orphan the sign-in — the poll stops watching, and
+      // a login the user completes never lands as a row.
+      final discovered = <String, (core.Account, core.Preflight)>{
+        for (final e in all) e.$1.id: e,
+      };
       _live
-        ..clear()
-        ..addEntries(all.map((e) => MapEntry(e.$1.id, e)));
+        ..removeWhere((id, e) =>
+            !discovered.containsKey(id) &&
+            !(e.$1.configHome != null && !e.$2.isOk))
+        ..addAll(discovered);
 
       final visible = [
         for (final e in all)
@@ -619,16 +628,24 @@ class Engine {
   Future<String?> addAccount(Provider uiProvider, String label) async {
     final provider = _coreProvider(uiProvider);
 
-    // A previous, unfinished sign-in for this provider is treated as
-    // abandoned: clear it (and its empty config dir) so this fresh attempt
-    // supersedes it, rather than blocking the user with "already in progress".
-    final stale = [
-      for (final e in _live.values)
-        if (e.$1.provider == provider && e.$1.configHome != null && !e.$2.isOk)
-          e.$1.id,
-    ];
-    for (final staleId in stale) {
-      removeAccount(staleId);
+    // Sign-ins run in parallel: every login the user completes lands as an
+    // account, no matter how many adds are in flight (abandoned ones expire
+    // via [checkPendingSignin]). Claude can — its login picks a random OAuth
+    // callback port (verified against the CLI), and each Antigravity login
+    // owns a Terminal. Codex can't: `codex login` serves its callback on a
+    // fixed localhost port (1455), only one can listen, so a new Codex
+    // attempt supersedes the previous unfinished one instead.
+    if (provider == core.Provider.codex) {
+      final stale = [
+        for (final e in _live.values)
+          if (e.$1.provider == provider &&
+              e.$1.configHome != null &&
+              !e.$2.isOk)
+            e.$1.id,
+      ];
+      for (final staleId in stale) {
+        removeAccount(staleId);
+      }
     }
 
     // Whether this provider already has a signed-in account — decided before
@@ -637,7 +654,13 @@ class Engine {
     final hasExisting = _live.values.any((e) => e.$1.provider == provider);
 
     final safeLabel = label.trim().isEmpty ? 'extra' : label.trim();
-    final id = '${provider.name}-${DateTime.now().millisecondsSinceEpoch}';
+    // Millisecond stamps can collide now that adds run in parallel — bump
+    // until the id is free so two quick adds never share a config home.
+    var stamp = DateTime.now().millisecondsSinceEpoch;
+    while (_store.extraAccounts.any((e) => e.id == '${provider.name}-$stamp')) {
+      stamp++;
+    }
+    final id = '${provider.name}-$stamp';
     final configHome = '${core.Store.defaultAccountsDir()}/$id';
 
     try {
