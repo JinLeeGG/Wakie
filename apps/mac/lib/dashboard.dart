@@ -12,6 +12,7 @@ import 'widgets/add_account_modal.dart';
 import 'widgets/confirm_modal.dart';
 import 'widgets/empty_orbit.dart';
 import 'widgets/footer.dart';
+import 'widgets/install_cli_modal.dart';
 import 'widgets/summary.dart';
 
 /// Lets the app ask the dashboard to run a full refresh — e.g. the moment the
@@ -49,6 +50,11 @@ class DashboardScreen extends StatefulWidget {
   /// null on success or an error message to show. Null in tests/goldens — the
   /// Add Account modal still opens, it just has nothing to submit to.
   final Future<String?> Function(Provider, String label)? onCreateAccount;
+
+  /// Whether a provider's CLI is installed — checked before launching the
+  /// login, so a missing CLI shows the install guide instead of a sign-in
+  /// that can never land. Null (tests/goldens) means "installed".
+  final Future<bool> Function(Provider)? onCheckInstalled;
 
   /// Polls all in-flight sign-ins once, returning the ones that resolved
   /// (ready with a live row, or a rejected duplicate). Pending accounts never
@@ -88,6 +94,7 @@ class DashboardScreen extends StatefulWidget {
     this.onRemoveAccount,
     this.onSetAutoStart,
     this.onCreateAccount,
+    this.onCheckInstalled,
     this.onPollSignins,
     this.morningAnchorHour = 8,
     this.morningAnchorMinute = 0,
@@ -131,6 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Account? _pendingRemove;
   bool _addingAccount = false;
+  Provider? _missingCli; // provider whose install guide is showing
 
   // Footer run sequence.
   final FooterController _footer = FooterController();
@@ -482,6 +490,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (creator == null) return;
     final displayLabel = label.trim().isEmpty ? provider.name : label.trim();
     final op = _footer.start('Adding $displayLabel…');
+    // A missing CLI would launch a login that dies as a silent "command not
+    // found" — show the install guide instead of a sign-in that never lands.
+    final installed = await widget.onCheckInstalled?.call(provider) ?? true;
+    if (!mounted) return;
+    if (!installed) {
+      _footer.fail('$displayLabel — CLI not installed', op: op);
+      setState(() => _missingCli = provider);
+      return;
+    }
     final error = await creator(provider, label);
     if (!mounted) return;
     if (error != null) {
@@ -575,6 +592,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             AddAccountModal(
               onCancel: () => setState(() => _addingAccount = false),
               onAdd: _createAccount,
+            ),
+          if (_missingCli != null)
+            InstallCliModal(
+              provider: _missingCli!,
+              onClose: () => setState(() => _missingCli = null),
             ),
         ],
       ),
