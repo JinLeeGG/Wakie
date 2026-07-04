@@ -52,9 +52,11 @@ class SummaryBar extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
-              label: 'Saved · 7d',
+              label: 'API value · 7d',
               // This week's tokens priced at API list rates — the whole panel
-              // total, or the hovered row's own share. Swaps with the same
+              // total, or the hovered row's own share. Labelled "API value"
+              // (not "Saved") so it reads as an honest what-this-would-cost
+              // conversion, not a literal savings claim. Swaps with the same
               // motion as Resets-in.
               value: _SwitchingValue(
                 saved,
