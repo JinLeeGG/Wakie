@@ -189,5 +189,52 @@ void main() {
         0,
       );
     });
+
+    test('weeklyByOwner splits a shared home by the login at each timestamp',
+        () async {
+      final now = DateTime.utc(2026, 7, 4, 12);
+      final dir = Directory('${tmp.path}/projects/p1')
+        ..createSync(recursive: true);
+      File('${dir.path}/a.jsonl').writeAsStringSync([
+        // While a@b.com was signed in.
+        _claudeLine(
+          msgId: 'm1',
+          timestamp: '2026-07-01T10:00:00.000Z',
+          output: 1000000,
+        ),
+        // After the switch to x@b.com.
+        _claudeLine(
+          msgId: 'm2',
+          timestamp: '2026-07-03T10:00:00.000Z',
+          output: 1000000,
+        ),
+        _claudeLine(
+          msgId: 'm3',
+          timestamp: '2026-07-03T11:00:00.000Z',
+          output: 1000000,
+        ),
+      ].join('\n'));
+
+      final switchAt = DateTime.utc(2026, 7, 2);
+      String? ownerAt(DateTime at) =>
+          at.isBefore(switchAt) ? 'a@b.com' : 'x@b.com';
+
+      final split =
+          await ApiValueScanner().claudeWeeklyByOwner(tmp.path, ownerAt, now: now);
+      expect(split['a@b.com'], closeTo(25.0, 1e-9));
+      expect(split['x@b.com'], closeTo(50.0, 1e-9));
+    });
+
+    test('weeklyByOwner drops events with no known owner', () async {
+      final now = DateTime.utc(2026, 7, 4, 12);
+      final dir = Directory('${tmp.path}/projects/p1')
+        ..createSync(recursive: true);
+      File('${dir.path}/a.jsonl')
+          .writeAsStringSync(_claudeLine(output: 1000000));
+
+      final split =
+          await ApiValueScanner().claudeWeeklyByOwner(tmp.path, (_) => null, now: now);
+      expect(split, isEmpty);
+    });
   });
 }

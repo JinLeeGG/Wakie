@@ -52,12 +52,15 @@ class SummaryBar extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
-              label: 'API value · 7d',
+              // 167px rendered vs ~172px available at design scale — measured
+              // with the bundled font; revisit if the label ever grows.
+              label: 'Est. API value · 7d',
               // This week's tokens priced at API list rates — the whole panel
-              // total, or the hovered row's own share. Labelled "API value"
-              // (not "Saved") so it reads as an honest what-this-would-cost
-              // conversion, not a literal savings claim. Swaps with the same
-              // motion as Resets-in.
+              // total, or the hovered row's own share. "Est." because the
+              // per-account split is an estimate: shared-home usage is
+              // attributed by the login-ledger's view of who was signed in
+              // at each moment, which is approximate across observation gaps.
+              // Swaps with the same motion as Resets-in.
               value: _SwitchingValue(
                 saved,
                 color: saved.startsWith('\$') ? T.amber : T.t1,

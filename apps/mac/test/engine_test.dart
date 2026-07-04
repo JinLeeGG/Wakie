@@ -267,62 +267,70 @@ void main() {
     expect(firstEmission.single.session.pct, 60); // 40% used → 60% left
   });
 
-  test('rows carry the weekly API value and refreshAccount re-reads it',
+  test('rows carry the estimated weekly API value and refresh re-reads it',
       () async {
-    var value = 12.5;
+    // The default account's value flows through the shared-home split,
+    // keyed by its email (a@b.com, per _FakeClaude's detect).
+    var share = 12.5;
     final engine = Engine.withAdapters(
       {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
-      apiValue: (p, home) async =>
-          p == core.Provider.claude ? value : null,
+      apiValueSplit: (p, ownerAt) async => {'a@b.com': share},
     );
     final row = (await engine.load()).single;
     expect(row.apiValue, 12.5);
 
-    value = 99.0;
+    share = 99.0;
     final refreshed = await engine.refreshAccount(row.id);
     expect(refreshed!.apiValue, 99.0);
   });
 
-  test('a sandboxed account whose login owns the default home absorbs its '
-      'value', () async {
-    // Every row sandboxed (the ambient default was removed) — the terminal's
-    // usage in the shared default home must land on the account whose email
-    // is the one signed in there, not vanish.
-    final adapter =
-        _PendingClaude(const core.ProviderStatus(), extraEmail: 'a@b.com')
-          ..extraLoggedIn = true;
-    final engine = Engine.withAdapters(
-      {core.Provider.claude: adapter},
-      apiValue: (p, home) async => home == null ? 100.0 : 5.0,
-    );
-    await engine.load();
-    await engine.addAccount(Provider.claude, 'mine');
-    engine.removeAccount('claude-default');
-    await engine.pollSignins();
-
-    final rows = await engine.load();
-    final extra = rows.singleWhere((r) => r.id != 'claude-default');
-    expect(extra.apiValue, 105.0); // its sandbox + the default home
-  });
-
-  test('a sandboxed account with a different login stays sandbox-only',
+  test('the shared default home is split per account by the ledger estimate',
       () async {
+    // Two managed identities: the default row (a@b.com) and a sandboxed
+    // extra (work@b.com). The shared home's usage is split between them by
+    // email; the extra also keeps its own sandbox value.
     final adapter =
         _PendingClaude(const core.ProviderStatus(), extraEmail: 'work@b.com')
           ..extraLoggedIn = true;
     final engine = Engine.withAdapters(
       {core.Provider.claude: adapter},
-      apiValue: (p, home) async => home == null ? 100.0 : 5.0,
+      apiValue: (p, home) async => 5.0, // any sandbox home
+      apiValueSplit: (p, ownerAt) async =>
+          {'a@b.com': 100.0, 'work@b.com': 40.0},
     );
     await engine.load();
     await engine.addAccount(Provider.claude, 'work');
     await engine.pollSignins();
 
     final rows = await engine.load();
-    final extra = rows.singleWhere((r) => r.id != 'claude-default');
-    expect(extra.apiValue, 5.0); // default home belongs to the default row
     final def = rows.singleWhere((r) => r.id == 'claude-default');
-    expect(def.apiValue, 100.0);
+    expect(def.apiValue, 100.0); // its slice of the shared home
+    final extra = rows.singleWhere((r) => r.id != 'claude-default');
+    expect(extra.apiValue, 45.0); // sandbox 5 + shared-home slice 40
+  });
+
+  test('scans sample the default-home logins into the persisted ledger',
+      () async {
+    final store = core.Store.memory();
+    String? Function(DateTime)? seenOwnerAt;
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
+      store: store,
+      loginProbe: (p) async =>
+          p == core.Provider.claude ? 'A@B.com' : null,
+      apiValueSplit: (p, ownerAt) async {
+        seenOwnerAt = ownerAt;
+        return const {};
+      },
+    );
+    await engine.load();
+
+    // The split reader was handed a ledger view that already reflects the
+    // probe — attribution can never run ahead of observation.
+    expect(seenOwnerAt!(DateTime.now()), 'a@b.com');
+    // And the observation was persisted for the next cold start.
+    final revived = core.LoginLedger.fromJson(store.loginLedgerJson);
+    expect(revived.ownerAt(core.Provider.claude, DateTime.now()), 'a@b.com');
   });
 
   test('the API value defaults to null (no reader injected)', () async {

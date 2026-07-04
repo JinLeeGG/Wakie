@@ -42,9 +42,22 @@ typedef ConfigPreparer =
 typedef ApiValueReader =
     Future<double?> Function(core.Provider provider, String? configHome);
 
-ApiValueReader _realApiValueReader() {
+/// Splits the provider's *shared default home* value per owning login email,
+/// crediting each usage event to `ownerAt(its timestamp)` — the login
+/// ledger's estimate of who was signed in then. Null when the provider keeps
+/// no readable token log. Injected so tests never scan real homes.
+typedef ApiValueSplitReader = Future<Map<String, double>?> Function(
+    core.Provider provider, String? Function(DateTime at) ownerAt);
+
+/// Reads which login currently owns a provider's shared default home — a
+/// plain config-file read (no subprocess), cheap enough to sample every
+/// tick. Null when signed out or unknowable. Injected for tests.
+typedef LoginProbe = Future<String?> Function(core.Provider provider);
+
+(ApiValueReader, ApiValueSplitReader) _realApiValueReaders() {
+  // One scanner for both readers — they share the per-file parse cache.
   final scanner = core.ApiValueScanner();
-  return (core.Provider p, String? configHome) {
+  Future<double?> reader(core.Provider p, String? configHome) {
     final home = Platform.environment['HOME'] ?? '';
     return switch (p) {
       core.Provider.claude =>
@@ -52,6 +65,29 @@ ApiValueReader _realApiValueReader() {
       core.Provider.codex => scanner.codexWeekly(configHome ?? '$home/.codex'),
       core.Provider.antigravity => Future<double?>.value(null),
     };
+  }
+
+  Future<Map<String, double>?> split(
+      core.Provider p, String? Function(DateTime at) ownerAt) {
+    final home = Platform.environment['HOME'] ?? '';
+    return switch (p) {
+      core.Provider.claude =>
+        scanner.claudeWeeklyByOwner('$home/.claude', ownerAt),
+      core.Provider.codex =>
+        scanner.codexWeeklyByOwner('$home/.codex', ownerAt),
+      core.Provider.antigravity => Future<Map<String, double>?>.value(null),
+    };
+  }
+
+  return (reader, split);
+}
+
+Future<String?> _realLoginProbe(core.Provider p) async {
+  final home = Platform.environment['HOME'] ?? '';
+  return switch (p) {
+    core.Provider.claude => core.claudeLoginEmail('$home/.claude.json'),
+    core.Provider.codex => core.codexLoginEmail('$home/.codex/auth.json'),
+    core.Provider.antigravity => null,
   };
 }
 
@@ -317,6 +353,14 @@ class Engine {
   final PrivateBrowserPrefixer _privateBrowserPrefix;
   final SandboxKiller _killSandbox;
   final ApiValueReader _apiValue;
+  final ApiValueSplitReader _apiValueSplit;
+  final LoginProbe _loginProbe;
+
+  /// Which login owned each provider's shared default home over time —
+  /// sampled every tick, persisted, and used to attribute the default home's
+  /// usage per account (an estimate; see [core.LoginLedger]).
+  late final core.LoginLedger _ledger =
+      core.LoginLedger.fromJson(_store.loginLedgerJson);
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
@@ -327,67 +371,51 @@ class Engine {
   /// Saved card while a rescan is in flight.
   final Map<String, double?> _apiValueOf = {};
 
-  /// One account's weekly API value: its own config home, plus the provider's
-  /// shared default home when this account's login is the one active there.
+  /// One account's estimated weekly API value: its own sandbox home (fully
+  /// its own), plus its share of the provider's shared default home.
   ///
   /// Token logs carry no account identity — everything done in a terminal
   /// lands in `~/.claude`/`~/.codex` no matter which managed row it belongs
-  /// to. So the default home's value goes to whichever account owns its
-  /// current login: the ambient-default row when one is visible, else the
-  /// sandboxed account with the matching email. With every row sandboxed
-  /// (default rows removed), the money still shows up on the right account
-  /// instead of vanishing.
+  /// to. The login ledger fills that gap: each usage event is credited to
+  /// whichever login the ledger says owned the default home at the event's
+  /// timestamp. An estimate, exact from the moment tracking started.
   ///
-  /// The Saved card is decoration, never a reason to fail a scan: a reader
+  /// The value card is decoration, never a reason to fail a scan: a reader
   /// error (unreadable log dir, malformed file) keeps the last known value.
   Future<double?> _safeApiValue(core.Account a) async {
     try {
-      var v = await _apiValue(a.provider, a.configHome);
-      if (v != null && a.configHome != null) {
-        final email = _live[a.id]?.$2.email?.toLowerCase();
-        if (email != null && email == await _defaultHomeEmail(a.provider)) {
-          v += await _apiValue(a.provider, null) ?? 0;
-        }
-      }
-      return v;
+      // Sandbox home — everything in it belongs to this account. The default
+      // row's usage lives in the shared home, attributed below.
+      final own = a.configHome == null
+          ? null
+          : await _apiValue(a.provider, a.configHome);
+      final split = await _apiValueSplit(
+          a.provider, (at) => _ledger.ownerAt(a.provider, at));
+      if (own == null && split == null) return null; // no token log at all
+      final email = _live[a.id]?.$2.email?.toLowerCase();
+      final share = email == null ? 0.0 : (split?[email] ?? 0.0);
+      return (own ?? 0) + share;
     } catch (_) {
       return _apiValueOf[a.id];
     }
   }
 
-  /// Briefly-cached default-home login emails — the probe is an `auth
-  /// status`-style subprocess, one per provider per scan is plenty.
-  final Map<core.Provider, (DateTime, String?)> _defaultEmailCache = {};
-
-  /// The login email active in [p]'s shared default home. From the ambient
-  /// default account when discovery tracks one; otherwise (its row was
-  /// removed — discovery skips it entirely) a direct detect on the default
-  /// home. Null when the default home isn't signed in.
-  Future<String?> _defaultHomeEmail(core.Provider p) async {
-    for (final (a, pf) in _live.values) {
-      if (a.provider == p && a.configHome == null && pf.isOk) {
-        return pf.email?.toLowerCase();
-      }
+  /// Samples which login owns each shared default home right now (a plain
+  /// config-file read) and persists the ledger when something changed. Run
+  /// every scan and awake tick, so login switches are located to within a
+  /// minute while the app is running.
+  Future<void> _sampleLogins({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    var changed = false;
+    for (final p in [core.Provider.claude, core.Provider.codex]) {
+      try {
+        if (_ledger.sample(p, await _loginProbe(p), at)) changed = true;
+      } catch (_) {} // an unreadable probe is just "no observation"
     }
-    final hit = _defaultEmailCache[p];
-    if (hit != null &&
-        DateTime.now().difference(hit.$1) < const Duration(minutes: 1)) {
-      return hit.$2;
+    if (changed) {
+      _ledger.prune(at.subtract(const Duration(days: 8)));
+      _store.saveLoginLedger(_ledger.toJson());
     }
-    String? email;
-    try {
-      final pf = await _adapters[p]!.detect(core.Account(
-        id: '${p.name}-value-probe',
-        provider: p,
-        label: 'probe',
-        configHome: null,
-        deviceId: 'local',
-        addedAt: DateTime.now(),
-      ));
-      if (pf.isOk) email = pf.email?.toLowerCase();
-    } catch (_) {}
-    _defaultEmailCache[p] = (DateTime.now(), email);
-    return email;
   }
 
   Engine._(
@@ -404,23 +432,30 @@ class Engine {
     this._privateBrowserPrefix,
     this._killSandbox,
     this._apiValue,
+    this._apiValueSplit,
+    this._loginProbe,
   );
 
-  factory Engine.production() => Engine._(
-    core.productionAdapters(),
-    core.Store.load(),
-    _runLoginHidden,
-    _openTerminalWithScript,
-    _realEnsureDir,
-    _realDeleteDir,
-    _realPrepareConfig,
-    core.showMacNotification,
-    _realInstallLoginItem,
-    _realConfigureDarkWake,
-    _realPrivateBrowserPrefix,
-    core.killSandboxProcesses,
-    _realApiValueReader(),
-  );
+  factory Engine.production() {
+    final (apiValue, apiValueSplit) = _realApiValueReaders();
+    return Engine._(
+      core.productionAdapters(),
+      core.Store.load(),
+      _runLoginHidden,
+      _openTerminalWithScript,
+      _realEnsureDir,
+      _realDeleteDir,
+      _realPrepareConfig,
+      core.showMacNotification,
+      _realInstallLoginItem,
+      _realConfigureDarkWake,
+      _realPrivateBrowserPrefix,
+      core.killSandboxProcesses,
+      apiValue,
+      apiValueSplit,
+      _realLoginProbe,
+    );
+  }
 
   @visibleForTesting
   factory Engine.withAdapters(
@@ -437,6 +472,8 @@ class Engine {
     PrivateBrowserPrefixer? privateBrowserPrefix,
     SandboxKiller? killSandbox,
     ApiValueReader? apiValue,
+    ApiValueSplitReader? apiValueSplit,
+    LoginProbe? loginProbe,
   }) => Engine._(
     a,
     store ?? core.Store.memory(),
@@ -451,6 +488,8 @@ class Engine {
     privateBrowserPrefix ?? () async => '',
     killSandbox ?? (_) async {},
     apiValue ?? (_, _) async => null,
+    apiValueSplit ?? (_, _) async => null,
+    loginProbe ?? (_) async => null,
   );
 
   /// Emits account rows in two phases so the dashboard fills fast:
@@ -477,6 +516,9 @@ class Engine {
   Future<void> _run(StreamController<List<Account>> out) async {
     _scanning = true;
     try {
+      // Observe the default homes' logins before valuing anything, so the
+      // ledger covers "now" when the split attributes fresh events.
+      await _sampleLogins();
       // Discover everything (including pending extras) so [_live] can track
       // in-flight sign-ins for [pollSignins] — but only *signed-in* accounts
       // become visible rows. A pending extra stays invisible until its login
@@ -966,6 +1008,9 @@ class Engine {
     // race its reads (and a slow scan read would overwrite a fresh chain).
     if (_scanning) return const [];
     final at = now ?? DateTime.now();
+    // Keep the login ledger current while the app idles — this is what
+    // locates login switches between full scans.
+    await _sampleLogins(now: at);
     final changed = <Account>[];
     for (final (account, pf) in _live.values.toList()) {
       if (!pf.isOk) continue;

@@ -190,13 +190,35 @@ class ApiValueScanner {
 
   /// Weekly API-equivalent dollars for one Claude config home
   /// (`~/.claude`, or a sandboxed account's `CLAUDE_CONFIG_DIR`).
-  Future<double> claudeWeekly(String configHome, {DateTime? now}) =>
-      _weekly('$configHome/projects', _claudeFile, now: now);
+  Future<double> claudeWeekly(String configHome, {DateTime? now}) async =>
+      _sum(await _weekly('$configHome/projects', _claudeFile, now: now));
 
   /// Weekly API-equivalent dollars for one Codex home
   /// (`~/.codex`, or a sandboxed account's `CODEX_HOME`).
-  Future<double> codexWeekly(String codexHome, {DateTime? now}) =>
-      _weekly('$codexHome/sessions', _codexFile, now: now);
+  Future<double> codexWeekly(String codexHome, {DateTime? now}) async =>
+      _sum(await _weekly('$codexHome/sessions', _codexFile, now: now));
+
+  /// Weekly value of a *shared* Claude home, split per owning login: each
+  /// event is credited to `ownerAt(event time)` — the login-ledger's estimate
+  /// of who was signed in then. Events whose owner is unknown (empty ledger)
+  /// are dropped rather than guessed onto someone.
+  Future<Map<String, double>> claudeWeeklyByOwner(
+    String configHome,
+    String? Function(DateTime at) ownerAt, {
+    DateTime? now,
+  }) =>
+      _weekly('$configHome/projects', _claudeFile, ownerAt: ownerAt, now: now);
+
+  /// [claudeWeeklyByOwner], for a shared Codex home.
+  Future<Map<String, double>> codexWeeklyByOwner(
+    String codexHome,
+    String? Function(DateTime at) ownerAt, {
+    DateTime? now,
+  }) =>
+      _weekly('$codexHome/sessions', _codexFile, ownerAt: ownerAt, now: now);
+
+  static double _sum(Map<String, double> byOwner) =>
+      byOwner.values.fold(0, (a, b) => a + b);
 
   static Future<List<ApiUsageEvent>> _claudeFile(String path) =>
       Isolate.run(() => parseClaudeLog(File(path).readAsStringSync()));
@@ -204,21 +226,26 @@ class ApiValueScanner {
   static Future<List<ApiUsageEvent>> _codexFile(String path) =>
       Isolate.run(() => parseCodexRollout(File(path).readAsStringSync()));
 
-  Future<double> _weekly(
+  /// Scans one home and returns weekly totals keyed by owner. With no
+  /// [ownerAt] the home belongs to a single account and everything lands
+  /// under the '' key; with one (shared default homes), each event is keyed
+  /// by the login active at its timestamp, dropping unknown-owner events.
+  Future<Map<String, double>> _weekly(
     String root,
     Future<List<ApiUsageEvent>> Function(String path) parse, {
+    String? Function(DateTime at)? ownerAt,
     DateTime? now,
   }) async {
     final cutoff = (now ?? DateTime.now()).toUtc().subtract(_window);
     final dir = Directory(root);
-    if (!await dir.exists()) return 0;
+    if (!await dir.exists()) return const {};
 
     final files = <File>[];
     await for (final e in dir.list(recursive: true, followLinks: false)) {
       if (e is File && e.path.endsWith('.jsonl')) files.add(e);
     }
 
-    var total = 0.0;
+    final totals = <String, double>{};
     final seen = <String>{};
     final keep = <String>{};
     for (final f in files) {
@@ -248,12 +275,14 @@ class ApiValueScanner {
       for (final ev in entry.events) {
         if (ev.at.isBefore(cutoff)) continue;
         if (ev.key != null && !seen.add(ev.key!)) continue;
-        total += ev.cost;
+        final owner = ownerAt == null ? '' : ownerAt(ev.at);
+        if (owner == null) continue;
+        totals[owner] = (totals[owner] ?? 0) + ev.cost;
       }
     }
     // Drop cache entries for files that aged out or vanished — but only under
     // this root; the same scanner serves several homes.
     _cache.removeWhere((k, _) => k.startsWith(root) && !keep.contains(k));
-    return total;
+    return totals;
   }
 }

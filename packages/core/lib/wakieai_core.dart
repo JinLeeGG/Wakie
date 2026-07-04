@@ -19,6 +19,8 @@ export 'src/adapters/codex_usage_parser.dart';
 export 'src/claude_config.dart';
 export 'src/discovery.dart';
 export 'src/launch_agent.dart';
+export 'src/login_identity.dart';
+export 'src/login_ledger.dart';
 export 'src/notify.dart';
 export 'src/preflight.dart';
 export 'src/privileged.dart';
