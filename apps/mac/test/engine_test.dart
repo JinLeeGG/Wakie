@@ -546,6 +546,22 @@ void main() {
     expect(deleted, contains(startsWith(core.Store.defaultAccountsDir())));
   });
 
+  test('the first-ever read gets the cold timeout; cached accounts do not',
+      () async {
+    final store = core.Store.memory();
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
+      store: store,
+    );
+
+    final cold = engine.readTimeoutFor('claude-fresh');
+    store.cacheStatus('claude-fresh', const core.ProviderStatus());
+    final warm = engine.readTimeoutFor('claude-fresh');
+
+    expect(cold, greaterThan(warm)); // room for the CLI's cold start
+    expect(warm, const Duration(seconds: 30));
+  });
+
   test('a pending added mid-scan survives the scan (login still lands)',
       () async {
     final store = core.Store.memory();
