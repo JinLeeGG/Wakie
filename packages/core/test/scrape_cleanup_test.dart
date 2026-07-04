@@ -4,22 +4,45 @@ import 'package:wakieai_core/wakieai_core.dart';
 void main() {
   const root = '/Users/u/.wakieai/accounts';
 
-  test('finds agy processes whose HOME is inside the accounts sandbox', () {
+  test('finds orphaned agy processes whose HOME is inside the sandbox', () {
     const ps = '''
-  101 /sbin/launchd PATH=/usr/bin
-28720 agy TERM=xterm-256color HOME=$root/antigravity-1 PATH=/usr/bin
-87617 /Users/u/.local/bin/agy HOME=$root/antigravity-2 TERM=xterm
-33479 agy HOME=/Users/u PATH=/usr/bin
-  555 vim HOME=$root/antigravity-1
+  101     1 /sbin/launchd PATH=/usr/bin
+28720     1 agy TERM=xterm-256color HOME=$root/antigravity-1 PATH=/usr/bin
+87617     1 /Users/u/.local/bin/agy HOME=$root/antigravity-2 TERM=xterm
+33479     1 agy HOME=/Users/u PATH=/usr/bin
+  555     1 vim HOME=$root/antigravity-1
 ''';
-    expect(orphanedSandboxAgyPids(ps, accountsRoot: root), [28720, 87617]);
+    expect(orphanedSandboxScrapePids(ps, accountsRoot: root), [28720, 87617]);
   });
 
-  test('never matches the user\'s own agy (real HOME) or other tools', () {
+  test('finds orphaned claude scrapes plus their script pty wrapper', () {
+    // `script` is a platform binary, so ps redacts its env — it is only
+    // reachable through its claude child's CLAUDE_CONFIG_DIR marker.
     const ps = '''
-  200 agy HOME=/Users/u
-  201 /usr/bin/agyx HOME=$root/antigravity-1
+ 6173     1 script -q /dev/null /Users/u/.local/bin/claude
+ 6175  6173 /Users/u/.local/bin/claude CLAUDE_CONFIG_DIR=$root/claude-1 TERM=x
 ''';
-    expect(orphanedSandboxAgyPids(ps, accountsRoot: root), isEmpty);
+    expect(orphanedSandboxScrapePids(ps, accountsRoot: root), [6173, 6175]);
+  });
+
+  test('spares in-flight scrapes owned by a live app or login window', () {
+    // claude's script wrapper still belongs to the app (ppid 900 ≠ 1), and
+    // the agy login window's shell is alive — neither is orphaned.
+    const ps = '''
+  900     1 /Applications/wakieai.app/Contents/MacOS/wakieai HOME=/Users/u
+  901   900 script -q /dev/null claude
+  902   901 claude CLAUDE_CONFIG_DIR=$root/claude-1 TERM=x
+  910   905 agy HOME=$root/antigravity-1 TERM=x
+''';
+    expect(orphanedSandboxScrapePids(ps, accountsRoot: root), isEmpty);
+  });
+
+  test('never matches the user\'s own CLIs (real config) or other tools', () {
+    const ps = '''
+  200     1 agy HOME=/Users/u
+  201     1 /usr/bin/agyx HOME=$root/antigravity-1
+  202     1 claude CLAUDE_CONFIG_DIR=/Users/u/.claude
+''';
+    expect(orphanedSandboxScrapePids(ps, accountsRoot: root), isEmpty);
   });
 }
