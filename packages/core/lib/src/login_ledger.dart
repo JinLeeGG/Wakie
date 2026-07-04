@@ -40,14 +40,17 @@ class LoginLedger {
   ///  * within observed history — the most recent change at or before [at]
   ///    (a gap between observations belongs to the login seen *entering* it;
   ///    the switch can only be located at the next observation);
-  ///  * before the first observation — the first login ever seen (bootstrap:
-  ///    pre-ledger history is credited to the login that was active when
-  ///    tracking began, and ages out of the 7-day window within a week);
+  ///  * before the first observation — null. Pre-tracking history has no
+  ///    knowable owner, and guessing (e.g. crediting it all to whoever was
+  ///    signed in at install) is exactly the misattribution this ledger
+  ///    exists to fix — so every account starts at zero and the numbers
+  ///    only ever show what was actually observed;
   ///  * no observations at all — null.
   String? ownerAt(Provider p, DateTime at) {
     final list = _changes[p];
     if (list == null || list.isEmpty) return null;
     final t = at.toUtc();
+    if (list.first.at.isAfter(t)) return null;
     LoginChange owner = list.first;
     for (final c in list) {
       if (c.at.isAfter(t)) break;

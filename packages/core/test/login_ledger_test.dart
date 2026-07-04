@@ -26,10 +26,11 @@ void main() {
     expect(ledger.ownerAt(Provider.claude, t2), 'x@b.com');
   });
 
-  test('ownerAt: pre-ledger history bootstraps to the first observed login',
+  test('ownerAt: pre-tracking history has no owner — accounts start at zero',
       () {
     final ledger = LoginLedger()..sample(Provider.claude, 'a@b.com', t1);
-    expect(ledger.ownerAt(Provider.claude, t0), 'a@b.com');
+    expect(ledger.ownerAt(Provider.claude, t0), isNull);
+    expect(ledger.ownerAt(Provider.claude, t1), 'a@b.com');
   });
 
   test('ownerAt: empty ledger and unrelated provider are unknown', () {
@@ -53,8 +54,9 @@ void main() {
       ..sample(Provider.claude, 'y@b.com', t2);
     // Cutoff between t1 and t2: t0's entry is obsolete, t1's still defines
     // ownership at the cutoff instant.
-    ledger.prune(t1.add(const Duration(hours: 1)));
-    expect(ledger.ownerAt(Provider.claude, t0), 'x@b.com'); // t0 pruned away
+    final cutoff = t1.add(const Duration(hours: 1));
+    ledger.prune(cutoff);
+    expect(ledger.ownerAt(Provider.claude, cutoff), 'x@b.com');
     expect(ledger.ownerAt(Provider.claude, t1), 'x@b.com');
     expect(ledger.ownerAt(Provider.claude, t2), 'y@b.com');
   });
