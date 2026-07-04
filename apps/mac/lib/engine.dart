@@ -266,6 +266,12 @@ const _signinTimeout = Duration(minutes: 15);
 /// can't hang the whole dashboard load — it degrades to "unknown" instead.
 const _readTimeout = Duration(seconds: 30);
 
+/// First-ever read of an account (nothing cached yet): the CLI's cold start
+/// in a fresh isolated home reliably blows past [_readTimeout] (observed 6/6
+/// for Claude), which killed the read only to have the retry succeed ~40s
+/// later. Give the one read that can't hang a visible row more room instead.
+const _coldReadTimeout = Duration(seconds: 75);
+
 /// Timestamped debug trace for live diagnosis (debug builds only).
 void _dbg(String message) =>
     debugPrint('wakieai ${DateTime.now().toIso8601String().substring(11, 23)} '
@@ -580,12 +586,18 @@ class Engine {
     try {
       return await _adapters[account.provider]!
           .readStatus(account)
-          .timeout(_readTimeout);
+          .timeout(readTimeoutFor(account.id));
     } on TimeoutException {
       debugPrint('wakieai: readStatus timed out for ${account.id}');
       return core.ProviderStatus.unknown;
     }
   }
+
+  /// [_coldReadTimeout] for an account that has never produced a status
+  /// (first read after sign-in), [_readTimeout] once anything is cached.
+  @visibleForTesting
+  Duration readTimeoutFor(String id) =>
+      _store.statusFor(id) == null ? _coldReadTimeout : _readTimeout;
 
   /// The display name of an already-managed account with the same provider and
   /// email as [id], or null if [id] isn't a duplicate. Compares against the
