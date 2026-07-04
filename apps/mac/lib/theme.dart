@@ -15,7 +15,9 @@ class T {
   static const crit = Color(0xFFFF7A85);
 
   // Surfaces
-  static const glass = Color(0x8C161820); // rgba(22,24,32,.55)
+  // Opaque enough (.80) to stay legible over white/bright windows behind the
+  // panel — the hudWindow blur bleeds whatever is underneath through the tint.
+  static const glass = Color(0xCC161820); // rgba(22,24,32,.80)
   static const hair = Color(0x17FFFFFF); // rgba(255,255,255,.09)
   static const hair2 = Color(0x24FFFFFF); // rgba(255,255,255,.14)
 
