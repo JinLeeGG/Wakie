@@ -70,6 +70,7 @@ class Store {
   int? _morningAnchorMinute;
   bool? _launchAtLogin;
   bool? _darkWake;
+  Map<String, dynamic> _loginLedger = const {};
 
   Store._(this._file, this._removedAccountIds, this._status, this._autoStart,
       this._extraAccounts,
@@ -131,7 +132,9 @@ class Store {
           json['morningAnchorHour'] as int?,
           json['morningAnchorMinute'] as int?,
           json['launchAtLogin'] as bool?,
-          json['darkWake'] as bool?);
+          json['darkWake'] as bool?)
+        .._loginLedger =
+            json['loginLedger'] as Map<String, dynamic>? ?? const {};
     } catch (_) {
       return Store._(file, <String>{}, <String, Status>{}, <String, bool>{}, []);
     }
@@ -200,6 +203,17 @@ class Store {
     _save();
   }
 
+  /// The persisted login-ledger JSON (see `LoginLedger`) — which login owned
+  /// each provider's shared default home over time, for attributing that
+  /// home's API-value estimate per account. Raw JSON so the store stays
+  /// decoupled from the ledger type.
+  Map<String, dynamic> get loginLedgerJson => _loginLedger;
+
+  void saveLoginLedger(Map<String, dynamic> json) {
+    _loginLedger = json;
+    _save();
+  }
+
   Status? statusFor(String accountId) => _status[accountId];
 
   /// Caches an account's last-known status so the dashboard has something to
@@ -239,6 +253,7 @@ class Store {
         'morningAnchorMinute': _morningAnchorMinute,
       if (_launchAtLogin != null) 'launchAtLogin': _launchAtLogin,
       if (_darkWake != null) 'darkWake': _darkWake,
+      if (_loginLedger.isNotEmpty) 'loginLedger': _loginLedger,
     }));
   }
 
