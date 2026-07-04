@@ -104,7 +104,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _winIn = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 700),
@@ -187,10 +187,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       const Duration(seconds: 60),
       (_) => _awakeTick(),
     );
+    // The moment the user comes back from the browser after finishing a
+    // login, poll right away — waiting out the periodic timer makes a
+    // just-completed sign-in look like it didn't register.
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _pollPendingSignins();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller?.removeListener(_refreshAll);
     _sub?.cancel();
     _tagTimer?.cancel();

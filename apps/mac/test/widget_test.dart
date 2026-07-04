@@ -153,6 +153,33 @@ void main() {
     expect(find.text('Claude · Personal'), findsNothing);
   });
 
+  testWidgets('Regaining focus polls pending sign-ins immediately',
+      (tester) async {
+    var polls = 0;
+    final updates = StreamController<List<Account>>();
+    addTearDown(updates.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DashboardScreen(
+          source: () => updates.stream,
+          onPollSignins: () async {
+            polls++;
+            return const [];
+          },
+        ),
+      ),
+    );
+    final before = polls;
+
+    // The user comes back from the browser after finishing a login — the
+    // poll must fire right away, not wait out the periodic timer.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(polls, before + 1);
+  });
+
   testWidgets('Unknown session disables auto-start toggle', (tester) async {
     var toggled = false;
 
