@@ -86,6 +86,12 @@ class Account {
   /// summary bar's "next reset". Null for mock rows and unknown windows.
   final DateTime? sessionResetAt;
 
+  /// This week's API-equivalent value in dollars — what the account's local
+  /// token logs would have cost at API list price. Null when the provider
+  /// keeps no readable token log (Antigravity) or the scan hasn't landed;
+  /// the Saved card renders that as "–".
+  final double? apiValue;
+
   const Account({
     this.id = '',
     required this.provider,
@@ -97,7 +103,25 @@ class Account {
     this.autoStart = false,
     this.autoStartAvailable = true,
     this.sessionResetAt,
+    this.apiValue,
   });
+}
+
+/// "$1,435" — dollars at a glance for the Saved card. Whole dollars with
+/// thousands grouping; one decimal only under $10 (where a whole dollar
+/// would round tiny real values to noise).
+String usdLabel(double v) {
+  if (v < 10) {
+    final s = v.toStringAsFixed(1);
+    return '\$${s.endsWith('.0') ? s.substring(0, s.length - 2) : s}';
+  }
+  final digits = v.round().toString();
+  final b = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) b.write(',');
+    b.write(digits[i]);
+  }
+  return '\$$b';
 }
 
 /// The exact 7 rows from dashboard-mockup.html.
@@ -109,6 +133,7 @@ const mockAccounts = <Account>[
     session: Meter(12, Tone.crit, '4:30am'),
     weekly: Meter(34, Tone.warn, 'Jul 7 (5:00pm)'),
     status: RunStatus.low,
+    apiValue: 132.4,
     autoStart: true,
   ),
   Account(
@@ -118,6 +143,7 @@ const mockAccounts = <Account>[
     session: Meter(88, Tone.ok, '9:15am'),
     weekly: Meter(92, Tone.ok, 'Jul 7 (9:15am)'),
     status: RunStatus.ok,
+    apiValue: 486.0,
     autoStart: true,
   ),
   Account(
@@ -127,6 +153,7 @@ const mockAccounts = <Account>[
     session: Meter(100, Tone.ok, '1:20pm'),
     weekly: Meter(59, Tone.ok, 'Jul 6 (2:00pm)'),
     status: RunStatus.fresh,
+    apiValue: 21.7,
   ),
   Account(
     provider: Provider.anti,
@@ -143,6 +170,7 @@ const mockAccounts = <Account>[
     session: Meter(76, Tone.ok, '2:05pm'),
     weekly: Meter(64, Tone.ok, 'Jul 6 (6:30pm)'),
     status: RunStatus.fresh,
+    apiValue: 8.3,
   ),
   Account(
     provider: Provider.claude,
@@ -151,6 +179,7 @@ const mockAccounts = <Account>[
     session: Meter(41, Tone.warn, '3:40pm'),
     weekly: Meter(70, Tone.ok, 'Jul 8 (8:00am)'),
     status: RunStatus.ok,
+    apiValue: 64.9,
     autoStart: true,
   ),
   Account(

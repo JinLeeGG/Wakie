@@ -278,6 +278,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     return widget.source == null ? '4h 30m' : '—';
   }
 
+  /// The Saved card's value: the hovered row's weekly API-equivalent dollars
+  /// ("–" when it has none — Antigravity keeps no token log), or — with
+  /// nothing hovered — the total across accounts. "—" while nothing has been
+  /// scanned yet.
+  String _savedCardValue() {
+    final id = _hoveredId;
+    if (id != null) {
+      final i = _accounts.indexWhere((a) => a.id == id);
+      if (i != -1) {
+        final v = _accounts[i].apiValue;
+        return v == null ? '–' : usdLabel(v);
+      }
+    }
+    var total = 0.0;
+    var any = false;
+    for (final a in _accounts) {
+      final v = a.apiValue;
+      if (v == null) continue;
+      any = true;
+      total += v;
+    }
+    return any ? usdLabel(total) : '—';
+  }
+
   Future<void> _awakeTick() async {
     if (_ticking) return;
     final tick = widget.onAwakeTick;
@@ -636,9 +660,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               _header(),
               SummaryBar(
                 accountCount: _accounts.length,
-                runningLow: _accounts
-                    .where((a) => a.status == RunStatus.low)
-                    .length,
+                saved: _savedCardValue(),
                 nextReset: _resetCardValue(),
                 onAddAccount: () => setState(() => _addingAccount = true),
                 morningAnchorHour: _anchorHour,

@@ -29,6 +29,21 @@ void main() {
     });
   });
 
+  group('usdLabel', () {
+    test('whole dollars with thousands grouping from \$10 up', () {
+      expect(usdLabel(1435.54), r'$1,436');
+      expect(usdLabel(713.3), r'$713');
+      expect(usdLabel(38.6), r'$39');
+      expect(usdLabel(10), r'$10');
+      expect(usdLabel(1234567.0), r'$1,234,567');
+    });
+    test('one decimal under \$10, trimming a bare .0', () {
+      expect(usdLabel(8.34), r'$8.3');
+      expect(usdLabel(9.0), r'$9');
+      expect(usdLabel(0), r'$0');
+    });
+  });
+
   group('untilLabel', () {
     final now = DateTime(2026, 7, 3, 12, 0);
     test('hours and minutes within a day', () {

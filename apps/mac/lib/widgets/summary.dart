@@ -4,7 +4,11 @@ import '../theme.dart';
 
 class SummaryBar extends StatelessWidget {
   final int accountCount;
-  final int runningLow;
+
+  /// The Saved card's value — this week's API-equivalent dollars for the
+  /// hovered row, or the total across accounts. "–" for a hovered account
+  /// with no token log (Antigravity). Animated on change by the card.
+  final String saved;
 
   /// The Resets-in card's value — a countdown ("5h 12m") to the hovered row's
   /// session reset, or the soonest one. Animated on change by the card.
@@ -17,7 +21,7 @@ class SummaryBar extends StatelessWidget {
   const SummaryBar({
     super.key,
     required this.accountCount,
-    required this.runningLow,
+    required this.saved,
     required this.nextReset,
     required this.onAddAccount,
     this.morningAnchorHour = 8,
@@ -48,42 +52,22 @@ class SummaryBar extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
-              label: 'Running low',
-              value: Text('$runningLow',
-                  style: mono(22,
-                      weight: FontWeight.w600,
-                      color: runningLow > 0 ? T.warn : T.t1)),
+              label: 'Saved · 7d',
+              // This week's tokens priced at API list rates — the whole panel
+              // total, or the hovered row's own share. Swaps with the same
+              // motion as Resets-in.
+              value: _SwitchingValue(
+                saved,
+                color: saved.startsWith('\$') ? T.amber : T.t1,
+              ),
             ),
           ),
           const SizedBox(width: 11),
           Expanded(
             child: _Pill(
               label: 'Resets in',
-              // Counts down to the hovered row (or the soonest reset). Matches
-              // the app's motion — a short easeOutCubic cross-fade with the
-              // faint downward drift of the tagline, not a hard slide.
-              value: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeIn,
-                layoutBuilder: (current, previous) =>
-                    Stack(alignment: Alignment.centerLeft, children: [
-                  ...previous,
-                  ?current,
-                ]),
-                transitionBuilder: (child, anim) => FadeTransition(
-                  opacity: anim,
-                  child: SlideTransition(
-                    position:
-                        Tween(begin: const Offset(0, -0.18), end: Offset.zero)
-                            .animate(anim),
-                    child: child,
-                  ),
-                ),
-                child: Text(nextReset,
-                    key: ValueKey(nextReset),
-                    style: mono(22, weight: FontWeight.w600, color: T.t1)),
-              ),
+              // Counts down to the hovered row (or the soonest reset).
+              value: _SwitchingValue(nextReset),
             ),
           ),
           const SizedBox(width: 11),
@@ -96,6 +80,40 @@ class SummaryBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A card value that swaps on hover (Saved / Resets-in). Matches the app's
+/// motion — a short easeOutCubic cross-fade with the faint downward drift of
+/// the tagline, not a hard slide.
+class _SwitchingValue extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _SwitchingValue(this.text, {this.color = T.t1});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeIn,
+      layoutBuilder: (current, previous) =>
+          Stack(alignment: Alignment.centerLeft, children: [
+        ...previous,
+        ?current,
+      ]),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: anim,
+        child: SlideTransition(
+          position: Tween(begin: const Offset(0, -0.18), end: Offset.zero)
+              .animate(anim),
+          child: child,
+        ),
+      ),
+      child: Text(text,
+          key: ValueKey(text),
+          style: mono(22, weight: FontWeight.w600, color: color)),
     );
   }
 }

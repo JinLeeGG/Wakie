@@ -33,6 +33,26 @@ typedef SandboxKiller = Future<void> Function(String configHome);
 typedef ConfigPreparer =
     Future<void> Function(core.Provider provider, String configHome);
 
+/// Reads one account's weekly API-equivalent value (dollars the same tokens
+/// would cost at API list price) from its local CLI logs. Null when the
+/// provider keeps no readable token log (Antigravity). Injected so tests
+/// never scan the real `~/.claude` / `~/.codex`.
+typedef ApiValueReader = Future<double?> Function(core.Account account);
+
+ApiValueReader _realApiValueReader() {
+  final scanner = core.ApiValueScanner();
+  return (core.Account a) {
+    final home = Platform.environment['HOME'] ?? '';
+    return switch (a.provider) {
+      core.Provider.claude =>
+        scanner.claudeWeekly(a.configHome ?? '$home/.claude'),
+      core.Provider.codex =>
+        scanner.codexWeekly(a.configHome ?? '$home/.codex'),
+      core.Provider.antigravity => Future<double?>.value(null),
+    };
+  };
+}
+
 Future<void> _realPrepareConfig(core.Provider provider, String configHome) {
   return switch (provider) {
     core.Provider.claude => core.prepareClaudeConfigHome(configHome),
@@ -294,10 +314,26 @@ class Engine {
   final DarkWakeConfigurer _configureDarkWake;
   final PrivateBrowserPrefixer _privateBrowserPrefix;
   final SandboxKiller _killSandbox;
+  final ApiValueReader _apiValue;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
   final Map<String, (core.Account, core.Preflight)> _live = {};
+
+  /// Last known weekly API-equivalent value per account id — kept so rows
+  /// rebuilt outside a full scan (awake tick, sign-in poll) don't blank the
+  /// Saved card while a rescan is in flight.
+  final Map<String, double?> _apiValueOf = {};
+
+  /// The Saved card is decoration, never a reason to fail a scan: a reader
+  /// error (unreadable log dir, malformed file) keeps the last known value.
+  Future<double?> _safeApiValue(core.Account a) async {
+    try {
+      return await _apiValue(a);
+    } catch (_) {
+      return _apiValueOf[a.id];
+    }
+  }
 
   Engine._(
     this._adapters,
@@ -312,6 +348,7 @@ class Engine {
     this._configureDarkWake,
     this._privateBrowserPrefix,
     this._killSandbox,
+    this._apiValue,
   );
 
   factory Engine.production() => Engine._(
@@ -327,6 +364,7 @@ class Engine {
     _realConfigureDarkWake,
     _realPrivateBrowserPrefix,
     core.killSandboxProcesses,
+    _realApiValueReader(),
   );
 
   @visibleForTesting
@@ -343,6 +381,7 @@ class Engine {
     DarkWakeConfigurer? configureDarkWake,
     PrivateBrowserPrefixer? privateBrowserPrefix,
     SandboxKiller? killSandbox,
+    ApiValueReader? apiValue,
   }) => Engine._(
     a,
     store ?? core.Store.memory(),
@@ -356,6 +395,7 @@ class Engine {
     configureDarkWake ?? (_, _, _) async => null,
     privateBrowserPrefix ?? () async => '',
     killSandbox ?? (_) async {},
+    apiValue ?? (_) async => null,
   );
 
   /// Emits account rows in two phases so the dashboard fills fast:
@@ -414,11 +454,16 @@ class Engine {
 
       // Phase 1: show accounts immediately, with last-known usage from the
       // local store (if any) while a live read is still in flight.
-      final rows = [
-        for (final (a, pf) in visible)
-          _toRow(a, pf, _cachedStatus(a.id),
-              name: _nameFor(a), autoStart: _autoStartFor(a)),
-      ];
+      final statuses = <int, core.ProviderStatus>{};
+      Account rowFor(int i) {
+        final (a, pf) = visible[i];
+        return _toRow(a, pf, statuses[i] ?? _cachedStatus(a.id),
+            name: _nameFor(a),
+            autoStart: _autoStartFor(a),
+            apiValue: _apiValueOf[a.id]);
+      }
+
+      final rows = [for (var i = 0; i < visible.length; i++) rowFor(i)];
       // Every emission re-checks removal: the user can hit Remove while this
       // scan is still reading, and a stale snapshot must not resurrect the
       // row when the next read completes.
@@ -428,23 +473,25 @@ class Engine {
           ]);
       emit();
 
-      // Phase 2: fill each account's usage as its read completes, in
-      // parallel. Uses _readReady (not readStatus directly) so an isolated
-      // Claude account is made capture-ready first — otherwise its very first
-      // load could stall on / get bounced into the onboarding flow.
+      // Phase 2: fill each account's usage and weekly API value as each
+      // read completes, in parallel. Uses _readReady (not readStatus
+      // directly) so an isolated Claude account is made capture-ready first —
+      // otherwise its very first load could stall on / get bounced into the
+      // onboarding flow.
       await Future.wait([
-        for (var i = 0; i < visible.length; i++)
+        for (var i = 0; i < visible.length; i++) ...[
           _readReady(visible[i].$1).then((s) {
-            rows[i] = _toRow(
-              visible[i].$1,
-              visible[i].$2,
-              s,
-              name: _nameFor(visible[i].$1),
-              autoStart: _autoStartFor(visible[i].$1),
-            );
+            statuses[i] = s;
             _store.cacheStatus(visible[i].$1.id, s);
+            rows[i] = rowFor(i);
             emit();
           }),
+          _safeApiValue(visible[i].$1).then((v) {
+            _apiValueOf[visible[i].$1.id] = v;
+            rows[i] = rowFor(i);
+            emit();
+          }),
+        ],
       ]);
     } finally {
       _scanning = false;
@@ -480,12 +527,17 @@ class Engine {
           core.ProviderStatus.unknown,
           name: _nameFor(account),
           autoStart: _autoStartFor(account),
+          apiValue: _apiValueOf[id],
         );
       }
-      final status = await _readReady(account);
+      final (status, value) =
+          await (_readReady(account), _safeApiValue(account)).wait;
       _store.cacheStatus(id, status);
+      _apiValueOf[id] = value;
       return _toRow(account, pf, status,
-          name: _nameFor(account), autoStart: _autoStartFor(account));
+          name: _nameFor(account),
+          autoStart: _autoStartFor(account),
+          apiValue: value);
     } finally {
       _inFlight.remove(id);
     }
@@ -568,6 +620,7 @@ class Engine {
         _cachedStatus(id),
         name: _nameFor(account),
         autoStart: _autoStartFor(account),
+        apiValue: _apiValueOf[id],
       ),
     );
   }
@@ -927,6 +980,7 @@ class Engine {
             _cachedStatus(account.id),
             name: _nameFor(account),
             autoStart: _autoStartFor(account),
+            apiValue: _apiValueOf[account.id],
           ),
         );
       } finally {
@@ -974,6 +1028,7 @@ Account _toRow(
   core.ProviderStatus s, {
   required String name,
   required bool autoStart,
+  double? apiValue,
 }) {
   final session = _meter(s.session, weekly: false);
   final sessionResetAt = core.resolveResetAt(s.session);
@@ -1002,6 +1057,7 @@ Account _toRow(
     autoStart: autoStart,
     autoStartAvailable: s.session.isKnown && sessionResetAt != null,
     sessionResetAt: sessionResetAt,
+    apiValue: apiValue,
   );
 }
 

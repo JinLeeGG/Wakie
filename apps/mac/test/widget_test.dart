@@ -153,6 +153,68 @@ void main() {
     expect(find.text('Claude · Personal'), findsNothing);
   });
 
+  testWidgets('Saved card totals weekly API value and follows row hover',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    Account row(String id, Provider p, String name, double? value) => Account(
+          id: id,
+          provider: p,
+          name: name,
+          plan: 'a@b.com · Pro',
+          session: const Meter(80, Tone.ok, '4:30am'),
+          weekly: const Meter(70, Tone.ok, 'Jul 7 (5:00pm)'),
+          status: RunStatus.ok,
+          apiValue: value,
+        );
+
+    final updates = StreamController<List<Account>>();
+    addTearDown(updates.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFF070810)),
+          child: DashboardScreen(source: () => updates.stream),
+        ),
+      ),
+    );
+    updates.add([
+      row('claude-1', Provider.claude, 'Claude · Personal', 1435.54),
+      row('codex-1', Provider.codex, 'Codex · main', 38.6),
+      row('anti-1', Provider.anti, 'Antigravity · main', null),
+    ]);
+    await tester.pump(const Duration(seconds: 1));
+
+    // No hover: the total across accounts (1435.54 + 38.6 → $1,474).
+    expect(find.text(r'$1,474'), findsOneWidget);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+
+    // Hovering a row shows that account's own value…
+    await mouse.moveTo(tester.getCenter(find.text('Claude · Personal')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text(r'$1,436'), findsOneWidget);
+
+    await mouse.moveTo(tester.getCenter(find.text('Codex · main')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text(r'$39'), findsOneWidget);
+
+    // …and Antigravity (no token log) reads as "–", not a fake zero.
+    await mouse.moveTo(tester.getCenter(find.text('Antigravity · main')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('–'), findsOneWidget);
+
+    // Leaving the list restores the total.
+    await mouse.moveTo(Offset.zero);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text(r'$1,474'), findsOneWidget);
+  });
+
   testWidgets('Regaining focus polls pending sign-ins immediately',
       (tester) async {
     var polls = 0;
