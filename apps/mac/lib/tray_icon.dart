@@ -104,15 +104,19 @@ class TrayIcon {
       await _show('work_0');
       _spin = Timer.periodic(const Duration(milliseconds: 40), (_) {
         _frame = (_frame + 1) % trayWorkFrames;
-        trayManager.setIcon('assets/tray/work_$_frame.png', isTemplate: false);
+        trayManager.setIcon('assets/tray/work_$_frame@2x.png',
+            isTemplate: false);
       });
     } else {
       await _show(next == TrayState.attention ? 'attention' : 'idle');
     }
   }
 
+  // Load the @2x (36px) art, not the 18px base: tray_manager forces the
+  // NSImage to an 18pt logical size, so an 18px bitmap gets upscaled 2× on a
+  // Retina menu bar (blurry). A 36px bitmap at 18pt is a crisp 1:1 @2x render.
   Future<void> _show(String name) =>
-      trayManager.setIcon('assets/tray/$name.png', isTemplate: false);
+      trayManager.setIcon('assets/tray/$name@2x.png', isTemplate: false);
 
   void dispose() => _spin?.cancel();
 }
