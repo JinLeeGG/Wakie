@@ -266,6 +266,11 @@ const _signinTimeout = Duration(minutes: 15);
 /// can't hang the whole dashboard load — it degrades to "unknown" instead.
 const _readTimeout = Duration(seconds: 30);
 
+/// Timestamped debug trace for live diagnosis (debug builds only).
+void _dbg(String message) =>
+    debugPrint('wakieai ${DateTime.now().toIso8601String().substring(11, 23)} '
+        '$message');
+
 /// Bridges the WakieAI engine (`packages/core`) to the dashboard's view model.
 ///
 /// Discovers logged-in accounts and reads each one's live `/usage`, mapping
@@ -393,6 +398,8 @@ class Engine {
             !discovered.containsKey(id) &&
             !(e.$1.configHome != null && !e.$2.isOk))
         ..addAll(discovered);
+      _dbg('scan: discovered=${discovered.keys.toList()} '
+          'pending=${pendingSigninIds()}');
 
       final visible = [
         for (final e in all)
@@ -435,6 +442,7 @@ class Engine {
       ]);
     } finally {
       _scanning = false;
+      _dbg('scan: done');
       await out.close();
     }
   }
@@ -498,6 +506,7 @@ class Engine {
     _live[id] = (account, pf);
     if (!pf.isOk) {
       if (DateTime.now().difference(account.addedAt) > _signinTimeout) {
+        _dbg('signin: $id expired');
         removeAccount(id);
         return SignInResult(
           SignInState.expired,
@@ -509,6 +518,7 @@ class Engine {
 
     final dupOf = _duplicateOf(id, account.provider, pf.email);
     if (dupOf != null) {
+      _dbg('signin: $id landed as ${pf.email} but duplicates "$dupOf"');
       removeAccount(id);
       return SignInResult(
         SignInState.duplicate,
@@ -517,6 +527,7 @@ class Engine {
             'removed the duplicate.',
       );
     }
+    _dbg('signin: $id ready (${pf.email})');
 
     // Return the row immediately (with any cached usage), so a just-signed-in
     // account appears at once — the caller fills live usage via a follow-up
@@ -607,6 +618,7 @@ class Engine {
             .where((e) => e.id == id)
             .map((e) => e.configHome)
             .firstOrNull;
+    _dbg('remove: $id (configHome=$configHome)');
     _store.removeAccount(id);
     _live.remove(id);
     // Only ever delete inside the accounts sandbox root — never a path the
@@ -644,6 +656,7 @@ class Engine {
             e.$1.id,
       ];
       for (final staleId in stale) {
+        _dbg('add: superseding stale codex sign-in $staleId');
         removeAccount(staleId);
       }
     }
@@ -714,6 +727,8 @@ class Engine {
       return 'Added, but the login could not be launched. Try Update on the '
           'row, or sign in manually.';
     }
+    _dbg('add: $id launched (hasExisting=$hasExisting, '
+        'pending=${pendingSigninIds()})');
     return null;
   }
 
