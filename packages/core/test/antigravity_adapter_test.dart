@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:wakieai_core/wakieai_core.dart';
 
@@ -92,5 +94,35 @@ GEMINI MODELS
     final adapter = AntigravityAdapter(capture: (_) async => '');
     final pf = await adapter.detect(_account('/tmp/wakieai-agy-no-keychain'));
     expect(pf.state, PreflightState.notLoggedIn);
+  });
+
+  test('antigravityLogEmail reads the newest authentication, not the first',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('wakieai_agy_log');
+    addTearDown(() => dir.delete(recursive: true));
+    // Older log: signed in as A. Newer log: re-authenticated as B — the
+    // account was switched, so B is the current identity.
+    File('${dir.path}/cli-1.log').writeAsStringSync(
+        'I0704 browser.go:171] consumerOAuth: authenticated successfully\n'
+        'I0704 server_oauth.go:214] applyAuthResult: email=old@a.com, '
+        'authMethod=consumer, quotaProject=\n');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    File('${dir.path}/cli-2.log').writeAsStringSync(
+        'I0704 server_oauth.go:214] applyAuthResult: email=old@a.com, '
+        'authMethod=consumer, quotaProject=\n'
+        'I0704 server_oauth.go:214] applyAuthResult: email=new@b.com, '
+        'authMethod=consumer, quotaProject=\n');
+
+    expect(antigravityLogEmail(dir.path), 'new@b.com');
+  });
+
+  test('antigravityLogEmail is null with no logs or no auth lines', () async {
+    expect(antigravityLogEmail('/tmp/wakieai-agy-missing-logdir'), isNull);
+
+    final dir = await Directory.systemTemp.createTemp('wakieai_agy_log');
+    addTearDown(() => dir.delete(recursive: true));
+    File('${dir.path}/cli-1.log')
+        .writeAsStringSync('I0704 nothing about authentication here\n');
+    expect(antigravityLogEmail(dir.path), isNull);
   });
 }

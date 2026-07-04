@@ -45,12 +45,15 @@ class AntigravityAdapter implements ProviderAdapter {
     // keychain — no `oauth_creds.json`/`google_accounts.json` files — so we
     // detect it by the presence of the `agy` credential *item* in that
     // keychain (existence only; the token itself is never read — R0). The
-    // email isn't file-exposed for these, so the row shows its label alone.
+    // identity comes from agy's own CLI log: without it a fresh login lands
+    // with an unknown email, and the duplicate check can't catch the same
+    // Google account being added twice.
     if (a.configHome != null) {
       final signedIn = await _hasKeychainCredential(a.configHome!);
-      return signedIn
-          ? const Preflight(PreflightState.ok)
-          : const Preflight(PreflightState.notLoggedIn);
+      if (!signedIn) return const Preflight(PreflightState.notLoggedIn);
+      return Preflight(PreflightState.ok,
+          email: antigravityLogEmail(
+              '${a.configHome!}/.gemini/antigravity-cli/log'));
     }
 
     // Ambient default: token + email live in ~/.gemini files. Existence check
@@ -82,7 +85,8 @@ class AntigravityAdapter implements ProviderAdapter {
   }
 
   /// The signed-in Google account email, from `google_accounts.json`'s
-  /// `active` field (not a secret). Null if unavailable.
+  /// `active` field (not a secret). Null if unavailable — ambient only;
+  /// isolated accounts get theirs from [antigravityLogEmail].
   String? _activeAccount(String geminiDir) {
     try {
       final raw = File('$geminiDir/google_accounts.json').readAsStringSync();
@@ -127,5 +131,39 @@ class AntigravityAdapter implements ProviderAdapter {
     } on ProcessException catch (e) {
       return RunOutcome(ok: false, startedAt: startedAt, error: e.message);
     }
+  }
+}
+
+/// The isolated account's signed-in email, recovered from agy's own CLI logs
+/// (`applyAuthResult: email=…`, re-logged on every authentication — the
+/// newest occurrence is the current identity). The sandbox exposes no
+/// `google_accounts.json`, so this log line is the identity's only file
+/// trace; it's the same non-secret field the ambient default reads from that
+/// file. Null when nothing has logged it yet.
+String? antigravityLogEmail(String logDir) {
+  try {
+    final logs = Directory(logDir).listSync().whereType<File>().toList()
+      ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    final line = RegExp(r'applyAuthResult: email=([^,\s]+)');
+    for (final log in logs) {
+      final matches = line.allMatches(_tail(log)).toList();
+      if (matches.isNotEmpty) return matches.last.group(1);
+    }
+  } catch (_) {
+    // Unreadable logs just leave the identity unknown, as before.
+  }
+  return null;
+}
+
+/// Last [max] bytes of [file] — auth lines live near the tail, and a long
+/// interactive session's log can grow past what's worth scanning.
+String _tail(File file, {int max = 64 * 1024}) {
+  final raf = file.openSync();
+  try {
+    final length = raf.lengthSync();
+    if (length > max) raf.setPositionSync(length - max);
+    return String.fromCharCodes(raf.readSync(max));
+  } finally {
+    raf.closeSync();
   }
 }
