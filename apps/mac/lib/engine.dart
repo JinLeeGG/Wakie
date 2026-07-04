@@ -977,7 +977,15 @@ class Engine {
       final resetAt =
           cached.session.resetAt ??
           core.resolveResetAt(cached.session, now: cached.lastCheckedAt);
-      if (resetAt == null || at.isBefore(resetAt)) continue;
+      // Idle — usage known, nothing consumed, no window running (rolling-
+      // window providers report untouched accounts with no reset instant).
+      // With auto-start on, that's due too: the chain arms a fresh window
+      // (its own re-arm gap stops a start-per-tick loop).
+      final idle = cached.session.isKnown &&
+          cached.session.usedPct == 0 &&
+          resetAt == null;
+      if (idle && !_autoStartFor(account)) continue;
+      if (!idle && (resetAt == null || at.isBefore(resetAt))) continue;
       // A recent failed auto-start stays failed for a while — don't retry
       // every tick.
       if (cached.lastOutcome == core.Outcome.failed &&
@@ -1110,7 +1118,11 @@ Account _toRow(
         ? RunStatus.low
         : RunStatus.ok,
     autoStart: autoStart,
-    autoStartAvailable: s.session.isKnown && sessionResetAt != null,
+    // Usable with a live reset window, or with no window running at all
+    // (usage known, nothing consumed) — the chain arms one. Only an unknown
+    // session (still loading, or a plan with no session meter) disables it.
+    autoStartAvailable: s.session.isKnown &&
+        (sessionResetAt != null || s.session.usedPct == 0),
     sessionResetAt: sessionResetAt,
     apiValue: apiValue,
   );
