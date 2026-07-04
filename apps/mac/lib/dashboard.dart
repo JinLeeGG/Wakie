@@ -305,11 +305,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                 _accounts[i] = row;
               }
             });
-            _footer.finish('${row.name} signed in');
             // The ready row carries only cached usage (it appears instantly);
             // pull its live usage now, which also fills in an isolated
-            // account's email from the scraped panel.
-            _update(row);
+            // account's email from the scraped panel. One continuous footer
+            // op — not a green "signed in" flash followed by a bar that
+            // visibly starts over.
+            _update(row, label: '${row.name} signed in — reading usage…');
           case SignInState.duplicate:
             _footer.fail(r.message ?? 'Already added.');
           case SignInState.expired:
@@ -321,7 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  void _reload({bool footer = false}) {
+  void _reload({int? op}) {
     final source = widget.source;
     if (source == null || _loading) return;
     _sub?.cancel();
@@ -341,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ..addAll(accounts);
           _lastRefresh = DateTime.now();
         });
-        if (!footer) return;
+        if (op == null) return;
         if (first) {
           first = false;
           total = accounts.length;
@@ -352,7 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       },
       onDone: () {
         if (mounted) setState(() => _loading = false);
-        if (footer) _footer.finish('All accounts up to date');
+        if (op != null) _footer.finish('All accounts up to date', op: op);
         _retryUnknowns();
       },
     );
@@ -379,44 +380,47 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// Per-account Update: show the footer bar and, if wired, re-read just this
   /// account live — the bar completes when the real read returns, swapping the
   /// row in. (Mock mode has no real read, so it finishes on a short delay.)
-  void _update(Account a, {bool retried = false}) {
-    _footer.start('Refreshing ${a.name}…');
+  void _update(Account a, {int? op, bool retried = false, String? label}) {
+    final tok = op ?? _footer.start(label ?? 'Refreshing ${a.name}…');
     final updater = widget.onUpdateAccount;
     if (updater == null) {
       Future.delayed(const Duration(milliseconds: 1600), () {
-        if (mounted) _footer.finish('${a.name} refreshed');
+        if (mounted) _footer.finish('${a.name} refreshed', op: tok);
       });
       return;
     }
     updater(a).then((fresh) {
       if (!mounted) return;
-      if (fresh != null) {
-        final i = _accounts.indexWhere((x) => x.id == a.id);
-        if (i != -1) {
-          setState(() {
-            _accounts[i] = fresh;
-            _lastRefresh = DateTime.now();
-          });
-        }
+      if (fresh == null) {
+        // The engine skipped the read (already in flight, or the account is
+        // gone) — end the op without claiming a refresh that never happened.
+        _footer.finish('${a.name}: refresh already running', op: tok);
+        return;
+      }
+      final i = _accounts.indexWhere((x) => x.id == a.id);
+      if (i != -1) {
+        setState(() {
+          _accounts[i] = fresh;
+          _lastRefresh = DateTime.now();
+        });
       }
       // A cold isolated home's very first scrape can miss (the engine
       // degrades it to unknown rather than throwing). Retry once before
       // reporting — and never claim "refreshed" over an empty read.
       final unknown =
-          fresh != null &&
           !fresh.session.known &&
           !fresh.weekly.known &&
           fresh.status != RunStatus.signin;
       if (unknown && !retried) {
         Future.delayed(const Duration(seconds: 4), () {
-          if (mounted) _update(a, retried: true);
+          if (mounted) _update(a, op: tok, retried: true);
         });
         return; // keep the bar running through the retry
       }
       if (unknown) {
-        _footer.fail('${a.name}: couldn\'t read usage — try Update');
+        _footer.fail('${a.name}: couldn\'t read usage — try Update', op: tok);
       } else {
-        _footer.finish('${a.name} refreshed');
+        _footer.finish('${a.name} refreshed', op: tok);
       }
     });
   }
@@ -467,13 +471,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     final creator = widget.onCreateAccount;
     if (creator == null) return;
     final displayLabel = label.trim().isEmpty ? provider.name : label.trim();
-    _footer.start('Adding $displayLabel…');
+    final op = _footer.start('Adding $displayLabel…');
     final error = await creator(provider, label);
     if (!mounted) return;
     if (error != null) {
-      _footer.fail(error);
+      _footer.fail(error, op: op);
     } else {
-      _footer.finish('$displayLabel — finish signing in in your browser');
+      _footer.finish('$displayLabel — finish signing in in your browser',
+          op: op);
     }
     // No rescan: the account stays invisible until its login lands, at which
     // point the sign-in poll adds it as a row (or drops it if it's a
@@ -510,8 +515,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     // window-open signal) so they can't restart the progress bar over a run
     // that's already going.
     if (_loading) return;
-    _footer.start('Refreshing accounts…');
-    _reload(footer: true);
+    _reload(op: _footer.start('Refreshing accounts…'));
   }
 
   Widget _scaffold() {

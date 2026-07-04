@@ -16,6 +16,14 @@ const _logoSvg =
 /// I/O we can't measure; [progress] snaps it forward to a measured fraction
 /// (e.g. accounts loaded / total); [finish] only fires when the real work
 /// actually completes — so the bar reaches 100% at true loading speed.
+///
+/// Operations overlap (a scan, several per-account refreshes, an add can all
+/// be in flight), so [start] returns a token and the bar stays up until the
+/// *last* live operation finishes — one op completing mid-way surfaces its
+/// message without hiding or restarting the bar under the others. [finish]/
+/// [fail] without a token are instant results (a sign-in landing, a setting
+/// saved): full green/red treatment when the bar is idle, a label update
+/// when work is still running.
 class FooterController extends ChangeNotifier {
   bool running = false;
   bool done = false;
@@ -29,22 +37,28 @@ class FooterController extends ChangeNotifier {
 
   Timer? _trickle;
   Timer? _hide;
+  Timer? _unfail;
+  int _nextOp = 0;
+  final Set<int> _ops = {};
 
-  void start(String label) {
-    _trickle?.cancel();
+  int start(String label) {
+    final op = _nextOp++;
+    _ops.add(op);
     _hide?.cancel();
+    _unfail?.cancel();
+    if (_ops.length == 1) fill = 6; // fresh bar; joiners keep the fill
     running = true;
     done = false;
     failed = false;
-    fill = 6;
     this.label = label;
     notifyListeners();
-    _trickle = Timer.periodic(const Duration(milliseconds: 380), (_) {
+    _trickle ??= Timer.periodic(const Duration(milliseconds: 380), (_) {
       if (fill < _trickleCap) {
         fill += (_trickleCap - fill) * 0.12;
         notifyListeners();
       }
     });
+    return op;
   }
 
   /// Report measured progress in [0,1]. Forward-only so the bar never recedes.
@@ -56,9 +70,17 @@ class FooterController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void finish(String doneLabel) {
-    _trickle?.cancel();
-    _hide?.cancel();
+  void finish(String doneLabel, {int? op}) {
+    if (op != null) _ops.remove(op);
+    if (_ops.isNotEmpty) {
+      // Other work is still running — surface the message, keep the bar
+      // alive (no 100%, no hide: the bar must never look done and then
+      // visibly run again).
+      label = doneLabel;
+      notifyListeners();
+      return;
+    }
+    _stopTimers();
     running = true; // self-starting: a result must render even without start()
     label = doneLabel;
     done = true;
@@ -75,9 +97,23 @@ class FooterController extends ChangeNotifier {
   /// Like [finish], but shown as a failure (red, longer-lived) instead of
   /// silently succeeding or vanishing — an action that failed with no
   /// visible reaction is worse than one that failed loudly.
-  void fail(String message) {
-    _trickle?.cancel();
-    _hide?.cancel();
+  void fail(String message, {int? op}) {
+    if (op != null) _ops.remove(op);
+    if (_ops.isNotEmpty) {
+      // Show the failure in place, then hand the bar back to the still-
+      // running work instead of hiding it from under them.
+      label = message;
+      failed = true;
+      notifyListeners();
+      _unfail?.cancel();
+      _unfail = Timer(const Duration(milliseconds: 2500), () {
+        if (_ops.isEmpty || !failed) return;
+        failed = false;
+        notifyListeners();
+      });
+      return;
+    }
+    _stopTimers();
     running = true; // self-starting: a failure must render even without start()
     label = message;
     done = false;
@@ -91,10 +127,16 @@ class FooterController extends ChangeNotifier {
     });
   }
 
+  void _stopTimers() {
+    _trickle?.cancel();
+    _trickle = null;
+    _hide?.cancel();
+    _unfail?.cancel();
+  }
+
   @override
   void dispose() {
-    _trickle?.cancel();
-    _hide?.cancel();
+    _stopTimers();
     super.dispose();
   }
 }
