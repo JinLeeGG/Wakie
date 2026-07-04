@@ -19,6 +19,13 @@ typedef DirEnsurer = Future<void> Function(String path);
 /// tests never touch real disk. Best-effort: failure is non-fatal.
 typedef DirDeleter = void Function(String path);
 
+/// Kills whatever is still running inside a removed account's config home
+/// (an open login window's agy, an in-flight scrape) before the directory is
+/// deleted — left alive, agy retries its keychain against the deleted home
+/// and spams the system "Keychain Not Found" dialog. Injected so tests never
+/// scan or signal real processes.
+typedef SandboxKiller = Future<void> Function(String configHome);
+
 /// Makes an isolated config home ready for its provider — Claude: skip
 /// onboarding+trust; Antigravity: give it its own login keychain so a second
 /// agy account can sign in in isolation. No-op for Codex (CODEX_HOME files).
@@ -275,6 +282,7 @@ class Engine {
   final LoginItemInstaller _installLoginItem;
   final DarkWakeConfigurer _configureDarkWake;
   final PrivateBrowserPrefixer _privateBrowserPrefix;
+  final SandboxKiller _killSandbox;
 
   /// Accounts discovered by the last [watch], keyed by id, so [refreshAccount]
   /// can re-read one without re-detecting everything.
@@ -292,6 +300,7 @@ class Engine {
     this._installLoginItem,
     this._configureDarkWake,
     this._privateBrowserPrefix,
+    this._killSandbox,
   );
 
   factory Engine.production() => Engine._(
@@ -306,6 +315,7 @@ class Engine {
     _realInstallLoginItem,
     _realConfigureDarkWake,
     _realPrivateBrowserPrefix,
+    core.killSandboxProcesses,
   );
 
   @visibleForTesting
@@ -321,6 +331,7 @@ class Engine {
     LoginItemInstaller? installLoginItem,
     DarkWakeConfigurer? configureDarkWake,
     PrivateBrowserPrefixer? privateBrowserPrefix,
+    SandboxKiller? killSandbox,
   }) => Engine._(
     a,
     store ?? core.Store.memory(),
@@ -333,6 +344,7 @@ class Engine {
     installLoginItem ?? (_) async {},
     configureDarkWake ?? (_, _, _) async => null,
     privateBrowserPrefix ?? () async => '',
+    killSandbox ?? (_) async {},
   );
 
   /// Emits account rows in two phases so the dashboard fills fast:
@@ -592,6 +604,7 @@ class Engine {
     // engine didn't create (the ambient default's configHome is null anyway).
     if (configHome != null &&
         configHome.startsWith(core.Store.defaultAccountsDir())) {
+      unawaited(_killSandbox(configHome));
       _deleteDir(configHome);
     }
   }
