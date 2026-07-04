@@ -427,6 +427,24 @@ void main() {
     expect(store.isRemoved(added.id), isTrue);
   });
 
+  test('removeAccount kills the sandbox\'s processes before deleting it',
+      () async {
+    final killed = <String>[];
+    final store = core.Store.memory();
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
+      store: store,
+      killSandbox: (home) async => killed.add(home),
+    );
+    await engine.addAccount(Provider.claude, 'work');
+    final added = store.extraAccounts.single;
+
+    engine.removeAccount(added.id);
+    await Future<void>.delayed(Duration.zero); // let the unawaited kill land
+
+    expect(killed, [added.configHome]);
+  });
+
   test('removeAccount never deletes the ambient default (null config home)',
       () async {
     var deleteCalls = 0;

@@ -45,4 +45,27 @@ void main() {
 ''';
     expect(orphanedSandboxScrapePids(ps, accountsRoot: root), isEmpty);
   });
+
+  test('removal kill matches the home\'s processes regardless of parentage',
+      () {
+    // The login window's agy has a live shell parent — orphan cleanup spares
+    // it, but removing the account must not: its home is being deleted.
+    const ps = '''
+  700   650 agy HOME=$root/antigravity-1 TERM=x
+  701     1 script -q /dev/null claude
+  702   701 claude CLAUDE_CONFIG_DIR=$root/antigravity-1 TERM=x
+''';
+    expect(sandboxProcessPids(ps, configHome: '$root/antigravity-1'),
+        [700, 701, 702]);
+  });
+
+  test('removal kill is exact — a sibling home sharing the prefix is spared',
+      () {
+    const ps = '''
+  700     1 agy HOME=$root/antigravity-12 TERM=x
+  701     1 agy HOME=$root/antigravity-1
+''';
+    expect(
+        sandboxProcessPids(ps, configHome: '$root/antigravity-1'), [701]);
+  });
 }
