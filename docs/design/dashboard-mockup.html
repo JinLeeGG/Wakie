@@ -229,6 +229,27 @@
   .ver .wm b{color:var(--amber)}
   .ver .num{color:var(--t3);margin-left:2px}
 
+  /* unknown session (free plans expose no 5h window) — a plain "—", never a fake 0% */
+  .meter.unknown .pct{color:var(--t3)}
+  .meter.unknown .bar{background:rgba(255,255,255,.06)}
+  .meter.unknown .bar>i{display:none}
+
+  /* daily-wake wheel picker (summary.dart _WheelPicker) */
+  .pill.open .menu.wheel{padding:6px}
+  .wheel .mh{padding:6px 9px 8px}
+  .wheelbox{position:relative;padding:0 4px}
+  .wheelbox .band{position:absolute;left:4px;right:4px;top:72px;height:36px;
+    background:rgba(246,178,60,.08);border:1px solid rgba(246,178,60,.20);border-radius:9px;pointer-events:none}
+  .wrow{position:relative;display:grid;grid-template-columns:1fr 14px 1fr 1fr;height:36px;align-items:center;
+    font-family:var(--mono);font-size:22px;font-weight:600;color:rgba(255,255,255,.30);font-variant-numeric:tabular-nums}
+  .wrow .h{text-align:right;padding-right:7px} .wrow .sep{text-align:center;color:var(--t3)}
+  .wrow .m{text-align:left;padding-left:7px} .wrow .ap{text-align:center}
+  .wrow.sel .h,.wrow.sel .m,.wrow.sel .ap{color:var(--amber)}
+  .setbtn{display:block;width:100%;margin:10px 3px 0;padding:9px;border-radius:10px;
+    background:var(--amber);color:#1a1205;border:1px solid rgba(255,196,101,.6);
+    font-family:var(--mono);font-size:16px;font-weight:600;cursor:pointer;transition:filter .14s}
+  .setbtn:hover{filter:brightness(1.06)}
+
   .caption{margin-top:24px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
 </style>
 </head>
@@ -238,30 +259,35 @@
 
   <div class="win">
     <header>
-      <div class="h-title" id="tagline">Let's Token Maxxing.</div>
-      <div class="device"><span class="dot"></span>Updated 2m ago</div>
+      <div class="h-title" id="tagline">I mean, make your money worth.</div>
+      <div class="device"><span class="dot"></span>Updated just now</div>
     </header>
 
     <div class="summary">
       <div class="pill control" title="Add account" onclick="location.href='add-account.html'">
         <div class="k">Accounts</div>
-        <div class="vrow"><div class="v">7</div>
+        <div class="vrow"><div class="v">6</div>
           <div class="sq"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
       </div>
-      <div class="pill"><div class="k">Est. API value · 7d</div><div class="vrow"><div class="v amber">$713</div></div></div>
-      <div class="pill"><div class="k">Resets in</div><div class="vrow"><div class="v">4h 30m</div></div></div>
+      <div class="pill"><div class="k">Est. API value · 7d</div><div class="vrow"><div class="v amber">$34</div></div></div>
+      <div class="pill"><div class="k">Resets in</div><div class="vrow"><div class="v">3h 31m</div></div></div>
       <div class="pill control">
         <div class="k">Daily wake</div>
-        <div class="vrow"><div class="v amber">8:00am</div>
+        <div class="vrow"><div class="v amber">10:37am</div>
           <div class="sq"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
-        <div class="menu">
+        <div class="menu wheel">
           <div class="mh">Wake at</div>
-          <div class="opt" data-val="6:00am">6:00am</div>
-          <div class="opt" data-val="7:00am">7:00am</div>
-          <div class="opt sel" data-val="8:00am">8:00am</div>
-          <div class="opt" data-val="9:00am">9:00am</div>
+          <div class="wheelbox">
+            <div class="band"></div>
+            <div class="wrow"><span class="h">8</span><span class="sep"></span><span class="m">35</span><span class="ap"></span></div>
+            <div class="wrow"><span class="h">9</span><span class="sep"></span><span class="m">36</span><span class="ap">AM</span></div>
+            <div class="wrow sel"><span class="h">10</span><span class="sep">:</span><span class="m">37</span><span class="ap">AM</span></div>
+            <div class="wrow"><span class="h">11</span><span class="sep"></span><span class="m">38</span><span class="ap">PM</span></div>
+            <div class="wrow"><span class="h"></span><span class="sep"></span><span class="m">39</span><span class="ap"></span></div>
+          </div>
+          <button class="setbtn">Set 10:37am</button>
           <div class="note">Your Mac wakes at this time each day to <b>start any due sessions</b> — and refresh status.</div>
         </div>
       </div>
@@ -273,82 +299,72 @@
     </div>
 
     <div class="rows">
-      <!-- sorted like the app: provider order (Claude, Codex, Antigravity), Max > Pro > Plus -->
+      <!-- sorted like the app: provider order (Claude, Codex, Antigravity), then plan tier.
+           Unnamed accounts are numbered per provider (Claude 1/2/3). Emails anonymized. -->
       <div class="row" style="animation-delay:.07s">
         <div class="acol-cell">
-          <div class="badge claude"><img src="https://cdn.simpleicons.org/anthropic/ffffff" alt=""></div>
-          <div class="ident"><div class="nmline"><span class="nm">Claude · Work</span><span class="tier">MAX</span></div><div class="em">korus.work@gmail.com</div></div>
+          <div class="badge claude"><img src="https://cdn.simpleicons.org/claude/ffffff" alt=""></div>
+          <div class="ident"><div class="nmline"><span class="nm">Claude 1</span><span class="tier">PRO</span></div><div class="em">you@gmail.com</div></div>
           <div class="tog on"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct ok">88%<span class="u">left</span></span><span class="rst">9:15am</span></div><div class="bar"><i class="fill-ok" style="--w:88%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct ok">92%<span class="u">left</span></span><span class="rst">Jul 7 (9:15am)</span></div><div class="bar"><i class="fill-ok" style="--w:92%"></i></div></div>
-        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude · Work')">Remove</button><button class="start" onclick="runUpdate('Claude · Work')">Update ↵</button></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">100%<span class="u">left</span></span><span class="rst">5:39pm</span></div><div class="bar"><i class="fill-ok" style="--w:100%"></i></div></div>
+        <div class="meter"><div class="top"><span class="pct crit">4%<span class="u">left</span></span><span class="rst">Jul 7 (6:59am)</span></div><div class="bar"><i class="fill-crit" style="--w:4%"></i></div></div>
+        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude 1')">Remove</button><button class="start" onclick="runUpdate('Claude 1')">Update ↵</button></div></div>
       </div>
 
       <div class="row" style="animation-delay:.13s">
         <div class="acol-cell">
-          <div class="badge claude"><img src="https://cdn.simpleicons.org/anthropic/ffffff" alt=""></div>
-          <div class="ident"><div class="nmline"><span class="nm">Claude · Personal</span><span class="tier">PRO</span></div><div class="em">korus.exe@gmail.com</div></div>
+          <div class="badge claude"><img src="https://cdn.simpleicons.org/claude/ffffff" alt=""></div>
+          <div class="ident"><div class="nmline"><span class="nm">Claude 2</span><span class="tier">PRO</span></div><div class="em">work@gmail.com</div></div>
           <div class="tog on"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct crit">12%<span class="u">left</span></span><span class="rst">4:30am</span></div><div class="bar"><i class="fill-crit" style="--w:12%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct warn">34%<span class="u">left</span></span><span class="rst">Jul 7 (5:00pm)</span></div><div class="bar"><i class="fill-warn" style="--w:34%"></i></div></div>
-        <div class="end"><div class="status low"><span class="sdot"></span>Low</div><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude · Personal')">Remove</button><button class="start" onclick="runUpdate('Claude · Personal')">Update ↵</button></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">100%<span class="u">left</span></span><span class="rst">5:39pm</span></div><div class="bar"><i class="fill-ok" style="--w:100%"></i></div></div>
+        <div class="meter"><div class="top"><span class="pct crit">3%<span class="u">left</span></span><span class="rst">2h 51m</span></div><div class="bar"><i class="fill-crit" style="--w:3%"></i></div></div>
+        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude 2')">Remove</button><button class="start" onclick="runUpdate('Claude 2')">Update ↵</button></div></div>
       </div>
 
       <div class="row" style="animation-delay:.19s">
         <div class="acol-cell">
-          <div class="badge claude"><img src="https://cdn.simpleicons.org/anthropic/ffffff" alt=""></div>
-          <div class="ident"><div class="nmline"><span class="nm">Claude · side</span><span class="tier">PRO</span></div><div class="em">korus.side@gmail.com</div></div>
+          <div class="badge claude"><img src="https://cdn.simpleicons.org/claude/ffffff" alt=""></div>
+          <div class="ident"><div class="nmline"><span class="nm">Claude 3</span><span class="tier">PRO</span></div><div class="em">side@gmail.com</div></div>
           <div class="tog on"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct warn">41%<span class="u">left</span></span><span class="rst">3:40pm</span></div><div class="bar"><i class="fill-warn" style="--w:41%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct ok">70%<span class="u">left</span></span><span class="rst">Jul 8 (8:00am)</span></div><div class="bar"><i class="fill-ok" style="--w:70%"></i></div></div>
-        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude · side')">Remove</button><button class="start" onclick="runUpdate('Claude · side')">Update ↵</button></div></div>
+        <div class="meter"><div class="top"><span class="pct crit">18%<span class="u">left</span></span><span class="rst">4:09pm</span></div><div class="bar"><i class="fill-crit" style="--w:18%"></i></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">91%<span class="u">left</span></span><span class="rst">Jul 9 (1:59am)</span></div><div class="bar"><i class="fill-ok" style="--w:91%"></i></div></div>
+        <div class="end"><div class="status low"><span class="sdot"></span>Low</div><div class="acts"><button class="remove" onclick="showConfirm(this,'Claude 3')">Remove</button><button class="start" onclick="runUpdate('Claude 3')">Update ↵</button></div></div>
       </div>
 
       <div class="row" style="animation-delay:.25s">
         <div class="acol-cell">
           <div class="badge codex"><svg viewBox="0 0 24 24" fill="#1b1c21" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></div>
-          <div class="ident"><div class="nmline"><span class="nm">Codex · work</span><span class="tier">PRO</span></div><div class="em">korus.work@gmail.com</div></div>
-          <div class="tog"></div>
+          <div class="ident"><div class="nmline"><span class="nm">Codex 1</span><span class="tier">PLUS</span></div><div class="em">main@gmail.com</div></div>
+          <div class="tog on"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct ok">76%<span class="u">left</span></span><span class="rst">2:05pm</span></div><div class="bar"><i class="fill-ok" style="--w:76%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct ok">64%<span class="u">left</span></span><span class="rst">Jul 6 (6:30pm)</span></div><div class="bar"><i class="fill-ok" style="--w:64%"></i></div></div>
-        <div class="end"><div class="status fresh"><span class="sdot"></span>Fresh</div><div class="acts"><button class="remove" onclick="showConfirm(this,'Codex · work')">Remove</button><button class="start" onclick="runUpdate('Codex · work')">Update ↵</button></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">99%<span class="u">left</span></span><span class="rst">7:07pm</span></div><div class="bar"><i class="fill-ok" style="--w:99%"></i></div></div>
+        <div class="meter"><div class="top"><span class="pct warn">33%<span class="u">left</span></span><span class="rst">Jul 6 (10:44pm)</span></div><div class="bar"><i class="fill-warn" style="--w:33%"></i></div></div>
+        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Codex 1')">Remove</button><button class="start" onclick="runUpdate('Codex 1')">Update ↵</button></div></div>
       </div>
 
       <div class="row" style="animation-delay:.31s">
         <div class="acol-cell">
           <div class="badge codex"><svg viewBox="0 0 24 24" fill="#1b1c21" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></div>
-          <div class="ident"><div class="nmline"><span class="nm">Codex · main</span><span class="tier">PLUS</span></div><div class="em">korus.exe@gmail.com</div></div>
+          <div class="ident"><div class="nmline"><span class="nm">Codex 2</span><span class="tier">FREE</span></div><div class="em">free@gmail.com</div></div>
           <div class="tog"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct ok">100%<span class="u">left</span></span><span class="rst">1:20pm</span></div><div class="bar"><i class="fill-ok" style="--w:100%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct ok">59%<span class="u">left</span></span><span class="rst">Jul 6 (2:00pm)</span></div><div class="bar"><i class="fill-ok" style="--w:59%"></i></div></div>
-        <div class="end"><div class="status fresh"><span class="sdot"></span>Fresh</div><div class="acts"><button class="remove" onclick="showConfirm(this,'Codex · main')">Remove</button><button class="start" onclick="runUpdate('Codex · main')">Update ↵</button></div></div>
+        <div class="meter unknown"><div class="top"><span class="pct">—</span><span class="rst"></span></div><div class="bar"></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">95%<span class="u">left</span></span><span class="rst">Aug 3 (2:07pm)</span></div><div class="bar"><i class="fill-ok" style="--w:95%"></i></div></div>
+        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Codex 2')">Remove</button><button class="start" onclick="runUpdate('Codex 2')">Update ↵</button></div></div>
       </div>
 
       <div class="row" style="animation-delay:.37s">
         <div class="acol-cell">
           <div class="badge anti"><img src="https://cdn.simpleicons.org/googlegemini/9ab4ff" alt=""></div>
-          <div class="ident"><div class="nmline"><span class="nm">Antigravity · main</span></div><div class="em">korus.exe@gmail.com</div></div>
+          <div class="ident"><div class="nmline"><span class="nm">Antigravity 1</span><span class="tier">PRO</span></div><div class="em">anti@gmail.com</div></div>
           <div class="tog"></div>
         </div>
-        <div class="meter"><div class="top"><span class="pct warn">45%<span class="u">left</span></span><span class="rst">11:55am</span></div><div class="bar"><i class="fill-warn" style="--w:45%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct warn">38%<span class="u">left</span></span><span class="rst">Jul 7 (11:00am)</span></div><div class="bar"><i class="fill-warn" style="--w:38%"></i></div></div>
-        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Antigravity · main')">Remove</button><button class="start" onclick="runUpdate('Antigravity · main')">Update ↵</button></div></div>
-      </div>
-
-      <div class="row" style="animation-delay:.43s">
-        <div class="acol-cell">
-          <div class="badge anti"><img src="https://cdn.simpleicons.org/googlegemini/9ab4ff" alt=""></div>
-          <div class="ident"><div class="nmline"><span class="nm">Antigravity · test</span></div><div class="em">korus.test@gmail.com</div></div>
-          <div class="tog"></div>
-        </div>
-        <div class="meter"><div class="top"><span class="pct ok">82%<span class="u">left</span></span><span class="rst">5:10pm</span></div><div class="bar"><i class="fill-ok" style="--w:82%"></i></div></div>
-        <div class="meter"><div class="top"><span class="pct ok">55%<span class="u">left</span></span><span class="rst">Jul 7 (3:00pm)</span></div><div class="bar"><i class="fill-ok" style="--w:55%"></i></div></div>
-        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Antigravity · test')">Remove</button><button class="start" onclick="runUpdate('Antigravity · test')">Update ↵</button></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">100%<span class="u">left</span></span><span class="rst">—</span></div><div class="bar"><i class="fill-ok" style="--w:100%"></i></div></div>
+        <div class="meter"><div class="top"><span class="pct ok">99%<span class="u">left</span></span><span class="rst">Jul 7 (6:21am)</span></div><div class="bar"><i class="fill-ok" style="--w:99%"></i></div></div>
+        <div class="end"><div class="acts"><button class="remove" onclick="showConfirm(this,'Antigravity 1')">Remove</button><button class="start" onclick="runUpdate('Antigravity 1')">Update ↵</button></div></div>
       </div>
     </div>
 
@@ -364,7 +380,7 @@
         <span id="run-label">Waking Mac…</span>
       </div>
       <div class="foot-right">
-        <label class="launch" onclick="this.querySelector('.ftog').classList.toggle('on')"><div class="ftog"></div>Wake from sleep</label>
+        <label class="launch" onclick="this.querySelector('.ftog').classList.toggle('on')"><div class="ftog on"></div>Wake from sleep</label>
         <label class="launch" onclick="this.querySelector('.ftog').classList.toggle('on')"><div class="ftog on"></div>Launch at login</label>
         <div class="ver"><span class="vdot"></span><span class="wm"><b>Wakie</b>AI</span><span class="num">1.0.0</span></div>
       </div>
@@ -442,9 +458,9 @@
   }
   function runRefreshAll() {
     runSequence([
-      { text: 'Waking Mac…',         pct: 22, dur: 1100 },
-      { text: 'Starting sessions…',  pct: 54, dur: 1300 },
-      { text: 'Refreshing status…',  pct: 92, dur: 1500 },
+      { text: 'Refreshing accounts…', pct: 34, dur: 1200 },
+      { text: 'Reading usage…',        pct: 68, dur: 1300 },
+      { text: 'Updating value…',       pct: 92, dur: 1400 },
     ], 'All accounts up to date');
   }
   function runUpdate(name) {
