@@ -16,9 +16,9 @@ const _window = MethodChannel('wakieai/window');
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // A quit/hot-restart mid-scan can orphan a scrape's agy in a sandbox HOME,
-  // where it pesters the user with keychain dialogs — clean those up first.
-  unawaited(core.killOrphanedSandboxAgys());
+  // A quit/hot-restart mid-scan can orphan a scrape's CLI in its sandbox
+  // config (agy there pesters the user with keychain dialogs) — clean up.
+  unawaited(core.killOrphanedSandboxScrapes());
 
   // Native vibrancy (real desktop blur behind the glass panel).
   await WindowManipulator.initialize(enableWindowDelegate: false);

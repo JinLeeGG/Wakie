@@ -21,9 +21,9 @@ Future<void> main() async {
   if (darkPass) await displaySleep();
 
   try {
-    // A previous life (app quit / crashed runner) can leave a scrape's agy
-    // orphaned in a sandbox HOME — kill those before spawning new ones.
-    await killOrphanedSandboxAgys();
+    // A previous life (app quit / crashed runner) can leave a scrape's CLI
+    // orphaned in its sandbox config — kill those before spawning new ones.
+    await killOrphanedSandboxScrapes();
 
     final adapters = productionAdapters();
     final store = Store.load();
