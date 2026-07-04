@@ -510,11 +510,18 @@ class Engine {
     // row the user just deleted; report pending and let the id die out.
     if (!_live.containsKey(id)) return const SignInResult(SignInState.pending);
     _live[id] = (account, pf);
-    // The CLI itself is missing — the login launch died as a silent "command
-    // not found" and can never land. Drop it now, not after the 15-minute
-    // timeout. (The dashboard's [isProviderInstalled] pre-check shows the
-    // install guide before it gets here; this is the safety net.)
-    if (pf.state == core.PreflightState.notInstalled) {
+    // A sign-in that never landed is abandonable. An account that HAS landed
+    // before (it has cached usage) is the user's data: a missing CLI or a
+    // lost login is a machine condition to wait out — never a reason to
+    // delete the sandbox (and the login in it). It just stays off the list
+    // until it recovers.
+    final landed = _store.statusFor(id) != null;
+
+    // The CLI itself is missing — a never-landed login died as a silent
+    // "command not found" and can never land. Drop it now, not after the
+    // 15-minute timeout. (The dashboard's [isProviderInstalled] pre-check
+    // shows the install guide before it gets here; this is the safety net.)
+    if (pf.state == core.PreflightState.notInstalled && !landed) {
       _dbg('signin: $id dropped — ${account.provider.name} CLI not installed');
       removeAccount(id);
       return SignInResult(
@@ -524,7 +531,8 @@ class Engine {
       );
     }
     if (!pf.isOk) {
-      if (DateTime.now().difference(account.addedAt) > _signinTimeout) {
+      if (!landed &&
+          DateTime.now().difference(account.addedAt) > _signinTimeout) {
         _dbg('signin: $id expired');
         removeAccount(id);
         return SignInResult(

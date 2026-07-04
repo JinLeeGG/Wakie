@@ -704,6 +704,59 @@ void main() {
     expect(engine.pendingSigninIds(), isEmpty);
   });
 
+  test('a landed account is never removed when its CLI goes missing',
+      () async {
+    // The account signed in and has cached usage — then the CLI was
+    // uninstalled (or a brew upgrade broke it). That's a machine condition to
+    // wait out, not an abandoned sign-in: the sandbox (and the login in it)
+    // must survive.
+    final store = core.Store.memory()
+      ..addExtraAccount(core.ExtraAccount(
+        id: 'claude-real',
+        provider: core.Provider.claude,
+        label: 'real',
+        configHome: '${core.Store.defaultAccountsDir()}/claude-real',
+        addedAt: DateTime.now().subtract(const Duration(days: 3)),
+      ))
+      ..cacheStatus(
+          'claude-real',
+          const core.ProviderStatus(
+              weekly: core.UsageWindow(usedPct: 10, resetLabel: 'Jul 7')));
+    final engine = Engine.withAdapters(
+        {core.Provider.claude: _NotInstalledClaude()},
+        store: store);
+
+    await engine.load();
+    expect(await engine.pollSignins(), isEmpty); // waits — never resolves
+    expect(store.isRemoved('claude-real'), isFalse);
+    expect(engine.pendingSigninIds(), contains('claude-real'));
+  });
+
+  test('a landed account whose login is lost is not timeout-removed',
+      () async {
+    // Same principle for a lost login (keychain hiccup, logged out in the
+    // sandbox): the 15-minute expiry is for sign-ins that never landed.
+    final store = core.Store.memory()
+      ..addExtraAccount(core.ExtraAccount(
+        id: 'claude-landed',
+        provider: core.Provider.claude,
+        label: 'landed',
+        configHome: '${core.Store.defaultAccountsDir()}/claude-landed',
+        addedAt: DateTime.now().subtract(const Duration(minutes: 20)),
+      ))
+      ..cacheStatus(
+          'claude-landed',
+          const core.ProviderStatus(
+              weekly: core.UsageWindow(usedPct: 10, resetLabel: 'Jul 7')));
+    final engine = Engine.withAdapters(
+        {core.Provider.claude: _PendingClaude(const core.ProviderStatus())},
+        store: store);
+
+    await engine.load();
+    expect(await engine.pollSignins(), isEmpty);
+    expect(store.isRemoved('claude-landed'), isFalse);
+  });
+
   test('a past-timeout account that just finished signing in is NOT expired',
       () async {
     // Login completed slowly (past the timeout) — it must resolve to a real
