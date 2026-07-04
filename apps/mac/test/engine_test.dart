@@ -252,6 +252,29 @@ void main() {
     expect(firstEmission.single.session.pct, 60); // 40% used → 60% left
   });
 
+  test('rows carry the weekly API value and refreshAccount re-reads it',
+      () async {
+    var value = 12.5;
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
+      apiValue: (a) async =>
+          a.provider == core.Provider.claude ? value : null,
+    );
+    final row = (await engine.load()).single;
+    expect(row.apiValue, 12.5);
+
+    value = 99.0;
+    final refreshed = await engine.refreshAccount(row.id);
+    expect(refreshed!.apiValue, 99.0);
+  });
+
+  test('the API value defaults to null (no reader injected)', () async {
+    final engine = Engine.withAdapters({
+      core.Provider.claude: _FakeClaude(const core.ProviderStatus()),
+    });
+    expect((await engine.load()).single.apiValue, isNull);
+  });
+
   test('setAutoStart overrides the provider default and is reflected on reload',
       () async {
     final engine = Engine.withAdapters({
