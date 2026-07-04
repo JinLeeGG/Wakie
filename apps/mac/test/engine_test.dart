@@ -257,8 +257,8 @@ void main() {
     var value = 12.5;
     final engine = Engine.withAdapters(
       {core.Provider.claude: _FakeClaude(const core.ProviderStatus())},
-      apiValue: (a) async =>
-          a.provider == core.Provider.claude ? value : null,
+      apiValue: (p, home) async =>
+          p == core.Provider.claude ? value : null,
     );
     final row = (await engine.load()).single;
     expect(row.apiValue, 12.5);
@@ -266,6 +266,48 @@ void main() {
     value = 99.0;
     final refreshed = await engine.refreshAccount(row.id);
     expect(refreshed!.apiValue, 99.0);
+  });
+
+  test('a sandboxed account whose login owns the default home absorbs its '
+      'value', () async {
+    // Every row sandboxed (the ambient default was removed) — the terminal's
+    // usage in the shared default home must land on the account whose email
+    // is the one signed in there, not vanish.
+    final adapter =
+        _PendingClaude(const core.ProviderStatus(), extraEmail: 'a@b.com')
+          ..extraLoggedIn = true;
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: adapter},
+      apiValue: (p, home) async => home == null ? 100.0 : 5.0,
+    );
+    await engine.load();
+    await engine.addAccount(Provider.claude, 'mine');
+    engine.removeAccount('claude-default');
+    await engine.pollSignins();
+
+    final rows = await engine.load();
+    final extra = rows.singleWhere((r) => r.id != 'claude-default');
+    expect(extra.apiValue, 105.0); // its sandbox + the default home
+  });
+
+  test('a sandboxed account with a different login stays sandbox-only',
+      () async {
+    final adapter =
+        _PendingClaude(const core.ProviderStatus(), extraEmail: 'work@b.com')
+          ..extraLoggedIn = true;
+    final engine = Engine.withAdapters(
+      {core.Provider.claude: adapter},
+      apiValue: (p, home) async => home == null ? 100.0 : 5.0,
+    );
+    await engine.load();
+    await engine.addAccount(Provider.claude, 'work');
+    await engine.pollSignins();
+
+    final rows = await engine.load();
+    final extra = rows.singleWhere((r) => r.id != 'claude-default');
+    expect(extra.apiValue, 5.0); // default home belongs to the default row
+    final def = rows.singleWhere((r) => r.id == 'claude-default');
+    expect(def.apiValue, 100.0);
   });
 
   test('the API value defaults to null (no reader injected)', () async {

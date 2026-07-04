@@ -33,21 +33,23 @@ typedef SandboxKiller = Future<void> Function(String configHome);
 typedef ConfigPreparer =
     Future<void> Function(core.Provider provider, String configHome);
 
-/// Reads one account's weekly API-equivalent value (dollars the same tokens
-/// would cost at API list price) from its local CLI logs. Null when the
-/// provider keeps no readable token log (Antigravity). Injected so tests
-/// never scan the real `~/.claude` / `~/.codex`.
-typedef ApiValueReader = Future<double?> Function(core.Account account);
+/// Reads the weekly API-equivalent value (dollars the same tokens would cost
+/// at API list price) of one config home's local CLI logs — null configHome
+/// means the provider's shared default home (`~/.claude` / `~/.codex`).
+/// Null result when the provider keeps no readable token log (Antigravity).
+/// Injected so tests never scan real homes; which homes an *account* owns is
+/// the engine's call (see [Engine._safeApiValue]).
+typedef ApiValueReader =
+    Future<double?> Function(core.Provider provider, String? configHome);
 
 ApiValueReader _realApiValueReader() {
   final scanner = core.ApiValueScanner();
-  return (core.Account a) {
+  return (core.Provider p, String? configHome) {
     final home = Platform.environment['HOME'] ?? '';
-    return switch (a.provider) {
+    return switch (p) {
       core.Provider.claude =>
-        scanner.claudeWeekly(a.configHome ?? '$home/.claude'),
-      core.Provider.codex =>
-        scanner.codexWeekly(a.configHome ?? '$home/.codex'),
+        scanner.claudeWeekly(configHome ?? '$home/.claude'),
+      core.Provider.codex => scanner.codexWeekly(configHome ?? '$home/.codex'),
       core.Provider.antigravity => Future<double?>.value(null),
     };
   };
@@ -325,14 +327,67 @@ class Engine {
   /// Saved card while a rescan is in flight.
   final Map<String, double?> _apiValueOf = {};
 
+  /// One account's weekly API value: its own config home, plus the provider's
+  /// shared default home when this account's login is the one active there.
+  ///
+  /// Token logs carry no account identity — everything done in a terminal
+  /// lands in `~/.claude`/`~/.codex` no matter which managed row it belongs
+  /// to. So the default home's value goes to whichever account owns its
+  /// current login: the ambient-default row when one is visible, else the
+  /// sandboxed account with the matching email. With every row sandboxed
+  /// (default rows removed), the money still shows up on the right account
+  /// instead of vanishing.
+  ///
   /// The Saved card is decoration, never a reason to fail a scan: a reader
   /// error (unreadable log dir, malformed file) keeps the last known value.
   Future<double?> _safeApiValue(core.Account a) async {
     try {
-      return await _apiValue(a);
+      var v = await _apiValue(a.provider, a.configHome);
+      if (v != null && a.configHome != null) {
+        final email = _live[a.id]?.$2.email?.toLowerCase();
+        if (email != null && email == await _defaultHomeEmail(a.provider)) {
+          v += await _apiValue(a.provider, null) ?? 0;
+        }
+      }
+      return v;
     } catch (_) {
       return _apiValueOf[a.id];
     }
+  }
+
+  /// Briefly-cached default-home login emails — the probe is an `auth
+  /// status`-style subprocess, one per provider per scan is plenty.
+  final Map<core.Provider, (DateTime, String?)> _defaultEmailCache = {};
+
+  /// The login email active in [p]'s shared default home. From the ambient
+  /// default account when discovery tracks one; otherwise (its row was
+  /// removed — discovery skips it entirely) a direct detect on the default
+  /// home. Null when the default home isn't signed in.
+  Future<String?> _defaultHomeEmail(core.Provider p) async {
+    for (final (a, pf) in _live.values) {
+      if (a.provider == p && a.configHome == null && pf.isOk) {
+        return pf.email?.toLowerCase();
+      }
+    }
+    final hit = _defaultEmailCache[p];
+    if (hit != null &&
+        DateTime.now().difference(hit.$1) < const Duration(minutes: 1)) {
+      return hit.$2;
+    }
+    String? email;
+    try {
+      final pf = await _adapters[p]!.detect(core.Account(
+        id: '${p.name}-value-probe',
+        provider: p,
+        label: 'probe',
+        configHome: null,
+        deviceId: 'local',
+        addedAt: DateTime.now(),
+      ));
+      if (pf.isOk) email = pf.email?.toLowerCase();
+    } catch (_) {}
+    _defaultEmailCache[p] = (DateTime.now(), email);
+    return email;
   }
 
   Engine._(
@@ -395,7 +450,7 @@ class Engine {
     configureDarkWake ?? (_, _, _) async => null,
     privateBrowserPrefix ?? () async => '',
     killSandbox ?? (_) async {},
-    apiValue ?? (_) async => null,
+    apiValue ?? (_, _) async => null,
   );
 
   /// Emits account rows in two phases so the dashboard fills fast:
