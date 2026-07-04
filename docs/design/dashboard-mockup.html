@@ -47,8 +47,10 @@
   .menubar .active{color:#fff;display:flex;align-items:center;gap:7px}
   .menubar .active svg{width:15px;height:15px;display:block}
 
-  /* floating glass panel — 900-wide design canvas, like the app */
-  .win{width:100%;max-width:900px;position:relative;
+  /* floating glass panel — the app's 1000-wide design canvas (MainFlutterWindow
+     designWidth). At 1000 the flexible meter columns land at ~217px, matching
+     the app's 215px bar tracks; badges/type then read at the app's compactness. */
+  .win{width:100%;max-width:1000px;position:relative;
     background:var(--glass);
     -webkit-backdrop-filter:blur(60px) saturate(180%);
     backdrop-filter:blur(60px) saturate(180%);
