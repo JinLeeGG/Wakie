@@ -453,7 +453,7 @@ class _AutoStartToggle extends StatelessWidget {
     final on = available && a.autoStart;
     return Tooltip(
       message: !available
-          ? 'Auto-start is unavailable — this account has no current session reset window'
+          ? 'Auto-start is unavailable — this account\'s session usage is unknown'
           : on
           ? 'Auto-start is on — a new session starts the moment this window resets'
           : 'Auto-start is off — this account only refreshes, never starts a session',

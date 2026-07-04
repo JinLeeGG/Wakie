@@ -156,6 +156,80 @@ void main() {
     expect(claude.startCalls, 0);
   });
 
+  test('an idle window (nothing consumed, no reset) is armed when opted in',
+      () async {
+    // Rolling-window providers (Antigravity) report an untouched account as
+    // fully remaining with no reset instant — the chain opens its window.
+    final anti = _FakeAdapter(Provider.antigravity,
+        afterStart: const ProviderStatus(
+            session: UsageWindow(usedPct: 2, resetLabel: '4h 59m')));
+    final store = Store.memory()..setAutoStart('anti-default', true);
+    final account = _account(Provider.antigravity, 'anti-default');
+    const idle = ProviderStatus(session: UsageWindow(usedPct: 0));
+
+    await chainExpiredSessions(
+        {Provider.antigravity: anti}, store, [(account, preflight, idle)],
+        now: now);
+
+    expect(anti.startCalls, 1);
+    expect(store.statusFor('anti-default')!.session.usedPct, 2);
+  });
+
+  test('an idle re-arm is rate-limited by the last start, success or not',
+      () async {
+    // If the provider keeps looking idle right after a start (e.g. usage
+    // rounds back to 100% remaining), the chain must not fire every tick.
+    final anti = _FakeAdapter(Provider.antigravity,
+        afterStart: const ProviderStatus(session: UsageWindow(usedPct: 0)));
+    final store = Store.memory()..setAutoStart('anti-default', true);
+    final account = _account(Provider.antigravity, 'anti-default');
+    const idle = ProviderStatus(session: UsageWindow(usedPct: 0));
+
+    await chainExpiredSessions(
+        {Provider.antigravity: anti}, store, [(account, preflight, idle)],
+        now: now);
+    // Second pass 10 minutes later — still inside the re-arm gap.
+    await chainExpiredSessions(
+        {Provider.antigravity: anti}, store, [(account, preflight, idle)],
+        now: now.add(const Duration(minutes: 10)));
+
+    expect(anti.startCalls, 1);
+
+    // Past the gap it may arm again.
+    await chainExpiredSessions(
+        {Provider.antigravity: anti}, store, [(account, preflight, idle)],
+        now: now.add(const Duration(minutes: 45)));
+    expect(anti.startCalls, 2);
+  });
+
+  test('a partly-used window with an unreadable reset is NOT treated as idle',
+      () async {
+    // Mid-window but the reset failed to parse — starting here would burn a
+    // request against a window that's already running.
+    final anti = _FakeAdapter(Provider.antigravity);
+    final store = Store.memory()..setAutoStart('anti-default', true);
+    final account = _account(Provider.antigravity, 'anti-default');
+    const midWindow = ProviderStatus(session: UsageWindow(usedPct: 30));
+
+    await chainExpiredSessions(
+        {Provider.antigravity: anti}, store, [(account, preflight, midWindow)],
+        now: now);
+
+    expect(anti.startCalls, 0);
+  });
+
+  test('an unknown session window is never armed', () async {
+    final anti = _FakeAdapter(Provider.antigravity);
+    final store = Store.memory()..setAutoStart('anti-default', true);
+    final account = _account(Provider.antigravity, 'anti-default');
+
+    await chainExpiredSessions({Provider.antigravity: anti}, store,
+        [(account, preflight, const ProviderStatus())],
+        now: now);
+
+    expect(anti.startCalls, 0);
+  });
+
   test('failed start records the failure and keeps the stale usage instead of clobbering it', () async {
     final claude = _FakeAdapter(Provider.claude, startOk: false);
     final store = Store.memory();

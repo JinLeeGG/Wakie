@@ -189,6 +189,21 @@ void main() {
     expect(a.session.reset, isNot(matches(RegExp(r'^\d+h \d+m$'))));
   });
 
+  test('an idle session window (no reset yet) keeps auto-start available',
+      () async {
+    // Antigravity shape: untouched account → 0% used, no reset instant. The
+    // toggle must stay usable — the chain can arm a window from here.
+    final engine = Engine.withAdapters({
+      core.Provider.claude: _FakeClaude(const core.ProviderStatus(
+        session: core.UsageWindow(usedPct: 0),
+        weekly: core.UsageWindow(usedPct: 1),
+      )),
+    });
+    final a = (await engine.load()).single;
+    expect(a.sessionResetAt, isNull);
+    expect(a.autoStartAvailable, isTrue);
+  });
+
   test('unknown usage falls back gracefully', () async {
     final engine = Engine.withAdapters({
       core.Provider.claude: _FakeClaude(core.ProviderStatus.unknown),
@@ -955,6 +970,49 @@ void main() {
       expect(adapter.starts, 0); // read-only: no session consumed
       expect(adapter.reads, readsAfterLoad + 1);
       expect(store.statusFor('claude-default')!.session.usedPct, 3);
+    });
+
+    test('idle window (nothing consumed, no reset) + opt-in → arms a session',
+        () async {
+      // An untouched rolling-window account (Antigravity shape): 0% used and
+      // no reset instant. With auto-start opted in, the tick opens a window.
+      final adapter = _CountingClaude(const core.ProviderStatus(
+          session: core.UsageWindow(usedPct: 2, resetLabel: '8:00pm')));
+      final store = core.Store.memory()..setAutoStart('claude-default', true);
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: const core.UsageWindow(usedPct: 0), // idle: no reset at all
+        weekly: const core.UsageWindow(usedPct: 10),
+        lastCheckedAt: DateTime.now(),
+      ));
+
+      final changed = await engine.awakeTick();
+
+      expect(changed.map((r) => r.id), ['claude-default']);
+      expect(adapter.starts, 1);
+    });
+
+    test('idle window + auto-start OFF → left alone (no subprocess)',
+        () async {
+      final adapter = _CountingClaude(const core.ProviderStatus());
+      final store = core.Store.memory()
+        ..setAutoStart('claude-default', false);
+      final engine = Engine.withAdapters({core.Provider.claude: adapter},
+          store: store);
+      await engine.load();
+      final readsAfterLoad = adapter.reads;
+      store.saveStatus(core.Status(
+        accountId: 'claude-default',
+        session: const core.UsageWindow(usedPct: 0),
+        lastCheckedAt: DateTime.now(),
+      ));
+
+      expect(await engine.awakeTick(), isEmpty);
+      expect(adapter.starts, 0);
+      expect(adapter.reads, readsAfterLoad);
     });
 
     test('window still ahead → nothing happens (no subprocess)', () async {
