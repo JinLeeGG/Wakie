@@ -510,6 +510,19 @@ class Engine {
     // row the user just deleted; report pending and let the id die out.
     if (!_live.containsKey(id)) return const SignInResult(SignInState.pending);
     _live[id] = (account, pf);
+    // The CLI itself is missing — the login launch died as a silent "command
+    // not found" and can never land. Drop it now, not after the 15-minute
+    // timeout. (The dashboard's [isProviderInstalled] pre-check shows the
+    // install guide before it gets here; this is the safety net.)
+    if (pf.state == core.PreflightState.notInstalled) {
+      _dbg('signin: $id dropped — ${account.provider.name} CLI not installed');
+      removeAccount(id);
+      return SignInResult(
+        SignInState.expired,
+        message: '${_nameFor(account)} removed — the '
+            '${_providerLabel(account.provider)} CLI is not installed.',
+      );
+    }
     if (!pf.isOk) {
       if (DateTime.now().difference(account.addedAt) > _signinTimeout) {
         _dbg('signin: $id expired');
@@ -640,6 +653,24 @@ class Engine {
       unawaited(_killSandbox(configHome));
       _deleteDir(configHome);
     }
+  }
+
+  /// Whether the provider's CLI is present at all — probed with an ambient
+  /// account (no config home) so nothing is created on disk. The dashboard
+  /// checks this before launching a login: a missing CLI dies as a silent
+  /// "command not found", so the sign-in could never land.
+  Future<bool> isProviderInstalled(Provider uiProvider) async {
+    final provider = _coreProvider(uiProvider);
+    final probe = core.Account(
+      id: '${provider.name}-install-probe',
+      provider: provider,
+      label: 'probe',
+      configHome: null,
+      deviceId: 'local',
+      addedAt: DateTime.now(),
+    );
+    final pf = await _adapters[provider]!.detect(probe);
+    return pf.state != core.PreflightState.notInstalled;
   }
 
   /// Starts adding an isolated account: registers it, then launches the

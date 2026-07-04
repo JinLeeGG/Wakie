@@ -79,6 +79,15 @@ class _CountingPendingClaude extends _FakeClaude {
   }
 }
 
+/// The provider CLI is missing entirely — every detect reports notInstalled.
+class _NotInstalledClaude extends _FakeClaude {
+  _NotInstalledClaude() : super(const core.ProviderStatus());
+
+  @override
+  Future<core.Preflight> detect(core.Account a) async =>
+      const core.Preflight(core.PreflightState.notInstalled);
+}
+
 /// Counts startSession/readStatus calls for awake-tick assertions.
 class _CountingClaude extends _FakeClaude {
   int starts = 0;
@@ -655,6 +664,43 @@ void main() {
     expect(resolved.single.message, contains('timed out'));
     expect(store.isRemoved('claude-stale'), isTrue);
     expect(deleted, '${core.Store.defaultAccountsDir()}/claude-stale');
+    expect(engine.pendingSigninIds(), isEmpty);
+  });
+
+  test('isProviderInstalled reflects the adapter detect', () async {
+    final installed = Engine.withAdapters(
+        {core.Provider.claude: _FakeClaude(const core.ProviderStatus())});
+    expect(await installed.isProviderInstalled(Provider.claude), isTrue);
+
+    final missing =
+        Engine.withAdapters({core.Provider.claude: _NotInstalledClaude()});
+    expect(await missing.isProviderInstalled(Provider.claude), isFalse);
+  });
+
+  test('pollSignins drops a pending sign-in at once when the CLI is missing',
+      () async {
+    // The login launch died as "command not found" — without this, the user
+    // would wait out the full 15-minute timeout in silence.
+    String? deleted;
+    final store = core.Store.memory()
+      ..addExtraAccount(core.ExtraAccount(
+        id: 'claude-nocli',
+        provider: core.Provider.claude,
+        label: 'nocli',
+        configHome: '${core.Store.defaultAccountsDir()}/claude-nocli',
+        addedAt: DateTime.now(), // recent — NOT past the sign-in timeout
+      ));
+    final engine = Engine.withAdapters(
+        {core.Provider.claude: _NotInstalledClaude()},
+        store: store, deleteDir: (p) => deleted = p);
+
+    await engine.load();
+    final resolved = await engine.pollSignins();
+
+    expect(resolved.single.state, SignInState.expired);
+    expect(resolved.single.message, contains('not installed'));
+    expect(store.isRemoved('claude-nocli'), isTrue);
+    expect(deleted, '${core.Store.defaultAccountsDir()}/claude-nocli');
     expect(engine.pendingSigninIds(), isEmpty);
   });
 

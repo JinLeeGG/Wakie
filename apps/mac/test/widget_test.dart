@@ -180,6 +180,53 @@ void main() {
     expect(polls, before + 1);
   });
 
+  testWidgets('Adding a provider whose CLI is missing shows the install guide',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    var created = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFF070810)),
+          child: DashboardScreen(
+            onCheckInstalled: (_) async => false,
+            onCreateAccount: (p, l) async {
+              created++;
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+
+    // Open the Add Account modal (⌘N, as the footer advertises) and submit
+    // with the default provider (Claude).
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyN);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.textContaining('Sign in with'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // The install guide appears instead of a sign-in that can never land.
+    expect(find.text("Claude Code isn't installed"), findsOneWidget);
+    expect(find.text('npm install -g @anthropic-ai/claude-code'),
+        findsOneWidget);
+    expect(created, 0); // the login was never launched
+
+    await tester.tap(find.text('Close'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text("Claude Code isn't installed"), findsNothing);
+
+    // Let the footer's fail-state timers run out before teardown.
+    await tester.pump(const Duration(seconds: 6));
+  });
+
   testWidgets('Unknown session disables auto-start toggle', (tester) async {
     var toggled = false;
 

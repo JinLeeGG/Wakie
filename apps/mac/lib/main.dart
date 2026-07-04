@@ -106,6 +106,7 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
         onRemoveAccount: (a) => _engine.removeAccount(a.id),
         onSetAutoStart: (a, enabled) => _engine.setAutoStart(a.id, enabled),
         onCreateAccount: _engine.addAccount,
+        onCheckInstalled: _engine.isProviderInstalled,
         onPollSignins: _engine.pollSignins,
         morningAnchorHour: _engine.morningAnchorHour,
         morningAnchorMinute: _engine.morningAnchorMinute,
