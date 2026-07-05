@@ -159,6 +159,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _addingAccount = false;
   Provider? _missingCli; // provider whose install guide is showing
 
+  // Holds keyboard focus for the ⌘R / ⌘N shortcuts. This widget never unmounts
+  // (menu-bar app), so autofocus only ever fires once — we re-request focus
+  // every time the panel re-opens (see _onVisibilityChanged), otherwise the
+  // shortcuts go dead after the first hide.
+  final FocusNode _panelFocus = FocusNode(debugLabel: 'panel');
+
   // Footer run sequence.
   final FooterController _footer = FooterController();
 
@@ -235,6 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _awakeTimer?.cancel();
     _winIn.dispose();
     _footer.dispose();
+    _panelFocus.dispose();
     super.dispose();
   }
 
@@ -262,6 +269,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _onVisibilityChanged() {
     if (widget.controller?.visible.value ?? true) {
       _startTagRotation();
+      // Re-grab keyboard focus so ⌘R / ⌘N keep working on every re-open.
+      if (mounted) _panelFocus.requestFocus();
     } else {
       _stopTagRotation();
     }
@@ -607,6 +616,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             () => setState(() => _addingAccount = true),
       },
       child: Focus(
+        focusNode: _panelFocus,
         autofocus: true,
         child: _scaffold(),
       ),

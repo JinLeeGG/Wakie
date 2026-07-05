@@ -14,6 +14,12 @@ class MainFlutterWindow: NSWindow {
   // under the cursor); this fires the refit the moment they drop it.
   private var dropMonitor: Any?
 
+  // The panel hides its title bar and window buttons, which can leave AppKit
+  // treating it as non-activatable — so key presses (⌘R / ⌘N) never reach the
+  // Flutter view. Force it to accept key/main status.
+  override var canBecomeKey: Bool { true }
+  override var canBecomeMain: Bool { true }
+
   override func awakeFromNib() {
     let macOSWindowUtilsViewController = MacOSWindowUtilsViewController()
     self.contentViewController = macOSWindowUtilsViewController
