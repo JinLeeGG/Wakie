@@ -43,6 +43,7 @@ class MainFlutterWindow: NSWindow {
         NSApp.activate(ignoringOtherApps: true)
       case "hide":
         self.orderOut(nil)
+        channel.invokeMethod("didHide", arguments: nil)
       case "toggle":
         // The clicked menubar lives on the display under the cursor.
         let target = self.screenUnderCursor()
@@ -51,6 +52,7 @@ class MainFlutterWindow: NSWindow {
         if onSameScreen && isFrontmost {
           // Already up front on this display -> tuck it away.
           self.orderOut(nil)
+          channel.invokeMethod("didHide", arguments: nil)
         } else if onSameScreen {
           // Visible but buried on this display -> pull it forward, keep position.
           self.makeKeyAndOrderFront(nil)

@@ -19,6 +19,18 @@ import 'widgets/summary.dart';
 /// window is opened from the menu bar, so you always see current data.
 class DashboardController extends ChangeNotifier {
   void refreshAll() => notifyListeners();
+
+  /// Whether the menu-bar panel is currently on screen. Cosmetic animations
+  /// (the rotating tagline) pause while it's hidden so an idle, off-screen
+  /// panel doesn't wake the run loop every few seconds and defeat App Nap.
+  /// Starts true — the window is shown on launch.
+  final ValueNotifier<bool> visible = ValueNotifier<bool>(true);
+
+  @override
+  void dispose() {
+    visible.dispose();
+    super.dispose();
+  }
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -170,15 +182,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     _footer.addListener(_reportTray);
     // Refresh everything when the app asks (window opened from the menu bar).
     widget.controller?.addListener(_refreshAll);
-    _tagTimer = Timer.periodic(const Duration(seconds: 7), (_) async {
-      setState(() => _tagFaded = true);
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      setState(() {
-        _tagIdx = (_tagIdx + 1) % taglines.length;
-        _tagFaded = false;
-      });
-    });
+    // Pause the (purely cosmetic) tagline rotation while the panel is hidden —
+    // a timer firing every 7s off-screen just wakes the run loop and blocks
+    // App Nap for no visible benefit.
+    widget.controller?.visible.addListener(_onVisibilityChanged);
+    _startTagRotation();
     // While any account is waiting on its sign-in, quietly re-check it so the
     // row flips to live usage the moment login completes — no manual Refresh
     // needed. No-op when nothing is pending; guarded so a slow check can't
@@ -210,6 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?.removeListener(_refreshAll);
+    widget.controller?.visible.removeListener(_onVisibilityChanged);
     _sub?.cancel();
     _tagTimer?.cancel();
     _signinPoll?.cancel();
@@ -217,6 +226,35 @@ class _DashboardScreenState extends State<DashboardScreen>
     _winIn.dispose();
     _footer.dispose();
     super.dispose();
+  }
+
+  /// Cosmetic tagline rotation. Runs only while the panel is on screen — see
+  /// [_onVisibilityChanged]. Idempotent (never stacks a second timer).
+  void _startTagRotation() {
+    _tagTimer ??= Timer.periodic(const Duration(seconds: 7), (_) async {
+      setState(() => _tagFaded = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      setState(() {
+        _tagIdx = (_tagIdx + 1) % taglines.length;
+        _tagFaded = false;
+      });
+    });
+  }
+
+  void _stopTagRotation() {
+    _tagTimer?.cancel();
+    _tagTimer = null;
+    // Don't leave the tagline stuck mid-fade if we paused between frames.
+    if (_tagFaded && mounted) setState(() => _tagFaded = false);
+  }
+
+  void _onVisibilityChanged() {
+    if (widget.controller?.visible.value ?? true) {
+      _startTagRotation();
+    } else {
+      _stopTagRotation();
+    }
   }
 
   /// Earliest upcoming session reset across accounts. Mock rows carry no
