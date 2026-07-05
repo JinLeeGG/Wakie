@@ -46,10 +46,17 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
     super.initState();
     trayManager.addListener(this);
     _initTray();
-    // Native tells us each time the panel is brought on screen — refresh
-    // everything then, so opening from the menu bar always shows fresh data.
+    // Native tells us each time the panel is brought on screen or tucked away.
+    // On show: refresh so opening from the menu bar always shows fresh data.
+    // The visible flag also gates cosmetic animations (see DashboardController).
     _window.setMethodCallHandler((call) async {
-      if (call.method == 'didShow') _dash.refreshAll();
+      switch (call.method) {
+        case 'didShow':
+          _dash.visible.value = true;
+          _dash.refreshAll();
+        case 'didHide':
+          _dash.visible.value = false;
+      }
       return null;
     });
   }

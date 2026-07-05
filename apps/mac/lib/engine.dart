@@ -330,6 +330,40 @@ const _readTimeout = Duration(seconds: 30);
 /// later. Give the one read that can't hang a visible row more room instead.
 const _coldReadTimeout = Duration(seconds: 75);
 
+/// How many account usage reads run at once during a full scan. Each read can
+/// spawn an interactive CLI TUI (Claude/agy) that peaks at a few hundred MB —
+/// firing one per account simultaneously spins the fan on a multi-account
+/// panel open. A small cap keeps the load flat; cached rows repopulate fast
+/// regardless. See [_Semaphore].
+const _maxConcurrentReads = 3;
+
+/// Minimal FIFO concurrency limiter — caps how many futures from [withResource]
+/// run at once, queueing the rest. Used to bound simultaneous account scrapes.
+class _Semaphore {
+  _Semaphore(this._permits);
+  int _permits;
+  final _waiters = <Completer<void>>[];
+
+  Future<T> withResource<T>(Future<T> Function() action) async {
+    if (_permits > 0) {
+      _permits--;
+    } else {
+      final waiter = Completer<void>();
+      _waiters.add(waiter);
+      await waiter.future;
+    }
+    try {
+      return await action();
+    } finally {
+      if (_waiters.isNotEmpty) {
+        _waiters.removeAt(0).complete();
+      } else {
+        _permits++;
+      }
+    }
+  }
+}
+
 /// Timestamped debug trace for live diagnosis (debug builds only).
 void _dbg(String message) =>
     debugPrint('wakieai ${DateTime.now().toIso8601String().substring(11, 23)} '
@@ -575,9 +609,14 @@ class Engine {
       // directly) so an isolated Claude account is made capture-ready first —
       // otherwise its very first load could stall on / get bounced into the
       // onboarding flow.
+      // Cap simultaneous scrapes (the heavy TUI reads) so a many-account panel
+      // open doesn't spawn a CLI per account at once. The API-value passes stay
+      // parallel — they're just file reads + a short parse isolate, and gating
+      // them would delay the cheap "$" the user can see before a slow read.
+      final readSem = _Semaphore(_maxConcurrentReads);
       await Future.wait([
         for (var i = 0; i < visible.length; i++) ...[
-          _readReady(visible[i].$1).then((s) {
+          readSem.withResource(() => _readReady(visible[i].$1)).then((s) {
             statuses[i] = s;
             _store.cacheStatus(visible[i].$1.id, s);
             rows[i] = rowFor(i);

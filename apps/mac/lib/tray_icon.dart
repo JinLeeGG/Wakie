@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:tray_manager/tray_manager.dart';
 
@@ -92,7 +94,31 @@ class TrayIcon {
   Timer? _spin;
   int _frame = 0;
 
-  Future<void> init() => set(TrayState.idle);
+  // tray_manager's own channel. Its setIcon() re-loads the asset from the
+  // bundle and base64-encodes it on *every* call — cheap once, but the working
+  // spinner ran that (plus a channel hop and a native NSImage decode) 25×/s.
+  // We pre-encode the frames once and push the cached base64 straight to the
+  // plugin's native handler, so a per-frame swap costs only the channel hop and
+  // one decode — no asset read or re-encode.
+  static const _tray = MethodChannel('tray_manager');
+  List<String>? _workB64;
+
+  Future<void> init() async {
+    await _preloadWorkFrames();
+    await set(TrayState.idle);
+  }
+
+  /// Base64-encode the working-arc frames up front. @2x (36px) art, matching
+  /// [_show] — tray_manager forces an 18pt NSImage, so a 36px bitmap renders
+  /// crisp 1:1 on a Retina menu bar.
+  Future<void> _preloadWorkFrames() async {
+    final frames = <String>[];
+    for (var i = 0; i < trayWorkFrames; i++) {
+      final data = await rootBundle.load('assets/tray/work_$i@2x.png');
+      frames.add(base64Encode(data.buffer.asUint8List()));
+    }
+    _workB64 = frames;
+  }
 
   Future<void> set(TrayState next) async {
     if (next == _state) return;
@@ -101,15 +127,33 @@ class TrayIcon {
     _spin = null;
     if (next == TrayState.working) {
       _frame = 0;
-      await _show('work_0');
-      _spin = Timer.periodic(const Duration(milliseconds: 40), (_) {
+      await _showFrame(0);
+      // 10 fps: still reads smooth for a small glyph, but a fifth of the icon
+      // swaps the old 40ms loop did (each swap costs a native NSImage decode).
+      _spin = Timer.periodic(const Duration(milliseconds: 100), (_) {
         _frame = (_frame + 1) % trayWorkFrames;
-        trayManager.setIcon('assets/tray/work_$_frame@2x.png',
-            isTemplate: false);
+        _showFrame(_frame);
       });
     } else {
       await _show(next == TrayState.attention ? 'attention' : 'idle');
     }
+  }
+
+  /// Push a pre-encoded working frame straight to the tray plugin — no asset
+  /// load or base64 per frame. Falls back to the path API only if preload
+  /// hasn't finished (init awaits it, so this is belt-and-suspenders).
+  Future<void> _showFrame(int frame) {
+    final cached = _workB64;
+    if (cached == null) {
+      return trayManager.setIcon('assets/tray/work_$frame@2x.png',
+          isTemplate: false);
+    }
+    return _tray.invokeMethod('setIcon', <String, dynamic>{
+      'base64Icon': cached[frame],
+      'isTemplate': false,
+      'iconPosition': 'left',
+      'iconSize': 18,
+    });
   }
 
   // Load the @2x (36px) art, not the 18px base: tray_manager forces the
