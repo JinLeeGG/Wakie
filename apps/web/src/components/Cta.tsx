@@ -36,7 +36,7 @@ export default function Cta() {
           transition={{ duration: 1.1, ease: EASE_WIN }}
           className="w-full select-none whitespace-nowrap text-center font-sans text-[10.5vw] font-bold leading-[0.95] tracking-tighter"
         >
-          <span className="bg-gradient-to-b from-[#f8f9fc] via-[#e7eaf1] to-[#6a7080] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-b from-[#f8f9fc] via-[#eef1f6] to-[#98a0b0] bg-clip-text text-transparent">
             Start{" "}
           </span>
           <span className="bg-gradient-to-b from-[#ffd79a] via-amber to-amber-deep bg-clip-text text-transparent">
@@ -50,7 +50,7 @@ export default function Cta() {
           whileInView="show"
           viewport={viewport}
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.14, delayChildren: 0.25 } } }}
-          className="mt-16 flex flex-col items-center justify-center gap-4 sm:mt-20 sm:flex-row sm:gap-5"
+          className="mt-20 flex flex-col items-center justify-center gap-4 sm:mt-28 sm:flex-row sm:gap-5"
         >
           <motion.div variants={fadeUp}>
             <InstallLine />
@@ -87,7 +87,7 @@ function InstallLine() {
   };
 
   return (
-    <div className="flex h-[52px] items-center gap-4 rounded-full border border-hair-2 bg-white/[0.02] pl-6 pr-3 backdrop-blur-sm">
+    <div className="flex h-[52px] items-center gap-3 rounded-full border border-hair-2 bg-white/[0.02] pl-6 pr-4 backdrop-blur-sm">
       <code className="whitespace-nowrap font-mono text-[14px] leading-none">
         <span className="text-amber">$ </span>
         <span className="text-t1">curl </span>

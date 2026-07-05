@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import GlassPanel from "./GlassPanel";
+import { OrbitMark } from "./Hero";
 
 const EASE_WIN = [0.2, 0.85, 0.2, 1] as const;
 
@@ -15,8 +16,6 @@ const viewport = { once: true, margin: "-80px" } as const;
 export default function Features() {
   return (
     <section id="features" className="relative w-full px-6 py-32 sm:py-40">
-      <span id="how" className="absolute -top-24" aria-hidden />
-
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -77,21 +76,30 @@ type Row = {
   current: MeterData;
   weekly: MeterData;
   status?: "fresh" | "low";
+  quip: string; // header tagline shown while the demo highlight visits this row
 };
+
+const GREETING = "Good morning, John.";
 
 const ROWS: Row[] = [
   { icon: "/icons/claude_app.png", tile: "#d97757", name: "Claude 1", tier: "PRO", email: "you@gmail.com", auto: true,
-    current: { pct: 100, tone: "ok", reset: "5:39pm" }, weekly: { pct: 4, tone: "crit", reset: "Jul 7 (6:59am)" }, status: "fresh" },
+    current: { pct: 100, tone: "ok", reset: "5:39pm" }, weekly: { pct: 4, tone: "crit", reset: "Jul 7 (6:59am)" }, status: "fresh",
+    quip: "Fresh window. Spend it well." },
   { icon: "/icons/claude_app.png", tile: "#d97757", name: "Claude 2", tier: "PRO", email: "work@gmail.com", auto: true,
-    current: { pct: 100, tone: "ok", reset: "5:39pm" }, weekly: { pct: 3, tone: "crit", reset: "2h 51m" }, status: "fresh" },
+    current: { pct: 100, tone: "ok", reset: "5:39pm" }, weekly: { pct: 3, tone: "crit", reset: "2h 51m" }, status: "fresh",
+    quip: "Weekly resets in 2h 51m. Hang tight." },
   { icon: "/icons/claude_app.png", tile: "#d97757", name: "Claude 3", tier: "PRO", email: "side@gmail.com", auto: true,
-    current: { pct: 18, tone: "crit", reset: "4:09pm" }, weekly: { pct: 91, tone: "ok", reset: "Jul 9 (1:59am)" }, status: "low" },
+    current: { pct: 18, tone: "crit", reset: "4:09pm" }, weekly: { pct: 91, tone: "ok", reset: "Jul 9 (1:59am)" }, status: "low",
+    quip: "Claude 3 is running hot. Time to switch." },
   { icon: "/icons/codex_app.png", tile: "#edf1f7", name: "Codex 1", tier: "PLUS", email: "main@gmail.com", auto: true,
-    current: { pct: 99, tone: "ok", reset: "7:07pm" }, weekly: { pct: 33, tone: "warn", reset: "Jul 6 (10:44pm)" }, status: "fresh" },
+    current: { pct: 99, tone: "ok", reset: "7:07pm" }, weekly: { pct: 33, tone: "warn", reset: "Jul 6 (10:44pm)" }, status: "fresh",
+    quip: "Codex 1 is basically untouched." },
   { icon: "/icons/codex_app.png", tile: "#edf1f7", name: "Codex 2", tier: "FREE", email: "free@gmail.com", auto: false,
-    current: null, weekly: { pct: 95, tone: "ok", reset: "Aug 3 (2:07pm)" } },
+    current: null, weekly: { pct: 95, tone: "ok", reset: "Aug 3 (2:07pm)" },
+    quip: "Codex 2 is napping. Wake it anytime." },
   { icon: "/icons/antigravity_app.png", tile: "#1b1c21", name: "Antigravity 1", tier: "PRO", email: "anti@gmail.com", auto: false,
-    current: { pct: 100, tone: "ok", reset: "—" }, weekly: { pct: 99, tone: "ok", reset: "Jul 7 (6:21am)" }, status: "fresh" },
+    current: { pct: 100, tone: "ok", reset: "—" }, weekly: { pct: 99, tone: "ok", reset: "Jul 7 (6:21am)" }, status: "fresh",
+    quip: "Antigravity 1? Full tank." },
 ];
 
 const SUMMARY = [
@@ -113,16 +121,27 @@ function DashboardPreview() {
       setActive(-1);
       return;
     }
-    const id = setInterval(() => setActive((a) => (a + 1) % ROWS.length), 2000);
+    const id = setInterval(() => setActive((a) => (a + 1) % ROWS.length), 3500);
     return () => clearInterval(id);
   }, [inView, reduce]);
 
   return (
     <GlassPanel ref={ref} className="pointer-events-none mx-auto w-full min-w-[900px] max-w-[1000px] select-none text-left">
-      {/* header — tagline + updated chip */}
-      <div className="flex items-start justify-between gap-4 px-[26px] pb-[18px] pt-6">
-        <div className="text-[28px] font-bold leading-[1.1] tracking-[-0.01em] text-t1">
-          I mean, make your money worth.
+      {/* header — tagline reacts to whichever row the demo highlight visits */}
+      <div className="flex items-center justify-between gap-4 px-[26px] pb-[18px] pt-6">
+        <div className="relative h-[31px] min-w-0 flex-1 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active >= 0 ? ROWS[active].quip : GREETING}
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -16, opacity: 0 }}
+              transition={{ duration: 0.26, ease: EASE_WIN }}
+              className="truncate text-[28px] font-bold leading-[1.1] tracking-[-0.01em] text-t1"
+            >
+              {active >= 0 ? ROWS[active].quip : GREETING}
+            </motion.div>
+          </AnimatePresence>
         </div>
         <span className="flex flex-none items-center gap-[7px] rounded-full border border-hair bg-white/5 px-3 py-1.5 font-mono text-[12px] text-t2">
           <span className="h-1.5 w-1.5 rounded-full bg-ok shadow-[0_0_8px_rgba(95,211,154,0.7)]" />
@@ -154,7 +173,7 @@ function DashboardPreview() {
       </div>
 
       {/* column header */}
-      <div className="grid grid-cols-[272px_1fr_1fr_190px] items-center gap-4 px-7 pb-2 pt-0.5">
+      <div className="grid grid-cols-[300px_1fr_1fr_170px] items-center gap-4 px-7 pb-2 pt-0.5">
         <span className="flex items-center justify-between font-mono text-[12.5px] uppercase tracking-[0.104em] text-t3">
           <span>Account</span>
           <span>Auto</span>
@@ -171,7 +190,7 @@ function DashboardPreview() {
         {ROWS.map((r, i) => (
           <div
             key={r.name}
-            className="relative isolate grid grid-cols-[272px_1fr_1fr_190px] items-center gap-4 rounded-[14px] px-3.5 py-2.5 [&+&]:mt-0.5"
+            className="relative isolate grid grid-cols-[300px_1fr_1fr_170px] items-center gap-4 rounded-[14px] px-3.5 py-2.5 [&+&]:mt-0.5"
           >
             {/* ONE shared highlight block that physically glides between rows
                 (layoutId FLIP) — no fade-out/fade-in, it travels. */}
@@ -274,8 +293,8 @@ function DashboardPreview() {
         <div className="flex items-center gap-5">
           <FootToggle label="Wake from sleep" />
           <FootToggle label="Launch at login" />
-          <span className="flex items-center gap-2 font-mono text-[13.5px] text-t2">
-            <span className="h-1.5 w-1.5 rounded-full bg-ok" />
+          <span className="flex items-center gap-1.5 font-mono text-[13.5px] text-t2">
+            <OrbitMark className="h-4 w-4 text-amber" />
             <span>
               <span className="text-amber">W</span>
               <span className="text-t1">a</span>
@@ -372,7 +391,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 
 function SqIcon({ d }: { d: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-t1" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-t2" aria-hidden>
       <path d={d} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

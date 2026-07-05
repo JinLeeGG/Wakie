@@ -7,13 +7,15 @@ import { motion, useReducedMotion } from "framer-motion";
    boundaries (no clipped-blob seam lines). Bottom → top:
    aurora blobs → star dust → vignette → film grain. */
 
-/* Static star dust — a handful of tiny points, weighted toward the top half. */
+/* Static star dust — tiny points, weighted toward the top half. Alphas are
+   capped at 0.15: the layer is fixed, so anything brighter reads as monitor
+   smudge while content scrolls past it. */
 const DUST = [
-  ["14%", "18%", 0.35], ["78%", "12%", 0.3], ["32%", "9%", 0.25],
-  ["88%", "34%", 0.3], ["7%", "42%", 0.25], ["62%", "22%", 0.35],
-  ["47%", "6%", 0.25], ["93%", "58%", 0.2], ["22%", "64%", 0.2],
-  ["70%", "72%", 0.25], ["38%", "83%", 0.2], ["84%", "88%", 0.25],
-  ["11%", "77%", 0.2], ["55%", "48%", 0.2],
+  ["14%", "18%", 0.15], ["78%", "12%", 0.13], ["32%", "9%", 0.11],
+  ["88%", "34%", 0.13], ["7%", "42%", 0.11], ["62%", "22%", 0.15],
+  ["47%", "6%", 0.11], ["93%", "58%", 0.09], ["22%", "64%", 0.09],
+  ["70%", "72%", 0.11], ["38%", "83%", 0.09], ["84%", "88%", 0.11],
+  ["11%", "77%", 0.09], ["55%", "48%", 0.09],
 ] as const;
 
 const dustImage = DUST.map(

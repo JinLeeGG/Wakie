@@ -12,7 +12,7 @@ const viewport = { once: true, margin: "-80px" } as const;
 
 export default function MorningAlarm() {
   return (
-    <section className="relative w-full px-6 py-24 sm:py-32">
+    <section id="wake" className="relative w-full px-6 py-24 sm:py-32">
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -44,7 +44,9 @@ export default function MorningAlarm() {
 
         {/* right — the app's daily-wake wheel picker, self-demonstrating */}
         <motion.div variants={fadeUp} className="flex justify-center lg:justify-end">
-          <div className="lg:mr-16 scale-110 sm:scale-125 origin-center lg:origin-right">
+          {/* sized to visually match the Add-account modal next door (452px):
+              248px × 1.35 ≈ 335px wide, similar height */}
+          <div className="scale-[1.2] origin-center sm:scale-[1.35] lg:origin-right">
             <DailyWakeCard />
           </div>
         </motion.div>
@@ -61,7 +63,8 @@ export default function MorningAlarm() {
 const ROW_H = 36;
 const HOURS = [6, 7, 8, 9, 10, 11, 12, 13];
 const MINS = [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41];
-const AP = ["", "AM", "AM", "PM", ""];
+// AM/PM is its own 2-item wheel: with AM selected, PM sits below — no ghost rows
+const AP = ["", "", "AM", "PM", ""];
 
 const spring = { type: "spring", stiffness: 160, damping: 24 } as const;
 
