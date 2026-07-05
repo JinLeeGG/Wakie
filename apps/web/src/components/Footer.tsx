@@ -18,7 +18,7 @@ export default function Footer() {
           </span>
         </span>
         <span className="font-mono text-[12px] text-t3">
-          © 2026 WakieAI · Made for macOS
+          © 2026 Wakie · Made for macOS
         </span>
       </div>
     </footer>

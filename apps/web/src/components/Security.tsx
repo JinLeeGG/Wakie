@@ -87,7 +87,7 @@ export default function Security() {
         </motion.p>
 
         {/* proof, not promises: a quiet terminal audit that runs itself */}
-        <motion.div variants={fadeUp} className="mt-16 w-full max-w-xl">
+        <motion.div variants={fadeUp} className="mt-16 w-full max-w-2xl">
           <div
             ref={termRef}
             className="overflow-hidden rounded-2xl border border-hair-2 bg-white/[0.02] text-left shadow-[0_0_50px_rgba(255,196,101,0.06),0_30px_80px_-24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl"
@@ -101,7 +101,7 @@ export default function Security() {
             </div>
 
             {/* body */}
-            <div className="min-h-[280px] px-5 py-5 font-mono text-[13.5px] leading-[2]">
+            <div className="px-5 py-5 font-mono text-[14px] leading-[2]">
               {/* typed command */}
               <div className="text-t1">
                 <span className="text-amber">$</span> {CMD.slice(0, typedLen)}

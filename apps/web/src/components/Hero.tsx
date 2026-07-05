@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, useRef } from "react";
 import { motion, type Variants } from "framer-motion";
 
 /* Signature easings, mirrored from theme.dart / the mockups. */
@@ -50,7 +51,7 @@ export default function Hero() {
             variants={fadeUp}
             className="font-sans text-[clamp(2.25rem,6.2vw,5.5rem)] font-bold leading-[1.06] tracking-[-0.03em] text-t1"
           >
-            <span className="whitespace-nowrap">All your <span className="text-amber">AI</span> subscriptions.</span>
+            <span className="whitespace-nowrap">All your AI subscriptions.</span>
             <br />
             <span className="text-t1">
               Always <span className="text-amber">awake</span>.
@@ -65,10 +66,7 @@ export default function Hero() {
               <DownloadIcon className="h-[18px] w-[18px]" />
               Download for Mac
             </PrimaryCta>
-            <SecondaryCta href="#how">
-              How it works
-              <span className="transition-transform group-hover:translate-y-0.5">↓</span>
-            </SecondaryCta>
+
           </motion.div>
 
         </motion.div>
@@ -98,10 +96,10 @@ export function PrimaryCta({
     >
       <motion.span
         aria-hidden
-        className="pointer-events-none absolute -inset-2 -z-10 rounded-full bg-amber blur-lg"
+        className="pointer-events-none absolute -inset-1 -z-10 rounded-full bg-amber blur-lg"
         variants={{
-          rest: { opacity: 0.15, scale: 0.9 },
-          hover: { opacity: 0.4, scale: 1.05 },
+          rest: { opacity: 0.06, scale: 0.9 },
+          hover: { opacity: 0.4, scale: 1.08 },
         }}
         transition={{ duration: 0.3, ease: EASE_LIFT }}
       />
@@ -120,51 +118,50 @@ export function PrimaryCta({
   );
 }
 
-function SecondaryCta({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.a
-      href={href}
-      initial="rest"
-      whileHover="hover"
-      whileTap="tap"
-      variants={{ rest: { scale: 1 }, hover: { scale: 1.04 }, tap: { scale: 0.97 } }}
-      transition={{ duration: 0.25, ease: EASE_LIFT }}
-      className="group relative inline-flex h-[52px] items-center gap-2 rounded-full border border-hair-2 bg-white/[0.03] px-8 font-sans text-[16px] font-medium text-t2 backdrop-blur-sm transition-colors hover:border-amber/40 hover:text-t1"
-    >
-      <motion.span
-        aria-hidden
-        className="pointer-events-none absolute -inset-2 -z-10 rounded-full bg-white blur-lg"
-        variants={{
-          rest: { opacity: 0, scale: 0.9 },
-          hover: { opacity: 0.14, scale: 1.1 },
-        }}
-        transition={{ duration: 0.3, ease: EASE_LIFT }}
-      />
-      {children}
-    </motion.a>
-  );
-}
-
 /* ── Navigation ────────────────────────────────────────────────────────────── */
 
-const NAV_LINKS = ["Features", "Security"];
-
 function Nav() {
+  // sticky glass: transparent at the top, frosted once the page scrolls
+  const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Update scrolled state for glass background
+      setScrolled(currentScrollY > 24);
+
+      // Determine visibility based on scroll direction
+      if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+        // Scrolling down and past the very top
+        setHidden(true);
+      } else {
+        // Scrolling up
+        setHidden(false);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <motion.nav
       initial={{ opacity: 0, y: -14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: EASE_WIN }}
-      className="absolute inset-x-0 top-0 z-30"
+      className={`fixed inset-x-0 top-0 z-30 transition-all duration-300 ${
+        scrolled
+          ? "border-b border-hair bg-[rgba(10,12,18,0.6)] backdrop-blur-xl"
+          : "border-b border-transparent bg-transparent"
+      } ${hidden ? "-translate-y-full" : "translate-y-0"}`}
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 py-5">
-        <a href="#" className="flex items-center gap-2.5 justify-self-start">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <a href="#" className="flex items-center gap-2.5">
           <OrbitMark className="h-6 w-6" />
           <span className="font-sans text-[17px] font-semibold tracking-tight">
             <span className="text-amber">W</span>
@@ -175,19 +172,9 @@ function Nav() {
           </span>
         </a>
 
-        <div className="hidden items-center gap-8 justify-self-center md:flex">
-          {NAV_LINKS.map((l) => (
-            <a
-              key={l}
-              href={`#${l.toLowerCase()}`}
-              className="font-sans text-[14.5px] font-medium text-t2 transition-colors hover:text-t1"
-            >
-              {l}
-            </a>
-          ))}
-        </div>
 
-        <div className="justify-self-end">
+
+        <div>
           <a
             href="#download"
             className="flex h-9 items-center rounded-full border border-hair-2 bg-white/[0.04] px-5 font-sans text-[14px] font-semibold text-t1 backdrop-blur-sm transition-colors hover:border-amber/50 hover:bg-amber/10"

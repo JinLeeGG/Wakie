@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import GlassPanel from "./GlassPanel";
+import { OrbitMark } from "./Hero";
 
 const EASE_WIN = [0.2, 0.85, 0.2, 1] as const;
 const fadeUp: Variants = {
@@ -13,7 +14,7 @@ const viewport = { once: true, margin: "-80px" } as const;
 
 export default function AddAccount() {
   return (
-    <section className="relative w-full px-6 py-24 sm:py-32">
+    <section id="multi-account" className="relative w-full px-6 py-28 sm:py-40">
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -38,8 +39,8 @@ export default function AddAccount() {
             Track them together.
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-6 text-[1.25rem] leading-relaxed text-t2">
-            Add multiple AI accounts and
-            <br className="hidden lg:block" /> monitor usage from a single view.
+            Add multiple AI accounts
+            <br className="hidden lg:block" /> and monitor usage from a single view.
           </motion.p>
         </div>
 
@@ -115,10 +116,7 @@ function AddAccountCard() {
     <GlassPanel ref={ref} variant="solid" className="pointer-events-none w-[452px] max-w-full select-none">
       {/* header */}
       <div className="flex items-center py-5 pl-[22px] pr-4">
-        <svg viewBox="0 0 100 100" className="h-5 w-5 flex-none" aria-hidden>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#fff" strokeWidth="7" />
-          <circle cx="50" cy="50" r="22" fill="#f6b23c" />
-        </svg>
+        <OrbitMark className="h-5 w-5 flex-none" />
         <span className="ml-[11px] text-[19px] font-semibold text-t1">Add account</span>
         <span className="ml-auto grid h-[37px] w-[37px] cursor-pointer place-items-center rounded-[9px] text-t2 transition-colors hover:bg-white/5 hover:text-t1">
           <svg viewBox="0 0 24 24" fill="none" className="h-[19px] w-[19px]" aria-hidden>
@@ -153,7 +151,7 @@ function AddAccountCard() {
               <span className="text-[16px] font-semibold text-t1">{p.name}</span>
               <span
                 className={`ml-auto grid h-[18px] w-[18px] flex-none place-items-center rounded-full border-[1.5px] transition-colors duration-300 ${
-                  isSel ? "border-amber" : "border-hair-2"
+                  isSel ? "border-amber" : "border-white/25"
                 }`}
               >
                 <span
