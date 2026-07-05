@@ -26,9 +26,16 @@ class DashboardController extends ChangeNotifier {
   /// Starts true — the window is shown on launch.
   final ValueNotifier<bool> visible = ValueNotifier<bool>(true);
 
+  /// Bumped when the Mac wakes from sleep, so the dashboard runs an immediate
+  /// awake tick (chain any session that reset overnight) instead of waiting out
+  /// its coarse periodic timer.
+  final ValueNotifier<int> awakePokes = ValueNotifier<int>(0);
+  void pokeAwake() => awakePokes.value++;
+
   @override
   void dispose() {
     visible.dispose();
+    awakePokes.dispose();
     super.dispose();
   }
 }
@@ -186,6 +193,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     // a timer firing every 7s off-screen just wakes the run loop and blocks
     // App Nap for no visible benefit.
     widget.controller?.visible.addListener(_onVisibilityChanged);
+    // Wake from sleep → run an awake tick immediately (no wait for the timer).
+    widget.controller?.awakePokes.addListener(_onAwakePoke);
     _startTagRotation();
     // While any account is waiting on its sign-in, quietly re-check it so the
     // row flips to live usage the moment login completes — no manual Refresh
@@ -219,6 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?.removeListener(_refreshAll);
     widget.controller?.visible.removeListener(_onVisibilityChanged);
+    widget.controller?.awakePokes.removeListener(_onAwakePoke);
     _sub?.cancel();
     _tagTimer?.cancel();
     _signinPoll?.cancel();
@@ -256,6 +266,10 @@ class _DashboardScreenState extends State<DashboardScreen>
       _stopTagRotation();
     }
   }
+
+  // ValueNotifier listeners must be void; _awakeTick is async and self-guarded
+  // against overlap, so fire-and-forget is fine.
+  void _onAwakePoke() => _awakeTick();
 
   /// Earliest upcoming session reset across accounts. Mock rows carry no
   /// instant (null), so goldens stay deterministic and the card's tooltip

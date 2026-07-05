@@ -56,6 +56,8 @@ class _WakieAppState extends State<WakieApp> with TrayListener {
           _dash.refreshAll();
         case 'didHide':
           _dash.visible.value = false;
+        case 'didWake':
+          _dash.pokeAwake();
       }
       return null;
     });

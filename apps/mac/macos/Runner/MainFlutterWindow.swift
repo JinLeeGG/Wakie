@@ -73,6 +73,16 @@ class MainFlutterWindow: NSWindow {
       result(nil)
     }
 
+    // When the Mac wakes from sleep, re-check right away instead of waiting out
+    // the dashboard's coarse (60s) awake timer — a session that reset while
+    // asleep gets chained the moment the lid opens. NSWorkspace wake events are
+    // posted on its *own* notification center, not the default one.
+    NSWorkspace.shared.notificationCenter.addObserver(
+      forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+    ) { _ in
+      channel.invokeMethod("didWake", arguments: nil)
+    }
+
     // Frameless, transparent, fixed-size glass panel.
     self.titlebarAppearsTransparent = true
     self.titleVisibility = .hidden
