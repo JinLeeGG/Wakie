@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 40" width="132" height="40" role="img" aria-label="Wakie">
+  <!-- WakieAI wordmark v2 (2026-07-04, from the landing page) -->
+  <!-- "Wakie" — alternating amber/white letters. Requires Instrument Sans
+       (bundled in-app at apps/mac/assets/fonts/InstrumentSans.ttf).
+       For pixel-exact rendering in Flutter use TextSpans — see BRAND.md. -->
+  <text x="0" y="30" font-family="Instrument Sans, sans-serif" font-size="30"
+        font-weight="600" letter-spacing="-0.75">
+    <tspan fill="#ffc465">W</tspan><tspan fill="#f3f4f7">a</tspan><tspan fill="#ffc465">k</tspan><tspan fill="#f3f4f7">i</tspan><tspan fill="#ffc465">e</tspan>
+  </text>
+</svg>
