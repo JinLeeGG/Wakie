@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sparkle update feed for WakieAI.
+
+  This file is the SEED. At release time the CI workflow (.github/workflows/
+  release.yml) fetches the currently-published feed from GitHub Pages, prepends
+  a new <item> (with the DMG URL, EdDSA signature and length), and republishes
+  it to the gh-pages branch — so the live feed accumulates every version while
+  this seed stays minimal.
+
+  Live URL (must match SUFeedURL in Info.plist and _feedUrl in lib/updater.dart):
+    https://jinleegg.github.io/WakeyAI/appcast.xml
+-->
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>WakieAI</title>
+    <link>https://jinleegg.github.io/WakeyAI/appcast.xml</link>
+    <description>WakieAI update feed</description>
+    <language>en</language>
+    <!-- APPCAST:INSERT -->
+    <!--
+      Each release looks like this (newest first). `sparkle:version` is the
+      CFBundleVersion (build number, monotonic); `sparkle:shortVersionString`
+      is the marketing version. `sparkle:edSignature` + `length` come straight
+      from Sparkle's `sign_update`.
+
+    <item>
+      <title>1.0.1</title>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>10.15</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 06 Jul 2026 09:00:00 +0000</pubDate>
+      <description><![CDATA[ <ul><li>What changed…</li></ul> ]]></description>
+      <enclosure
+        url="https://github.com/JinLeeGG/WakeyAI/releases/download/v1.0.1/WakieAI.dmg"
+        sparkle:edSignature="BASE64_SIGNATURE"
+        length="12345678"
+        type="application/octet-stream" />
+    </item>
+    -->
+  </channel>
+</rss>

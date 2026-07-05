@@ -30,5 +30,21 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+
+	<!-- Sparkle auto-update (see lib/updater.dart + docs/RELEASE.md).
+	     SUPublicEDKey MUST be replaced with the public half of the EdDSA key
+	     you generate once with Sparkle's `generate_keys`; the private half
+	     lives only in the CI secret SPARKLE_ED_PRIVATE_KEY and signs each DMG.
+	     Without a matching key Sparkle refuses every update. -->
+	<key>SUPublicEDKey</key>
+	<string>REPLACE_WITH_YOUR_SPARKLE_ED_PUBLIC_KEY</string>
+	<key>SUFeedURL</key>
+	<string>https://jinleegg.github.io/WakeyAI/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

@@ -1,0 +1,153 @@
+# Release pipeline: tag `vX.Y.Z` → build → Developer-ID sign → notarize →
+# DMG → Sparkle-sign → GitHub Release → appcast.xml on Pages.
+#
+# One-time setup + the required secrets are documented in docs/RELEASE.md.
+# The signing sequence mirrors apps/mac/scripts/package.sh — keep them in sync.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: # manual runs (won't publish a Release unless a tag exists)
+
+permissions:
+  contents: write # create the GitHub Release + push to gh-pages
+
+jobs:
+  release:
+    runs-on: macos-14 # Apple Silicon; has Xcode + notarytool
+    defaults:
+      run:
+        working-directory: apps/mac
+    env:
+      IDENTITY: "Developer ID Application: Gyujin Lee (8GJTN3VYTJ)"
+      APP: build/macos/Build/Products/Release/wakieai.app
+      DMG: build/dist/WakieAI.dmg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive versions
+        id: ver
+        run: |
+          SHORT="${GITHUB_REF_NAME#v}"          # v1.0.1 -> 1.0.1
+          BUILD="${GITHUB_RUN_NUMBER}"          # monotonic -> Sparkle sparkle:version
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # ---- Code-signing identity into a throwaway keychain ----
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}         # base64 of the .p12
+          CERT_PW: ${{ secrets.MACOS_CERT_PASSWORD }}
+          KC_PW: ${{ secrets.KEYCHAIN_PASSWORD }}          # any throwaway string
+        run: |
+          echo "$CERT_P12" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$KC_PW" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KC_PW" build.keychain
+          security set-keychain-settings -lut 3600 build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$CERT_PW" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KC_PW" build.keychain >/dev/null
+          rm /tmp/cert.p12
+
+      # ---- Build (stamp version from the tag) ----
+      - run: flutter pub get
+      - name: Build release
+        run: |
+          flutter build macos --release \
+            --build-name="${{ steps.ver.outputs.short }}" \
+            --build-number="${{ steps.ver.outputs.build }}"
+
+      # ---- Sign nested code, then the app (inside-out; see package.sh) ----
+      - name: Sign app
+        run: |
+          while IFS= read -r -d '' item; do
+            codesign --force --options runtime --timestamp --sign "$IDENTITY" "$item"
+          done < <(find "$APP/Contents/Frameworks" -maxdepth 1 \
+                     \( -name "*.framework" -o -name "*.dylib" \) -print0 2>/dev/null)
+          codesign --force --options runtime --timestamp \
+            --entitlements macos/scripts/runner.entitlements --sign "$IDENTITY" \
+            "$APP/Contents/Resources/wakieai_runner"
+          codesign --force --options runtime --timestamp \
+            --entitlements macos/Runner/Release.entitlements --sign "$IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      # ---- DMG ----
+      - name: Build DMG
+        run: |
+          rm -rf build/dist && mkdir -p build/dist
+          STAGE="$(mktemp -d)"
+          cp -R "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname WakieAI -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+          rm -rf "$STAGE"
+          codesign --force --timestamp --sign "$IDENTITY" "$DMG"
+
+      # ---- Notarize + staple ----
+      - name: Notarize
+        env:
+          APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}          # 8GJTN3VYTJ
+          APP_PW: ${{ secrets.NOTARY_PASSWORD }}          # app-specific password
+        run: |
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PW" --wait
+          xcrun stapler staple "$DMG"
+
+      # ---- Sparkle EdDSA signature over the DMG ----
+      - name: Sparkle sign
+        id: sparkle
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          SPARKLE_VER=2.6.4
+          curl -fsSL -o /tmp/sparkle.tar.xz \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VER}/Sparkle-${SPARKLE_VER}.tar.xz"
+          mkdir -p /tmp/sparkle && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle
+          printf '%s' "$SPARKLE_KEY" > /tmp/sparkle_key
+          # Emits:  sparkle:edSignature="…" length="…"
+          # (flag is -f for the EdDSA private-key file in Sparkle 2; confirm with
+          #  `/tmp/sparkle/bin/sign_update --help` if a version bump breaks it.)
+          SIG=$(/tmp/sparkle/bin/sign_update "$DMG" -f /tmp/sparkle_key)
+          rm -f /tmp/sparkle_key
+          echo "sig=$SIG" >> "$GITHUB_OUTPUT"
+          echo "len=$(stat -f%z "$DMG")" >> "$GITHUB_OUTPUT"
+
+      # ---- GitHub Release (attaches the notarized DMG) ----
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/mac/build/dist/WakieAI.dmg
+          generate_release_notes: true
+
+      # ---- Update the appcast on GitHub Pages ----
+      - name: Update appcast
+        env:
+          SHORT: ${{ steps.ver.outputs.short }}
+          BUILD: ${{ steps.ver.outputs.build }}
+          SIG: ${{ steps.sparkle.outputs.sig }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          APPCAST: /tmp/site/appcast.xml
+        run: |
+          mkdir -p /tmp/site
+          # Start from the live feed (seed template on the first ever run).
+          curl -fsSL https://jinleegg.github.io/WakeyAI/appcast.xml -o /tmp/site/appcast.xml \
+            || cp deploy/appcast.xml /tmp/site/appcast.xml
+          python3 ../../deploy/append_appcast.py
+
+      - name: Deploy appcast to Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: /tmp/site
+          publish_branch: gh-pages
+          keep_files: true

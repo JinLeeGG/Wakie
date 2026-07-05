@@ -10,6 +10,7 @@ import 'dashboard.dart';
 import 'engine.dart';
 import 'theme.dart';
 import 'tray_icon.dart';
+import 'updater.dart';
 
 const _window = MethodChannel('wakieai/window');
 
@@ -27,6 +28,10 @@ Future<void> main() async {
   WindowManipulator.setNSVisualEffectViewState(NSVisualEffectViewState.active);
 
   runApp(const WakieApp());
+
+  // Check for an update quietly on launch, then on a schedule (Sparkle).
+  // Fire-and-forget: no-op in debug/off-macOS, never blocks startup.
+  unawaited(initAutoUpdater());
 }
 
 class WakieApp extends StatefulWidget {

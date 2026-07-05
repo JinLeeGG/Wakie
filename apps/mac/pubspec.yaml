@@ -37,6 +37,9 @@ dependencies:
   tray_manager: ^0.5.3
   macos_window_utils: ^1.9.1
   flutter_svg: ^2.3.0
+  # In-app auto-update via Sparkle (macOS). Feed is an appcast.xml on GitHub
+  # Pages; DMGs live in GitHub Releases. See docs/RELEASE.md.
+  auto_updater: ^1.0.0
   wakieai_core:
     path: ../../packages/core
 
