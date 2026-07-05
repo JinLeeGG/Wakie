@@ -1,14 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme.dart';
+import 'brand.dart';
 import 'tiny_toggle_switch.dart';
-
-const _logoSvg =
-    '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
-    '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
 
 /// Drives the footer progress bar off *real* work, not a canned timeline.
 ///
@@ -268,26 +264,10 @@ class _DashboardFooterState extends State<DashboardFooter> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 15, height: 15, child: SvgPicture.string(_logoSvg)),
+        const OrbitMark(size: 15),
         const SizedBox(width: 7),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'Wakie',
-                style: mono(12.5, weight: FontWeight.w600, color: T.amber),
-              ),
-              TextSpan(
-                text: 'AI',
-                style: mono(12.5, weight: FontWeight.w600, color: T.t1),
-              ),
-              TextSpan(
-                text: '  1.0.0',
-                style: mono(10, color: T.t3, letterSpacing: 0.4),
-              ),
-            ],
-          ),
-        ),
+        const WakieWordmark(fontSize: 12.5),
+        Text('  1.0.0', style: mono(10, color: T.t3, letterSpacing: 0.4)),
       ],
     );
   }
