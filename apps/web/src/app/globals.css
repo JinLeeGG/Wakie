@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* ── Design tokens ───────────────────────────────────────────────────────────
+   Mirror of the shipping app (apps/mac/lib/theme.dart). Keep in sync so an app
+   screenshot and the surrounding page share one color space. */
+@theme {
+  /* Text ramp */
+  --color-t1: #f3f4f7; /* primary text */
+  --color-t2: #a9aeb8; /* secondary / labels */
+  --color-t3: #6a7080; /* tertiary / captions, meta */
+
+  /* Brand accent — single accent (scarce by rule) */
+  --color-amber: #ffc465;
+  --color-amber-deep: #f6b23c;
+
+  /* Semantic status (meters / dots only) */
+  --color-ok: #5fd39a;
+  --color-warn: #ffbf5c;
+  --color-crit: #ff7a85;
+
+  /* Glass surfaces — two-tier opacity */
+  --color-glass: rgba(22, 24, 32, 0.8); /* floating panel */
+  --color-glass-solid: rgba(22, 24, 32, 0.96); /* modal / opaque overlay */
+
+  /* Hairlines (alpha-on-white) */
+  --color-hair: rgba(255, 255, 255, 0.09); /* internal dividers, inner cards */
+  --color-hair-2: rgba(255, 255, 255, 0.14); /* outer panel edge, hover */
+
+  /* Radii */
+  --radius-panel: 22px;
+  --radius-modal: 20px;
+  --radius-card: 14px;
+
+  /* Signature easings (from the app's win-in / box-in / hover) */
+  --ease-win: cubic-bezier(0.2, 0.85, 0.2, 1);
+  --ease-pop: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-lift: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Fonts are injected as CSS variables by next/font in layout.tsx */
+@theme inline {
+  --font-sans: var(--font-instrument);
+  --font-mono: var(--font-jetbrains);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-t1);
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    /* The app's "desktop scene" — four radials over a navy base. Not decorative:
+       it's what the frosted glass refracts. */
+    background:
+      radial-gradient(50% 45% at 12% 8%, rgba(56, 140, 160, 0.3), transparent 60%),
+      radial-gradient(55% 50% at 92% 18%, rgba(150, 110, 235, 0.26), transparent 62%),
+      radial-gradient(60% 55% at 70% 100%, rgba(255, 170, 70, 0.18), transparent 60%),
+      radial-gradient(50% 50% at 30% 90%, rgba(60, 90, 200, 0.2), transparent 60%),
+      linear-gradient(160deg, #0a0c12, #070810 60%, #05060b);
+    background-attachment: fixed;
+  }
+}
+
+/* ── GlassPanel recipe (centralized) ─────────────────────────────────────────
+   The 4-part elevation stack that reads as "the app", not generic glass:
+   hair-2 border + inset top-highlight + deep soft shadow + ::before top sheen. */
+@layer components {
+  .glass {
+    position: relative;
+    border: 1px solid var(--color-hair-2);
+    border-radius: var(--radius-panel);
+    box-shadow:
+      0 40px 100px -24px rgba(0, 0, 0, 0.7),
+      0 8px 30px -10px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 120px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent);
+  }
+
+  /* Tier 1 — floating: translucent + heavy blur (refracts the scene) */
+  .glass--floating {
+    background: var(--color-glass);
+    -webkit-backdrop-filter: blur(60px) saturate(180%);
+    backdrop-filter: blur(60px) saturate(180%);
+  }
+
+  /* Tier 2 — solid: near-opaque overlay, minimal blur */
+  .glass--solid {
+    background: var(--color-glass-solid);
+    border-radius: var(--radius-modal);
+    box-shadow: 0 40px 100px -10px rgba(0, 0, 0, 0.7);
+  }
+  .glass--solid::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent);
+  }
+}

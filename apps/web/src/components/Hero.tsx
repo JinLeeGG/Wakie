@@ -1,0 +1,242 @@
+"use client";
+
+import { motion, type Variants } from "framer-motion";
+
+/* Signature easings, mirrored from theme.dart / the mockups. */
+const EASE_WIN = [0.2, 0.85, 0.2, 1] as const;
+const EASE_LIFT = [0.2, 0.8, 0.2, 1] as const;
+
+/* Centered content: staggered fade-up. */
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.25 } },
+};
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE_WIN } },
+};
+
+export default function Hero() {
+  return (
+    <>
+      <Nav />
+
+      {/* ambient background (aurora/vignette/grain) is page-level: <Background /> */}
+      <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-6">
+        {/* ── centered copy ─────────────────────────────────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="relative z-10 flex max-w-6xl flex-col items-center text-center"
+        >
+          {/* brand lockup — "Wakie" amber, "AI" white (standing rule).
+              Antigravity ratio: lockup ≈ 0.3× the headline; icon scales via em. */}
+          <motion.div
+            variants={fadeUp}
+            className="mb-12 flex items-center gap-[0.3em] text-[clamp(1.25rem,2.8vw,2.4rem)]"
+          >
+            <OrbitMark className="h-[1.2em] w-[1.2em]" />
+            <span className="font-sans font-semibold tracking-tight">
+              <span className="text-amber">W</span>
+              <span className="text-t1">a</span>
+              <span className="text-amber">k</span>
+              <span className="text-t1">i</span>
+              <span className="text-amber">e</span>
+            </span>
+          </motion.div>
+
+          <motion.h1
+            variants={fadeUp}
+            className="font-sans text-[clamp(2.25rem,6.2vw,5.5rem)] font-bold leading-[1.06] tracking-[-0.03em] text-t1"
+          >
+            <span className="whitespace-nowrap">All your <span className="text-amber">AI</span> subscriptions.</span>
+            <br />
+            <span className="text-t1">
+              Always <span className="text-amber">awake</span>.
+            </span>
+          </motion.h1>
+
+          <motion.div
+            variants={fadeUp}
+            className="mt-20 flex flex-col items-center gap-3.5 sm:flex-row"
+          >
+            <PrimaryCta href="#download">
+              <DownloadIcon className="h-[18px] w-[18px]" />
+              Download for Mac
+            </PrimaryCta>
+            <SecondaryCta href="#how">
+              How it works
+              <span className="transition-transform group-hover:translate-y-0.5">↓</span>
+            </SecondaryCta>
+          </motion.div>
+
+        </motion.div>
+      </section>
+    </>
+  );
+}
+
+/* ── CTA buttons — coordinated halo glow + shimmer sweep + scale ────────────── */
+
+export function PrimaryCta({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.a
+      href={href}
+      initial="rest"
+      whileHover="hover"
+      whileTap="tap"
+      variants={{ rest: { scale: 1 }, hover: { scale: 1.04 }, tap: { scale: 0.96 } }}
+      transition={{ duration: 0.25, ease: EASE_LIFT }}
+      className="group relative inline-flex h-[52px] items-center gap-2 rounded-full bg-amber px-8 font-sans text-[16px] font-semibold text-[#0a0c12] shadow-[0_4px_14px_-6px_rgba(246,178,60,0.4)]"
+    >
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute -inset-2 -z-10 rounded-full bg-amber blur-lg"
+        variants={{
+          rest: { opacity: 0.15, scale: 0.9 },
+          hover: { opacity: 0.4, scale: 1.05 },
+        }}
+        transition={{ duration: 0.3, ease: EASE_LIFT }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
+      >
+        <motion.span
+          className="absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-white/55 blur-md"
+          variants={{ rest: { x: "-180%" }, hover: { x: "460%" } }}
+          transition={{ duration: 0.75, ease: EASE_WIN }}
+        />
+      </span>
+      {children}
+    </motion.a>
+  );
+}
+
+function SecondaryCta({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.a
+      href={href}
+      initial="rest"
+      whileHover="hover"
+      whileTap="tap"
+      variants={{ rest: { scale: 1 }, hover: { scale: 1.04 }, tap: { scale: 0.97 } }}
+      transition={{ duration: 0.25, ease: EASE_LIFT }}
+      className="group relative inline-flex h-[52px] items-center gap-2 rounded-full border border-hair-2 bg-white/[0.03] px-8 font-sans text-[16px] font-medium text-t2 backdrop-blur-sm transition-colors hover:border-amber/40 hover:text-t1"
+    >
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute -inset-2 -z-10 rounded-full bg-white blur-lg"
+        variants={{
+          rest: { opacity: 0, scale: 0.9 },
+          hover: { opacity: 0.14, scale: 1.1 },
+        }}
+        transition={{ duration: 0.3, ease: EASE_LIFT }}
+      />
+      {children}
+    </motion.a>
+  );
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────────── */
+
+const NAV_LINKS = ["Features", "Security"];
+
+function Nav() {
+  return (
+    <motion.nav
+      initial={{ opacity: 0, y: -14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: EASE_WIN }}
+      className="absolute inset-x-0 top-0 z-30"
+    >
+      <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 py-5">
+        <a href="#" className="flex items-center gap-2.5 justify-self-start">
+          <OrbitMark className="h-6 w-6" />
+          <span className="font-sans text-[17px] font-semibold tracking-tight">
+            <span className="text-amber">W</span>
+            <span className="text-t1">a</span>
+            <span className="text-amber">k</span>
+            <span className="text-t1">i</span>
+            <span className="text-amber">e</span>
+          </span>
+        </a>
+
+        <div className="hidden items-center gap-8 justify-self-center md:flex">
+          {NAV_LINKS.map((l) => (
+            <a
+              key={l}
+              href={`#${l.toLowerCase()}`}
+              className="font-sans text-[14.5px] font-medium text-t2 transition-colors hover:text-t1"
+            >
+              {l}
+            </a>
+          ))}
+        </div>
+
+        <div className="justify-self-end">
+          <a
+            href="#download"
+            className="flex h-9 items-center rounded-full border border-hair-2 bg-white/[0.04] px-5 font-sans text-[14px] font-semibold text-t1 backdrop-blur-sm transition-colors hover:border-amber/50 hover:bg-amber/10"
+          >
+            Download
+          </a>
+        </div>
+      </div>
+    </motion.nav>
+  );
+}
+
+/* ── Inline marks (no external assets) ─────────────────────────────────────── */
+
+export function OrbitMark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="10.5"
+        ry="5"
+        stroke="rgba(255,255,255,0.55)"
+        strokeWidth="1.3"
+        transform="rotate(-24 12 12)"
+      />
+      <circle cx="12" cy="12" r="4.4" fill="#ffc465" />
+      <circle
+        cx="12"
+        cy="12"
+        r="4.4"
+        fill="#ffc465"
+        opacity="0.5"
+        style={{ filter: "blur(3px)" }}
+      />
+    </svg>
+  );
+}
+
+export function DownloadIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
