@@ -173,9 +173,17 @@ int _n(dynamic v) => v is num ? v.toInt() : 0;
 
 class _FileCache {
   final int mtimeMs;
-  final int size;
+
+  /// Byte offset up to the last complete line parsed so far. For an append-only
+  /// log (Claude transcripts) the next scan resumes here instead of re-reading
+  /// the whole growing file. Non-incremental sources just store the file size.
+  final int parsedBytes;
+
+  /// Only the events still inside the 7-day window — out-of-window events are
+  /// dropped when the entry is (re)built so a long-running session doesn't pin
+  /// every priced message it ever emitted in resident memory.
   final List<ApiUsageEvent> events;
-  const _FileCache(this.mtimeMs, this.size, this.events);
+  const _FileCache(this.mtimeMs, this.parsedBytes, this.events);
 }
 
 /// Sums the last 7 days of local CLI usage, priced at API list rates.
@@ -190,13 +198,15 @@ class ApiValueScanner {
 
   /// Weekly API-equivalent dollars for one Claude config home
   /// (`~/.claude`, or a sandboxed account's `CLAUDE_CONFIG_DIR`).
-  Future<double> claudeWeekly(String configHome, {DateTime? now}) async =>
-      _sum(await _weekly('$configHome/projects', _claudeFile, now: now));
+  Future<double> claudeWeekly(String configHome, {DateTime? now}) async => _sum(
+      await _weekly('$configHome/projects', _claudeChunk,
+          incremental: true, now: now));
 
   /// Weekly API-equivalent dollars for one Codex home
   /// (`~/.codex`, or a sandboxed account's `CODEX_HOME`).
-  Future<double> codexWeekly(String codexHome, {DateTime? now}) async =>
-      _sum(await _weekly('$codexHome/sessions', _codexFile, now: now));
+  Future<double> codexWeekly(String codexHome, {DateTime? now}) async => _sum(
+      await _weekly('$codexHome/sessions', _codexChunk,
+          incremental: false, now: now));
 
   /// Weekly value of a *shared* Claude home, split per owning login: each
   /// event is credited to `ownerAt(event time)` — the login-ledger's estimate
@@ -207,7 +217,8 @@ class ApiValueScanner {
     String? Function(DateTime at) ownerAt, {
     DateTime? now,
   }) =>
-      _weekly('$configHome/projects', _claudeFile, ownerAt: ownerAt, now: now);
+      _weekly('$configHome/projects', _claudeChunk,
+          incremental: true, ownerAt: ownerAt, now: now);
 
   /// [claudeWeeklyByOwner], for a shared Codex home.
   Future<Map<String, double>> codexWeeklyByOwner(
@@ -215,16 +226,53 @@ class ApiValueScanner {
     String? Function(DateTime at) ownerAt, {
     DateTime? now,
   }) =>
-      _weekly('$codexHome/sessions', _codexFile, ownerAt: ownerAt, now: now);
+      _weekly('$codexHome/sessions', _codexChunk,
+          incremental: false, ownerAt: ownerAt, now: now);
 
   static double _sum(Map<String, double> byOwner) =>
       byOwner.values.fold(0, (a, b) => a + b);
 
-  static Future<List<ApiUsageEvent>> _claudeFile(String path) =>
-      Isolate.run(() => parseClaudeLog(File(path).readAsStringSync()));
+  /// Parse Claude events from [start] onward. Claude transcripts are
+  /// append-only and their events are additive per message, so a rescan only
+  /// reads the bytes written since last time. Returns the events and the new
+  /// end-of-file offset to resume from. Runs in a short-lived isolate.
+  static Future<(List<ApiUsageEvent>, int)> _claudeChunk(
+          String path, int start) =>
+      Isolate.run(() => _tailParse(path, start, parseClaudeLog));
 
-  static Future<List<ApiUsageEvent>> _codexFile(String path) =>
-      Isolate.run(() => parseCodexRollout(File(path).readAsStringSync()));
+  /// Parse a whole Codex rollout. Codex's `token_count` is *cumulative* — the
+  /// last one is the session total, and it yields a single event — so tailing
+  /// the appended bytes would double-count the session. Always full-parse;
+  /// these files are small. The returned offset is unused (the caller keeps the
+  /// file size), so return 0.
+  static Future<(List<ApiUsageEvent>, int)> _codexChunk(
+          String path, int start) =>
+      Isolate.run(() => (parseCodexRollout(File(path).readAsStringSync()), 0));
+
+  /// Reads and parses `[start, EOF)`, returning the events and the new EOF
+  /// offset. [start] is always a line boundary (0, or a prior EOF that sat just
+  /// after a newline), and the CLI appends whole newline-terminated lines, so
+  /// the slice is a clean set of complete records; [parse] skips any malformed
+  /// line defensively.
+  static (List<ApiUsageEvent>, int) _tailParse(
+      String path, int start, List<ApiUsageEvent> Function(String) parse) {
+    final raf = File(path).openSync();
+    try {
+      final len = raf.lengthSync();
+      if (start >= len) return (const <ApiUsageEvent>[], len);
+      raf.setPositionSync(start);
+      final bytes = raf.readSync(len - start);
+      return (parse(utf8.decode(bytes, allowMalformed: true)), len);
+    } finally {
+      raf.closeSync();
+    }
+  }
+
+  /// Keep only events still inside the window — caps the resident event list at
+  /// a rolling week regardless of how long a session runs.
+  static List<ApiUsageEvent> _inWindow(
+          List<ApiUsageEvent> events, DateTime cutoff) =>
+      [for (final e in events) if (!e.at.isBefore(cutoff)) e];
 
   /// Scans one home and returns weekly totals keyed by owner. With no
   /// [ownerAt] the home belongs to a single account and everything lands
@@ -232,7 +280,8 @@ class ApiValueScanner {
   /// by the login active at its timestamp, dropping unknown-owner events.
   Future<Map<String, double>> _weekly(
     String root,
-    Future<List<ApiUsageEvent>> Function(String path) parse, {
+    Future<(List<ApiUsageEvent>, int)> Function(String path, int start) parse, {
+    required bool incremental,
     String? Function(DateTime at)? ownerAt,
     DateTime? now,
   }) async {
@@ -259,17 +308,29 @@ class ApiValueScanner {
       if (stat.modified.toUtc().isBefore(cutoff)) continue;
       keep.add(f.path);
       var entry = _cache[f.path];
+      final mtimeMs = stat.modified.millisecondsSinceEpoch;
+      // Rebuild on any change. Size is checked too, not just mtime: a fast
+      // append can grow the file within the same millisecond stamp, and
+      // parsedBytes tracks the last-seen size in both modes.
       if (entry == null ||
-          entry.mtimeMs != stat.modified.millisecondsSinceEpoch ||
-          entry.size != stat.size) {
-        List<ApiUsageEvent> events;
+          entry.mtimeMs != mtimeMs ||
+          stat.size != entry.parsedBytes) {
         try {
-          events = await parse(f.path);
+          if (incremental && entry != null && stat.size > entry.parsedBytes) {
+            // Append-only growth: parse just the new tail onto the cached
+            // events, then re-window so the list stays a rolling week.
+            final (delta, offset) = await parse(f.path, entry.parsedBytes);
+            entry = _FileCache(mtimeMs, offset,
+                _inWindow([...entry.events, ...delta], cutoff));
+          } else {
+            // First sight, a rewrite/truncation, or a non-incremental source.
+            final (events, offset) = await parse(f.path, 0);
+            entry = _FileCache(mtimeMs, incremental ? offset : stat.size,
+                _inWindow(events, cutoff));
+          }
         } catch (_) {
-          events = const [];
+          entry = _FileCache(mtimeMs, stat.size, const []);
         }
-        entry = _FileCache(
-            stat.modified.millisecondsSinceEpoch, stat.size, events);
         _cache[f.path] = entry;
       }
       for (final ev in entry.events) {

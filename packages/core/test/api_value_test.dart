@@ -171,6 +171,31 @@ void main() {
           closeTo(25.0, 1e-9));
     });
 
+    test('re-reads only the appended tail of a growing claude file', () async {
+      final now = DateTime.utc(2026, 7, 4, 12);
+      final dir = Directory('${tmp.path}/projects/p1')
+        ..createSync(recursive: true);
+      final f = File('${dir.path}/live.jsonl')
+        ..writeAsStringSync(
+            _claudeLine(msgId: 'm1', requestId: 'r1', output: 1000000));
+      final scanner = ApiValueScanner();
+      expect(
+          await scanner.claudeWeekly(tmp.path, now: now), closeTo(25.0, 1e-9));
+
+      // Append a second message as a new line — the prefix is untouched, so the
+      // scanner should tail-read only the new bytes and add to the cached
+      // total without re-counting the first message.
+      f.writeAsStringSync(
+          '\n${_claudeLine(msgId: 'm2', requestId: 'r2', output: 1000000)}',
+          mode: FileMode.append);
+      expect(
+          await scanner.claudeWeekly(tmp.path, now: now), closeTo(50.0, 1e-9));
+
+      // A rescan with nothing appended stays put (no double-count, no drift).
+      expect(
+          await scanner.claudeWeekly(tmp.path, now: now), closeTo(50.0, 1e-9));
+    });
+
     test('sums codex rollouts per session', () async {
       final now = DateTime.utc(2026, 7, 4, 12);
       final dir = Directory('${tmp.path}/sessions/2026/07/03')
