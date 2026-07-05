@@ -25,57 +25,102 @@ class TrayIconPainter extends CustomPainter {
   final int frame;
   const TrayIconPainter(this.state, {this.frame = 0});
 
-  static const _amber = Color(0xFFF6B23C);
+  // Brand v2 amber core (#ffc465). Brighter than the old logo amber so the tiny
+  // core still reads on a dark menu bar.
+  static const _amber = Color(0xFFFFC465);
   static const _crit = Color(0xFFFF7A85);
   static const _ringLit = Color(0xE0FFFFFF);
-  // Bright enough to keep the working icon's full circular footprint on a dark
-  // menu bar (0.28 vanished there and made it read small); the amber arc still
-  // reads as the sweep on top.
+  // Dim orbit ring while working — the bright satellite carries the motion.
   static const _ringDim = Color(0x8CFFFFFF);
+
+  // Tilted-orbit geometry (BRAND.md: rx10.5/ry5 @24, rotated −24°), scaled to
+  // the 100-canvas and made a touch bolder so it survives the 18pt menu bar.
+  static const _tilt = -24 * math.pi / 180;
 
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width / 100.0;
     final c = Offset(50 * s, 50 * s);
-    final stroke = 7 * s;
-    // Larger ring/core = less dead padding, so the glyph fills more of the
-    // menu-bar slot and reads bigger next to the system icons.
-    final ringR = 42 * s;
-    final coreR = 23 * s;
+    // Bigger than v1: fills more of the menu-bar slot, slightly rounder orbit.
+    final rx = 47.0 * s, ry = 25.0 * s;
+    final coreR = 21.0 * s;
+    final ringW = 6.5 * s;
 
-    Paint ringPaint(Color col) => Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = col
-      ..isAntiAlias = true;
-    final core = Paint()
-      ..color = _amber
-      ..isAntiAlias = true;
+    void ring(Color col, {double glow = 0}) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(_tilt);
+      final oval = Rect.fromCenter(
+          center: Offset.zero, width: rx * 2, height: ry * 2);
+      // Soft halo under the ring — takes the hard edge off the thin stroke.
+      if (glow > 0) {
+        canvas.drawOval(
+          oval,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = ringW * 2.4
+            ..color = Color.fromRGBO(255, 255, 255, glow)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3.6 * s),
+        );
+      }
+      canvas.drawOval(
+        oval,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = ringW
+          ..color = col
+          ..isAntiAlias = true,
+      );
+      canvas.restore();
+    }
+
+    // A point on the tilted ellipse at parameter [t] (satellite position).
+    Offset orbit(double t) {
+      final x = rx * math.cos(t), y = ry * math.sin(t);
+      return c +
+          Offset(x * math.cos(_tilt) - y * math.sin(_tilt),
+              x * math.sin(_tilt) + y * math.cos(_tilt));
+    }
+
+    // Crisp amber core.
+    void core() {
+      canvas.drawCircle(c, coreR, Paint()..color = _amber..isAntiAlias = true);
+    }
 
     switch (state) {
       case TrayState.idle:
-        canvas.drawCircle(c, ringR, ringPaint(_ringLit));
-        canvas.drawCircle(c, coreR, core);
+        ring(_ringLit, glow: 0.10);
+        core();
       case TrayState.working:
-        canvas.drawCircle(c, ringR, ringPaint(_ringDim));
-        final start = (frame / trayWorkFrames) * 2 * math.pi - math.pi / 2;
-        canvas.drawArc(
-          Rect.fromCircle(center: c, radius: ringR),
-          start,
-          87 * math.pi / 180,
-          // Bright white sweep over the dim white ring; the amber stays the core.
-          false,
-          ringPaint(const Color(0xFFFFFFFF))..strokeCap = StrokeCap.round,
+        ring(_ringDim, glow: 0.06);
+        core();
+        // A soft, glowing satellite orbits the core — literal, and on-brand.
+        final p = orbit((frame / trayWorkFrames) * 2 * math.pi);
+        canvas.drawCircle(
+          p,
+          10 * s,
+          Paint()
+            ..color = const Color(0x66FFFFFF)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4.5 * s),
         );
-        canvas.drawCircle(c, coreR, core);
+        canvas.drawCircle(
+            p, 8 * s, Paint()..color = const Color(0xFFFFFFFF)..isAntiAlias = true);
       case TrayState.attention:
-        final badge = Offset(78 * s, 22 * s);
+        final badge = Offset(84 * s, 18 * s);
         canvas.saveLayer(Offset.zero & size, Paint());
-        canvas.drawCircle(c, ringR, ringPaint(_ringLit));
-        canvas.drawCircle(c, coreR, core);
+        ring(_ringLit, glow: 0.10);
+        core();
         // Punch a transparent gap so the badge reads clear of the ring.
-        canvas.drawCircle(badge, 18 * s, Paint()..blendMode = BlendMode.clear);
+        canvas.drawCircle(badge, 20 * s, Paint()..blendMode = BlendMode.clear);
         canvas.restore();
+        // Soft red badge.
+        canvas.drawCircle(
+          badge,
+          16 * s,
+          Paint()
+            ..color = const Color(0x55FF7A85)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4.5 * s),
+        );
         canvas.drawCircle(
             badge, 13 * s, Paint()..color = _crit..isAntiAlias = true);
     }

@@ -5,10 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models.dart';
 import '../theme.dart';
-
-const _logoSvg =
-    '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/>'
-    '<circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>';
+import 'brand.dart';
 
 // A stroked X sized to sit level with the "Add account" title — stroke 2.2 in
 // a 16 box reads about as heavy as the title's semibold.
@@ -140,7 +137,7 @@ class _AddAccountModalState extends State<AddAccountModal>
       padding: const EdgeInsets.fromLTRB(22, 20, 16, 16),
       child: Row(
         children: [
-          SizedBox(width: 20, height: 20, child: SvgPicture.string(_logoSvg)),
+          const OrbitMark(size: 20),
           const SizedBox(width: 11),
           Text('Add account', style: sans(19, weight: FontWeight.w600, color: T.t1)),
           const Spacer(),

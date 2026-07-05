@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
+import 'brand.dart';
 
 /// The empty-dashboard hero: the three providers' real app icons (extracted
 /// from their .icns — see assets/icons/*_app.png) floating quietly over a
@@ -253,27 +254,12 @@ class _EmptyOrbitState extends State<EmptyOrbit>
     );
   }
 
-  /// The WakieAI wordmark where the CTA used to live — big, flat, crisp.
-  /// Brand rule: "Wakie" amber, "AI" white.
-  Widget _watermark() {
-    TextStyle base(Color color) => TextStyle(
-          fontFamily: T.mono,
-          fontWeight: FontWeight.w700,
-          fontSize: 34,
-          height: 1.0,
-          letterSpacing: 0.8,
-          color: color,
-        );
-    return Opacity(
-      opacity: 0.92,
-      child: Text.rich(
-        TextSpan(children: [
-          TextSpan(text: 'Wakie', style: base(T.amberDeep)),
-          TextSpan(text: 'AI', style: base(const Color(0xFFF3F4F7))),
-        ]),
-      ),
-    );
-  }
+  /// The "Wakie" wordmark v2 where the CTA used to live — big, flat, crisp.
+  /// Alternating amber/white letters, Instrument Sans (see [WakieWordmark]).
+  Widget _watermark() => const Opacity(
+        opacity: 0.92,
+        child: WakieWordmark(fontSize: 34, weight: FontWeight.w700),
+      );
 }
 
 /// Sphere lighting laid over the circle-cropped icon: a soft top-left
