@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/design/app-icon.svg" width="96" height="96" alt="Wakie">
+<img src="docs/design/readme-wordmark.png" width="240" alt="Wakie">
 
-# Wakie
+<br>
 
 **AI 구독 너무 많이 결제한 사람들을 위한 로컬 사용량 트래커.**
 자는 동안 5시간 리셋 윈도우를 대신 굴려주는 봇은 덤.

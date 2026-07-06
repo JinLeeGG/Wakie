@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/design/app-icon.svg" width="96" height="96" alt="Wakie">
+<img src="docs/design/readme-wordmark.png" width="240" alt="Wakie">
 
-# Wakie
+<br>
 
 **Local usage tracking for people who pay for too many AI subscriptions.**
 Plus a bot that games the 5-hour reset window while you sleep.
