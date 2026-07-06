@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/design/readme-wordmark.png" width="240" alt="Wakie">
+<img width="1050" height="350" alt="Wakie" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
 
 <br>
 
-**AI 구독 너무 많이 결제한 사람들을 위한 로컬 사용량 트래커.**
+**AI 구독 너무 많이 결제한 사람들을 위한 로컬 사용량 트래커.**<br>
 자는 동안 5시간 리셋 윈도우를 대신 굴려주는 봇은 덤.
 
 <br>
@@ -13,11 +13,15 @@
 
 <br>
 
-[![Website](https://img.shields.io/badge/website-wakie-0B1120?style=flat-square)](https://your-website.com)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-5FD39A?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-0B1120?style=flat-square&logo=apple&logoColor=white)
 ![Flutter](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
 ![Price](https://img.shields.io/badge/price-%240%2C%20forever-5FD39A?style=flat-square)
+
+<br>
+<br>
+
+[![Download for macOS](https://img.shields.io/badge/⬇%20%20Download%20for%20macOS-5FD39A?style=for-the-badge&labelColor=0B1120)](https://github.com/JinLeeGG/Wakie/releases/latest)
 
 </div>
 
@@ -25,15 +29,15 @@
 
 ## 🎥 데모
 
-<!-- Video Demo Placeholder -->
-
 <div align="center">
-<em>(내 나레이션이 덜 부끄러워지면 데모 영상 넣을 자리)</em>
+  <video src="https://github.com/user-attachments/assets/1e53bf83-62b1-465a-8b42-5d5fb23c60d8" width="100%" autoplay loop muted playsinline></video>
 </div>
 
 <br>
 
 ## 📖 왜 만들었냐면
+
+> **한 줄 요약** — Wakie는 Claude의 5시간 리셋 윈도우를 알아서 굴려주고, 니가 돈 내는 AI 구독들을 얼마나 갈아넣고 있는지 추적해준다. 100% 로컬. 계정도, 서버도, 텔레메트리도 없음.
 
 Claude Code는 사용량 제한이 있다. 근데 하루 단위가 아니라 **5시간짜리 롤링 윈도우**다. 첫 메시지를 보내는 순간 타이머가 돌기 시작해서 5시간 뒤에 리셋된다. 별거 아닌 것 같지? 하루 종일 이걸로 먹고살기 시작하면 얘기가 달라진다.
 
@@ -55,9 +59,11 @@ Claude Code는 사용량 제한이 있다. 근데 하루 단위가 아니라 **5
 
 얘가 뭘 하는지 봐라. 니 로컬 AI 로그를 읽는다 — 프롬프트 횟수, 리셋 타임스탬프, 어떤 계정으로 로그인돼 있는지. 이건 딱 수상한 클로즈드 소스 메뉴바 앱이 몰래 쓸어담아서 어디 분석 서버로 쏴버릴 법한 종류의 데이터다. 정체불명 바이너리가 이거 하겠다고 하면 당연히 거절할 거고, 그게 맞다.
 
-그래서 이렇게 만들었다. Wakie는 백엔드가 없다. 서버 자체가 없다. 텔레메트리 없고, 애널리틱스 없고, "익명 사용 통계" 이딴 것도 없고, 서명된 업데이트 확인 말고는 밖으로 나가는 게 아무것도 없다. 니 디스크에 있는 파일 읽어서, 니 컴퓨터에서 계산하고, 메뉴바에 숫자 하나 그린다. 이게 전부다. 와이파이 꺼도 똑같이 돌아간다.
+그래서 이렇게 만들었다. Wakie는 백엔드가 없다. 서버 자체가 없다. 텔레메트리 없고, 애널리틱스 없고, "익명 사용 통계" 이딴 것도 없고, 서명된 업데이트 확인 말고는 밖으로 나가는 게 아무것도 없다. 니 디스크에 있는 파일 읽어서, 니 컴퓨터에서 계산하고, 메뉴바에 숫자 하나 그린다. 이게 전부다. 네트워크 꺼도 추적 기능은 똑같이 돌아간다.
 
-그리고 내 말을 믿을 필요도 없다 — 그러라고 AGPL로 오픈소스 한 거니까. 코드가 다 저기 있다. repo에서 URL을 `grep` 해봐라. 업데이트 피드 하나 나오고 끝이다. 혹시라도 얘가 열면 안 되는 소켓을 여는 걸 잡으면, 내 이름 걸고 이슈 열어라.
+솔직하게 예외 하나는 미리 깔게 — 나중에 니가 발견하는 것보다 내가 먼저 말하는 게 낫지. 깨우기 봇은 정해진 시간에 **니 CLI를 통해 버리는 프롬프트 하나를 실제로 쏜다.** 세션 깨우는 게 목적이니 당연한 거고, 그래 토큰 몇 개 나간다. 근데 이게 Wakie가 유발하는 유일한 네트워크 호출이고, 니 컴퓨터에서 니 계정으로 니 provider한테 가는 거지 나한테 오는 게 아니다. 애초에 받을 "나"라는 서버가 없다.
+
+그리고 내 말을 믿을 필요도 없다 — 그러라고 AGPL로 오픈소스 한 거니까. `grep`도 믿지 마라, `lsof`를 믿어라. Little Snitch(또는 `nettop -p wakie`)를 앱에 걸어놓고 봐라 — 자기 스스로 여는 아웃바운드 연결은 0개고, 보이는 트래픽은 전부 **니가** 이미 돌리고 있는 CLI들 거다. 코드 직접 읽고 싶으면 그것도 다 저기 있다. 혹시라도 얘가 열면 안 되는 소켓을 여는 걸 잡으면, 내 이름 걸고 이슈 열어라.
 
 <br>
 
@@ -110,9 +116,18 @@ Flutter (Dart SDK 3.12+)랑 Xcode 필요하다. 아직은 macOS 전용.
 
 ## 기여
 
-PR 진심으로 환영한다. 특히 이런 거 도와주면 좋다:
+PR 진심으로 환영한다.
 
-- **다른 AI 툴 어댑터** — 패턴은 [`packages/core/lib/src/adapters`](packages/core/lib/src/adapters)에 있다. 하나 복사해서 연결하고 보내라.
+**니가 쓰는 AI 툴을 Wakie가 추적하게 하고 싶어?** 어댑터는 딱 세 가지다:
+
+1. `ProviderAdapter` 인터페이스 구현.
+2. `Provider` enum 값 추가.
+3. [`packages/core/lib/src/production_adapters.dart`](packages/core/lib/src/production_adapters.dart)에 등록.
+
+이게 계약의 전부다. 모든 provider는 `*_adapter_test.dart` + `*_usage_parser_test.dart` 쌍을 갖고 있으니 — 그 쌍을 복사하고, 니 툴에서 뜬 실제 캡처를 넣고, `cd packages/core && flutter test`로 TDD 돌리면 된다. Xcode도, 앱 빌드도, Mac 앱 지식도 필요 없다.
+
+그 외에 손 보태주면 좋은 거:
+
 - **재현 스텝 있는 버그 리포트.** "안 돼요"는 날 슬프게 하고, "이렇게 했더니 이렇게 됨"은 날 고치게 만든다.
 - **맨날 시작한다고 하고 안 하는 Windows/Linux 포팅.**
 

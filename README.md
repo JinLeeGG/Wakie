@@ -1,10 +1,10 @@
 <div align="center">
 
-<img width="1050" height="350" alt="image" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
+<img width="1050" height="350" alt="Wakie" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
 
 <br>
 
-**Local usage tracking for people who pay for too many AI subscriptions.**
+**Local usage tracking for people who pay for too many AI subscriptions.**<br>
 Plus a bot that games the 5-hour reset window while you sleep.
 
 <br>
@@ -13,11 +13,15 @@ Plus a bot that games the 5-hour reset window while you sleep.
 
 <br>
 
-[![Website](https://img.shields.io/badge/website-wakie-0B1120?style=flat-square)](https://your-website.com)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-5FD39A?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-0B1120?style=flat-square&logo=apple&logoColor=white)
 ![Flutter](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
 ![Price](https://img.shields.io/badge/price-%240%2C%20forever-5FD39A?style=flat-square)
+
+<br>
+<br>
+
+[![Download for macOS](https://img.shields.io/badge/⬇%20%20Download%20for%20macOS-5FD39A?style=for-the-badge&labelColor=0B1120)](https://github.com/JinLeeGG/Wakie/releases/latest)
 
 </div>
 
@@ -32,6 +36,8 @@ Plus a bot that games the 5-hour reset window while you sleep.
 <br>
 
 ## 📖 Why I built this
+
+> **TL;DR** — Wakie games Claude's 5-hour reset window for you automatically, and tracks how hard you're hammering every AI subscription you pay for. 100% local. No account, no server, no telemetry.
 
 Claude Code has a usage limit. Not a daily one — a rolling 5-hour window. The clock starts on your first message and resets five hours later. Sounds harmless. It isn't, once you actually lean on the thing all day.
 
@@ -53,9 +59,11 @@ I'll be straight with you: I wouldn't install this app if I hadn't written it.
 
 Look at what it does. It reads your local AI logs — prompt counts, reset timestamps, which accounts you're signed into. That's *exactly* the kind of stuff a sketchy closed-source menu-bar app would quietly vacuum up and ship off to some analytics endpoint. If a random binary asked to do that, you'd say no. You should.
 
-So here's the deal. Wakie has no backend. There is no server. No telemetry, no analytics, no "anonymous usage stats," nothing phoning home except the signed check for app updates. It reads files on your disk, does the math on your machine, and draws a number in your menu bar. That's the entire loop. Turn off your wifi and it works exactly the same.
+So here's the deal. Wakie has no backend. There is no server. No telemetry, no analytics, no "anonymous usage stats," nothing phoning home except the signed check for app updates. It reads files on your disk, does the math on your machine, and draws a number in your menu bar. That's the entire loop. Kill your network and the tracking keeps working exactly the same.
 
-And you don't have to take my word for it — that's the whole reason it's open source under AGPL. The code is right there. `grep` the repo for a URL. You'll find the update feed and nothing else. If you ever catch this thing opening a socket it has no business opening, file an issue with my name on it.
+One honest exception, because I'd rather tell you than have you find it: the wake bot *does* fire a single throwaway prompt through your own CLI on schedule — waking the session is the whole point, and yeah, it nibbles a few tokens. That's the one network call Wakie ever *causes*, and it runs from your machine to your provider, on your account. Never to me. There's no "me" for it to reach.
+
+And don't take my word for it — that's the whole reason it's open source under AGPL. Don't trust `grep` either; trust `lsof`. Point Little Snitch (or `nettop -p wakie`) at the app and watch it sit there with zero outbound connections of its own — the only traffic you'll ever see is the CLIs *you* already run. The code's right here if you'd rather read it. And if you ever catch this thing opening a socket it has no business opening, open an issue with my name on it.
 
 <br>
 
@@ -108,9 +116,18 @@ You'll need Flutter (Dart SDK 3.12+) and Xcode. macOS only, for now.
 
 ## Contributing
 
-PRs welcome, genuinely. The stuff I'd actually love help with:
+PRs welcome, genuinely.
 
-- **Adapters for other AI tools** — the pattern's in [`packages/core/lib/src/adapters`](packages/core/lib/src/adapters). Copy one, wire it up, send it.
+**Want Wakie to track your AI tool?** An adapter is three things:
+
+1. Implement the `ProviderAdapter` interface.
+2. Add a `Provider` enum value.
+3. Register it in [`packages/core/lib/src/production_adapters.dart`](packages/core/lib/src/production_adapters.dart).
+
+That's the whole contract. Every provider ships a `*_adapter_test.dart` + `*_usage_parser_test.dart` pair — copy that pair, drop in a real capture from your tool, and TDD against it with `cd packages/core && flutter test`. No Xcode, no app build, no Mac-app knowledge needed.
+
+Other stuff I'd love a hand with:
+
 - **Bug reports with real repro steps.** "It's broken" makes me sad. "Here's exactly what I did" makes me fix it.
 - **The Windows/Linux port** I keep meaning to start and never do.
 
