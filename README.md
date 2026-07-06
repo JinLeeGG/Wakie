@@ -5,7 +5,7 @@
 <br>
 <br>
 
-Local usage tracking for your AI subscriptions, paired with a smart bot that optimizes your reset windows while you sleep.
+Local usage tracking for multiple AI subscriptions, plus automation that optimizes your reset windows while you sleep.
 
 <br>
 
@@ -15,9 +15,9 @@ Local usage tracking for your AI subscriptions, paired with a smart bot that opt
 
 ![macOS](https://img.shields.io/badge/macOS-1c2029?style=flat&logo=apple&logoColor=white)
 &nbsp;[![License](https://img.shields.io/badge/AGPL--3.0-1c2029?style=flat&logo=gnu&logoColor=white)](LICENSE)
-&nbsp;![free forever](https://img.shields.io/badge/free_forever-1c2029?style=flat)
+&nbsp;![open source](https://img.shields.io/badge/Open_source_-1c2029?style=flat)
+&nbsp;![free](https://img.shields.io/badge/Free_-1c2029?style=flat)
 
-<br>
 <br>
 
 [![Download for macOS](https://img.shields.io/badge/Download%20for%20macOS-FFC465?style=for-the-badge&logo=apple&logoColor=11131a)](https://github.com/JinLeeGG/Wakie/releases/latest)
