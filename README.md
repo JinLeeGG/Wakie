@@ -13,9 +13,9 @@ Local usage tracking for your AI subscriptions, paired with a smart bot that opt
 
 <br>
 
-![macOS](https://img.shields.io/badge/macOS-11131a?style=flat-square)
-&nbsp;[![AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-11131a?style=flat-square)](LICENSE)
-&nbsp;![free forever](https://img.shields.io/badge/free-forever-11131a?style=flat-square)
+![macOS](https://img.shields.io/badge/macOS-1c2029?style=flat&logo=apple&logoColor=white)
+&nbsp;[![License](https://img.shields.io/badge/AGPL--3.0-1c2029?style=flat&logo=gnu&logoColor=white)](LICENSE)
+&nbsp;![free forever](https://img.shields.io/badge/free_forever-1c2029?style=flat)
 
 <br>
 <br>
