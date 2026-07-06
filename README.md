@@ -9,10 +9,6 @@ Local usage tracker for multiple AI subscriptions, plus automation that optimize
 
 <br>
 
-🇺🇸 English &nbsp;·&nbsp; [🇰🇷 한국어](README.ko.md)
-
-<br>
-
 ![macOS](https://img.shields.io/badge/macOS-1c2029?style=flat&logo=apple&logoColor=white)
 &nbsp;[![License](https://img.shields.io/badge/AGPL--3.0-1c2029?style=flat&logo=gnu&logoColor=white)](LICENSE)
 &nbsp;![open source](https://img.shields.io/badge/Open_source_-1c2029?style=flat)
