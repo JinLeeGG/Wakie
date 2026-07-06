@@ -15,7 +15,7 @@ void main() {
         ..writeAsStringSync(jsonEncode({
           'oauthAccount': {'emailAddress': 'WakieDemo1@Gmail.com'},
         }));
-      expect(claudeLoginEmail(f.path), 'wakieDemo1@gmail.com');
+      expect(claudeLoginEmail(f.path), 'wakiedemo1@gmail.com');
     });
 
     test('signed out / missing / corrupt read as null', () {

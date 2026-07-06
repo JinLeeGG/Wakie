@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Draft v1.4 (production, engineering-focused) |
-| **Owner** | John (wakieDemo1@gmail.com) |
+| **Owner** | John |
 | **Last updated** | 2026-07-02 |
 | **Audience** | Engineering 실행 중심 · 인디/개인 제품 · 소규모 시작→성장 대비 |
 | **Related** | [CLAUDE.md](../CLAUDE.md) |

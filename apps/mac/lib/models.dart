@@ -149,7 +149,7 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.codex,
     name: 'Codex · main',
-    plan: 'wakieDemo1@gmail.com · Plus',
+    plan: 'wakieDemo3@gmail.com · Plus',
     session: Meter(100, Tone.ok, '1:20pm'),
     weekly: Meter(59, Tone.ok, 'Jul 6 (2:00pm)'),
     status: RunStatus.fresh,
@@ -158,7 +158,7 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.anti,
     name: 'Antigravity · main',
-    plan: 'wakieDemo1@gmail.com',
+    plan: 'wakieDemo4@gmail.com',
     session: Meter(45, Tone.warn, '11:55am'),
     weekly: Meter(38, Tone.warn, 'Jul 7 (11:00am)'),
     status: RunStatus.ok,
@@ -166,7 +166,7 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.codex,
     name: 'Codex · work',
-    plan: 'wakieDemo2@gmail.com · Pro',
+    plan: 'wakieDemo5@gmail.com · Pro',
     session: Meter(76, Tone.ok, '2:05pm'),
     weekly: Meter(64, Tone.ok, 'Jul 6 (6:30pm)'),
     status: RunStatus.fresh,
@@ -175,7 +175,7 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.claude,
     name: 'Claude · side',
-    plan: 'wakieDemo3@gmail.com · Pro',
+    plan: 'wakieDemo6@gmail.com · Pro',
     session: Meter(41, Tone.warn, '3:40pm'),
     weekly: Meter(70, Tone.ok, 'Jul 8 (8:00am)'),
     status: RunStatus.ok,
@@ -185,7 +185,7 @@ const mockAccounts = <Account>[
   Account(
     provider: Provider.anti,
     name: 'Antigravity · test',
-    plan: 'wakieDemo4@gmail.com',
+    plan: 'wakieDemo7@gmail.com',
     session: Meter(82, Tone.ok, '5:10pm'),
     weekly: Meter(55, Tone.ok, 'Jul 7 (3:00pm)'),
     status: RunStatus.ok,
