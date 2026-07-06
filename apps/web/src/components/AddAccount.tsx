@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import GlassPanel from "./GlassPanel";
+import ScaleToFit from "./ScaleToFit";
 import { OrbitMark } from "./Hero";
 
 const EASE_WIN = [0.2, 0.85, 0.2, 1] as const;
@@ -14,13 +15,13 @@ const viewport = { once: true, margin: "-80px" } as const;
 
 export default function AddAccount() {
   return (
-    <section id="multi-account" className="relative w-full px-6 py-28 sm:py-40">
+    <section id="multi-account" className="relative w-full px-4 py-20 sm:px-6 sm:py-28 md:py-40">
       <motion.div
         initial="hidden"
         whileInView="show"
         viewport={viewport}
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-        className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2 lg:gap-20"
+        className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-10 md:gap-14 lg:grid-cols-2 lg:gap-20"
       >
         {/* left — copy */}
         <div className="text-center lg:text-left">
@@ -32,21 +33,26 @@ export default function AddAccount() {
           </motion.span>
           <motion.h2
             variants={fadeUp}
-            className="mt-5 font-sans text-[clamp(2.5rem,5vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.025em] text-t1"
+            className="mt-5 font-sans text-[clamp(2rem,5vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.025em] text-t1"
           >
             Bring them all.
             <br />
             Track them together.
           </motion.h2>
-          <motion.p variants={fadeUp} className="mt-6 text-[1.25rem] leading-relaxed text-t2">
+          <motion.p variants={fadeUp} className="mt-4 text-lg leading-relaxed text-t2 md:mt-6 md:text-xl">
             Add multiple AI accounts
             <br className="hidden lg:block" /> and monitor usage from a single view.
           </motion.p>
         </div>
 
-        {/* right — the app's add-account modal, self-demonstrating */}
+        {/* right — the app's add-account modal, self-demonstrating.
+            Scaled to fit like the dashboard: the phone sees the real modal, smaller. */}
         <motion.div variants={fadeUp} className="flex justify-center lg:justify-end">
-          <AddAccountCard />
+          <div className="w-full max-w-[380px] sm:max-w-[452px]">
+            <ScaleToFit width={452}>
+              <AddAccountCard />
+            </ScaleToFit>
+          </div>
         </motion.div>
       </motion.div>
     </section>

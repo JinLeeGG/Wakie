@@ -4,7 +4,7 @@ import { OrbitMark } from "./Hero";
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-hair px-6 py-8">
+    <footer className="w-full border-t border-hair px-4 py-8 sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
         {/* wordmark v2 — alternating amber/white */}
         <span className="flex items-center gap-2">

@@ -27,7 +27,7 @@ export default function Hero() {
       <Nav />
 
       {/* ambient background (aurora/vignette/grain) is page-level: <Background /> */}
-      <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-6">
+      <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 sm:px-6">
         {/* ── centered copy ─────────────────────────────────────────── */}
         <motion.div
           variants={stagger}
@@ -39,7 +39,7 @@ export default function Hero() {
               Antigravity ratio: lockup ≈ 0.3× the headline; icon scales via em. */}
           <motion.div
             variants={fadeUp}
-            className="mb-12 flex items-center gap-[0.3em] text-[clamp(1.25rem,2.8vw,2.4rem)]"
+            className="mb-8 flex items-center gap-[0.3em] text-[clamp(1.25rem,2.8vw,2.4rem)] md:mb-12"
           >
             <OrbitMark className="h-[1.2em] w-[1.2em]" />
             <span className="font-sans font-semibold tracking-tight">
@@ -53,9 +53,9 @@ export default function Hero() {
 
           <motion.h1
             variants={fadeUp}
-            className="font-sans text-[clamp(2.25rem,6.2vw,5.5rem)] font-bold leading-[1.06] tracking-[-0.03em] text-t1"
+            className="font-sans text-[clamp(2rem,6.2vw,5.5rem)] font-bold leading-[1.08] tracking-[-0.03em] text-t1 md:leading-[1.06]"
           >
-            <span className="whitespace-nowrap">All your AI subscriptions.</span>
+            <span className="sm:whitespace-nowrap">All your AI subscriptions.</span>
             <br />
             <span className="text-t1">
               Always <span className="text-amber">awake</span>.
@@ -64,7 +64,7 @@ export default function Hero() {
 
           <motion.div
             variants={fadeUp}
-            className="mt-20 flex flex-col items-center gap-3.5 sm:flex-row"
+            className="mt-12 flex flex-col items-center gap-3.5 sm:flex-row md:mt-20"
           >
             <PrimaryCta href="#download">
               <DownloadIcon className="h-[18px] w-[18px]" />
@@ -170,7 +170,7 @@ function Nav() {
           : "border-b border-transparent bg-transparent"
       } ${hidden ? "-translate-y-full" : "translate-y-0"}`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
         <a href="#" className="flex items-center gap-2.5">
           <OrbitMark className="h-6 w-6" />
           <span className="font-sans text-[17px] font-semibold tracking-tight">

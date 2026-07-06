@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import GlassPanel from "./GlassPanel";
+import ScaleToFit from "./ScaleToFit";
 import { OrbitMark } from "./Hero";
 
 const EASE_WIN = [0.2, 0.85, 0.2, 1] as const;
@@ -15,7 +16,7 @@ const viewport = { once: true, margin: "-80px" } as const;
 
 export default function Features() {
   return (
-    <section id="features" className="relative w-full px-6 py-32 sm:py-40">
+    <section id="features" className="relative w-full px-4 py-20 sm:px-6 sm:py-32 md:py-40">
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -31,20 +32,22 @@ export default function Features() {
         </motion.span>
         <motion.h2
           variants={fadeUp}
-          className="mt-5 font-sans text-[clamp(2.5rem,5vw,3.75rem)] font-bold tracking-[-0.025em] text-t1"
+          className="mt-5 font-sans text-[clamp(2rem,5vw,3.75rem)] font-bold tracking-[-0.025em] text-t1"
         >
           Six accounts. One glance.
         </motion.h2>
-        <motion.p variants={fadeUp} className="mt-6 text-[1.25rem] leading-relaxed text-t2">
+        <motion.p variants={fadeUp} className="mt-4 text-lg leading-relaxed text-t2 md:mt-6 md:text-xl">
           Never waste time hunting down your AI usage again.
         </motion.p>
 
-        {/* the app window, floating over the page */}
+        {/* the app window, floating over the page — scaled to fit, never reflowed */}
         <motion.div
           variants={fadeUp}
-          className="mt-16 w-full overflow-x-auto pb-2 [scrollbar-width:none]"
+          className="mt-10 w-full md:mt-16"
         >
-          <DashboardPreview />
+          <ScaleToFit width={1000}>
+            <DashboardPreview />
+          </ScaleToFit>
         </motion.div>
 
 
@@ -126,7 +129,7 @@ function DashboardPreview() {
   }, [inView, reduce]);
 
   return (
-    <GlassPanel ref={ref} className="pointer-events-none mx-auto w-full min-w-[900px] max-w-[1000px] select-none text-left">
+    <GlassPanel ref={ref} className="pointer-events-none w-full select-none text-left">
       {/* header — tagline reacts to whichever row the demo highlight visits */}
       <div className="flex items-center justify-between gap-4 px-[26px] pb-[18px] pt-6">
         <div className="relative h-[31px] min-w-0 flex-1 overflow-hidden">

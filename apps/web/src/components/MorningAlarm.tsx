@@ -12,13 +12,13 @@ const viewport = { once: true, margin: "-80px" } as const;
 
 export default function MorningAlarm() {
   return (
-    <section id="wake" className="relative w-full px-6 py-24 sm:py-32">
+    <section id="wake" className="relative w-full px-4 py-20 sm:px-6 sm:py-24 md:py-32">
       <motion.div
         initial="hidden"
         whileInView="show"
         viewport={viewport}
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-        className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2 lg:gap-20"
+        className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-10 md:gap-14 lg:grid-cols-2 lg:gap-20"
       >
         {/* left — copy */}
         <div className="text-center lg:text-left">
@@ -30,13 +30,13 @@ export default function MorningAlarm() {
           </motion.span>
           <motion.h2
             variants={fadeUp}
-            className="mt-5 font-sans text-[clamp(2.5rem,5vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.025em] text-t1"
+            className="mt-5 font-sans text-[clamp(2rem,5vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.025em] text-t1"
           >
             Wake your AI
             <br />
             before you do.
           </motion.h2>
-          <motion.p variants={fadeUp} className="mt-6 text-[1.25rem] leading-relaxed text-t2">
+          <motion.p variants={fadeUp} className="mt-4 text-lg leading-relaxed text-t2 md:mt-6 md:text-xl">
             Set a schedule. New sessions start automatically,
             <br className="hidden lg:block" /> even while your Mac sleeps.
           </motion.p>
@@ -46,7 +46,7 @@ export default function MorningAlarm() {
         <motion.div variants={fadeUp} className="flex justify-center lg:justify-end">
           {/* sized to visually match the Add-account modal next door (452px):
               248px × 1.35 ≈ 335px wide, similar height */}
-          <div className="scale-[1.2] origin-center sm:scale-[1.35] lg:origin-right">
+          <div className="origin-center scale-100 sm:scale-[1.35] lg:origin-right">
             <DailyWakeCard />
           </div>
         </motion.div>

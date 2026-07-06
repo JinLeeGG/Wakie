@@ -57,7 +57,7 @@ export default function Security() {
   }, [inView, reduce]);
 
   return (
-    <section id="security" className="relative w-full px-6 py-32 sm:py-40">
+    <section id="security" className="relative w-full px-4 py-20 sm:px-6 sm:py-32 md:py-40">
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -75,19 +75,19 @@ export default function Security() {
         {/* massive type — the section IS the typography */}
         <motion.h2
           variants={fadeUp}
-          className="mt-5 font-sans text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.04] tracking-[-0.03em] text-t1"
+          className="mt-5 font-sans text-[clamp(2rem,6vw,4.5rem)] font-bold leading-[1.04] tracking-[-0.03em] text-t1"
         >
           No login.
           <br />
           100% <span className="text-amber">local</span>.
         </motion.h2>
 
-        <motion.p variants={fadeUp} className="mt-6 text-[1.25rem] text-t2">
+        <motion.p variants={fadeUp} className="mt-4 text-lg text-t2 md:mt-6 md:text-xl">
           Your credentials never leave your Mac.
         </motion.p>
 
         {/* proof, not promises: a quiet terminal audit that runs itself */}
-        <motion.div variants={fadeUp} className="mt-16 w-full max-w-2xl">
+        <motion.div variants={fadeUp} className="mt-10 w-full max-w-2xl md:mt-16">
           <div
             ref={termRef}
             className="overflow-hidden rounded-2xl border border-hair-2 bg-white/[0.02] text-left shadow-[0_0_50px_rgba(255,196,101,0.06),0_30px_80px_-24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl"
@@ -101,7 +101,7 @@ export default function Security() {
             </div>
 
             {/* body */}
-            <div className="px-5 py-5 font-mono text-[14px] leading-[2]">
+            <div className="px-4 py-4 font-mono text-[12.5px] leading-[2] sm:px-5 sm:py-5 sm:text-[14px]">
               {/* typed command */}
               <div className="text-t1">
                 <span className="text-amber">$</span> {CMD.slice(0, typedLen)}

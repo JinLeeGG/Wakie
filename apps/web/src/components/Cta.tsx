@@ -19,7 +19,7 @@ export default function Cta() {
   return (
     <section
       id="download"
-      className="relative w-full overflow-hidden px-6 pb-28 pt-32 sm:pt-40"
+      className="relative w-full overflow-hidden px-4 pb-20 pt-24 sm:px-6 md:pb-28 md:pt-40"
     >
       {/* faint amber ambience behind the whole moment — light, not a surface */}
       <div
@@ -34,7 +34,7 @@ export default function Cta() {
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={viewport}
           transition={{ duration: 1.1, ease: EASE_WIN }}
-          className="w-full select-none whitespace-nowrap text-center font-sans text-[10.5vw] font-bold leading-[0.95] tracking-tighter"
+          className="w-full select-none whitespace-nowrap text-center font-sans text-[9.5vw] font-bold leading-[0.95] tracking-tighter sm:text-[10.5vw]"
         >
           <span className="bg-gradient-to-b from-[#f8f9fc] via-[#eef1f6] to-[#98a0b0] bg-clip-text text-transparent">
             Start{" "}
@@ -50,7 +50,7 @@ export default function Cta() {
           whileInView="show"
           viewport={viewport}
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.14, delayChildren: 0.25 } } }}
-          className="mt-20 flex w-full flex-col items-center gap-7 sm:mt-28"
+          className="mt-14 flex w-full flex-col items-center gap-7 sm:mt-20 md:mt-28"
         >
           <motion.div variants={fadeUp} className="w-full">
             <InstallBlock />
