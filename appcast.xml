@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Wakie</title>
+    <link>https://jinleegg.github.io/Wakie/appcast.xml</link>
+    <description>Wakie update feed</description>
+    <language>en</language>
+    <!-- APPCAST:INSERT -->
+    <item>
+      <title>1.0.0</title>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 06 Jul 2026 16:51:42 +0000</pubDate>
+      <description><![CDATA[ First public release of Wakie. ]]></description>
+      <enclosure
+        url="https://github.com/JinLeeGG/Wakie/releases/download/v1.0.0/Wakie.dmg"
+        sparkle:edSignature="SDtESo2rW22XtJJU5x9iOLqEWaR89/+qtg2cN8NgP6+AUfSt63R+YRMXd7zhln9KjySnFq/LT52vXx7n22tXAQ=="
+        length="25002574"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
