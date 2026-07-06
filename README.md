@@ -29,7 +29,9 @@ Plus a bot that games the 5-hour reset window while you sleep.
 
 ## 🎥 Demo
 
-https://github.com/JinLeeGG/WakieAI/raw/main/wakieDemo.mp4
+<div align="center">
+  <img src="wakieDemo_short.gif" width="100%" alt="Wakie Demo" />
+</div>
 
 <br>
 
