@@ -5,7 +5,10 @@
 <br>
 <br>
 
-Local usage tracker for multiple AI subscriptions, plus automation that optimizes your usage windows while you sleep.
+<h4>
+  Local usage tracker for multiple AI subscriptions,<br>
+  plus automation that optimizes your usage windows while you sleep.
+</h4>
 
 <br>
 
