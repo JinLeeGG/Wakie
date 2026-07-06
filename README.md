@@ -3,8 +3,9 @@
 <img width="1050" height="350" alt="Wakie" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
 
 <br>
+<br>
 
-**Local usage tracking for every AI subscription you pay for** — plus a bot that games the 5-hour reset window while you sleep.
+Local usage tracking for your AI subscriptions, paired with a smart bot that optimizes your reset windows while you sleep.
 
 <br>
 
