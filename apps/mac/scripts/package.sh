@@ -7,14 +7,14 @@
 #   • Paid Apple Developer Program membership.
 #   • A "Developer ID Application" certificate in the login keychain.
 #   • Notary credentials saved as a keychain profile:
-#       xcrun notarytool store-credentials "wakie" \
+#       xcrun notarytool store-credentials "wakieai" \
 #         --apple-id <id> --team-id 8GJTN3VYTJ --password <app-specific-pw>
 #
 # Run from apps/mac:  scripts/package.sh
 set -euo pipefail
 
 IDENTITY="Developer ID Application: Gyujin Lee (8GJTN3VYTJ)"
-NOTARY_PROFILE="wakie"
+NOTARY_PROFILE="wakieai"
 
 APP="build/macos/Build/Products/Release/wakie.app"
 RUNNER="$APP/Contents/Resources/wakie_runner"

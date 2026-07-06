@@ -10,7 +10,7 @@
 set -euo pipefail
 
 REPO="JinLeeGG/Wakie"
-APP="Wakie.app"
+APP="wakie.app"
 DMG_NAME="Wakie.dmg"
 
 say() { printf '\033[1;33m▸ %s\033[0m\n' "$*"; }
