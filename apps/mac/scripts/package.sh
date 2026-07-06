@@ -70,8 +70,17 @@ rm -rf "$DIST"; mkdir -p "$DIST"
 STAGE="$(mktemp -d)"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "WakieAI" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-rm -rf "$STAGE"
+# Give the mounted volume the app's own icon (hdiutil has no -volicon): drop it
+# as .VolumeIcon.icns, set the custom-icon bit on a read-write image, then
+# convert to the final compressed DMG so the flag is preserved.
+cp "$APP/Contents/Resources/AppIcon.icns" "$STAGE/.VolumeIcon.icns"
+RW="$(mktemp -u).dmg"
+hdiutil create -volname "WakieAI" -srcfolder "$STAGE" -ov -format UDRW "$RW" >/dev/null
+MOUNT="$(hdiutil attach "$RW" -nobrowse -noverify | grep -o '/Volumes/.*' | head -1)"
+SetFile -a C "$MOUNT"
+hdiutil detach "$MOUNT" -quiet
+hdiutil convert "$RW" -format UDZO -o "$DMG" >/dev/null
+rm -f "$RW"; rm -rf "$STAGE"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 
 say "Notarizing (this waits on Apple)…"
