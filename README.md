@@ -5,7 +5,7 @@
 <br>
 <br>
 
-Local usage tracker for multiple AI subscriptions, plus automation that optimizes your reset windows while you sleep.
+Local usage tracker for multiple AI subscriptions, plus automation that optimizes your usage windows while you sleep.
 
 <br>
 
