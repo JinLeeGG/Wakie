@@ -36,15 +36,13 @@
 
 ## Why I built this
 
-> **TL;DR** — Wakie wakes your AI sessions on a schedule so the 5-hour window resets on your clock, not mid-flow — and tracks how hard you're hammering every AI subscription you pay for. 100% local. No account, no server, no telemetry.
-
 Every AI coding subscription has the same trap: a rolling 5-hour usage window that starts on your first message. Sit down to grind at 10am, and the window anchors to 10:00 — so it resets at 3pm, dead center of your afternoon. You hit the ceiling at 2:40, halfway through something gnarly, and now you're just... waiting. Watching a clock while your train of thought evaporates.
 
 So I started waking my sessions up early. Every morning, before coffee, I'd type `good morning` into the terminal — one throwaway message that anchors the window to 7am instead of 10, so the resets land in the gaps instead of on top of me. But typing "good morning" to a robot at 6:45am every single day is exactly the kind of dumb manual ritual I learned to code to get away from. So I wrote a bot to do it: wake the Mac, say hi, reset the window, go back to sleep. That's the name. Wakie.
 
 And like half the people reading this, I don't run one account. Some folks stack five free ones; I run two Claude Pro and a Codex Plus — the poor man's Max plan. Same problem either way: juggling logins all day just to figure out which account has juice left. So I bolted usage tracking onto the wake bot — every account, every window, every reset timer, one glance at the menu bar. No more juggling.
 
-I was annoyed, I had a weekend, this exists now.
+I was annoyed, and this exists now.
 
 <br>
 
