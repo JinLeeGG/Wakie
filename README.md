@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/design/readme-wordmark.png" width="240" alt="Wakie">
+<img width="1146" height="409" alt="image" src="https://github.com/user-attachments/assets/f644159d-73a6-4670-a02f-937ae986a354" />
 
 <br>
 
