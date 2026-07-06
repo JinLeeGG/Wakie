@@ -48,15 +48,11 @@ I was annoyed, and this exists now.
 
 ## Your data never leaves your Mac
 
-I'll be straight with you: I wouldn't install this app if I hadn't written it.
+I'll be straight with you: I wouldn't install this app if I hadn't written it. It reads your local AI logs — prompt counts, reset timestamps, which accounts you're signed into. That's *exactly* the kind of stuff a sketchy closed-source menu-bar app would quietly ship off to some analytics endpoint.
 
-Look at what it does. It reads your local AI logs — prompt counts, reset timestamps, which accounts you're signed into. That's *exactly* the kind of stuff a sketchy closed-source menu-bar app would quietly vacuum up and ship off to some analytics endpoint. If a random binary asked to do that, you'd say no. You should.
+Wakie can't. There is no backend, no telemetry, no "anonymous usage stats" — nothing phoning home except the signed check for app updates. It reads files on your disk, does the math on your machine, and draws a number in your menu bar. Kill your network and the tracking keeps working exactly the same. The one exception: the wake bot fires a single throwaway prompt through your own CLI on schedule — that call runs from your machine to your provider, on your account. Never to me. There's no "me" for it to reach.
 
-So here's the deal. Wakie has no backend. There is no server. No telemetry, no analytics, no "anonymous usage stats," nothing phoning home except the signed check for app updates. It reads files on your disk, does the math on your machine, and draws a number in your menu bar. That's the entire loop. Kill your network and the tracking keeps working exactly the same.
-
-One honest exception, because I'd rather tell you than have you find it: the wake bot *does* fire a single throwaway prompt through your own CLI on schedule — waking the session is the whole point, and yeah, it nibbles a few tokens. That's the one network call Wakie ever *causes*, and it runs from your machine to your provider, on your account. Never to me. There's no "me" for it to reach.
-
-And don't take my word for it — that's the whole reason it's open source under AGPL. Don't trust `grep` either; trust `lsof`. Point Little Snitch (or `nettop -p wakie`) at the app and watch it sit there with zero outbound connections of its own — the only traffic you'll ever see is the CLIs *you* already run. The code's right here if you'd rather read it. And if you ever catch this thing opening a socket it has no business opening, open an issue with my name on it.
+Don't take my word for it — that's why it's AGPL. Point Little Snitch at the app and watch it sit there with zero outbound connections of its own. And if you ever catch this thing opening a socket it has no business opening, open an issue with my name on it.
 
 <br>
 
