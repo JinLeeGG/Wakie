@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/20c3e78d-fbf0-4ed6-b4ae-ee62350d5464
-
 <div align="center">
 
 <img width="1050" height="350" alt="Wakie" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
