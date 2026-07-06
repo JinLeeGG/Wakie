@@ -735,10 +735,13 @@ class Engine {
     if (dupOf != null) {
       _dbg('signin: $id landed as ${pf.email} but duplicates "$dupOf"');
       removeAccount(id);
+      final shownEmail = (_kDemoMask && pf.email != null && pf.email!.isNotEmpty)
+          ? _demoEmail(pf.email!)
+          : pf.email;
       return SignInResult(
         SignInState.duplicate,
         message:
-            '${pf.email} is already added as "$dupOf" — '
+            '$shownEmail is already added as "$dupOf" — '
             'removed the duplicate.',
       );
     }
@@ -1279,6 +1282,16 @@ String _shortReset(String? label) {
   return (paren == -1 ? label : label.substring(0, paren)).trim();
 }
 
+/// Demo recording: when WAKIE_DEMO is set, real login emails are shown as
+/// wakieDemo1@gmail.com, wakieDemo2@gmail.com … (stable, in first-seen order)
+/// so no personal address leaks into a screen capture. Display-only — usage is
+/// still tracked against the real accounts. Off by default; enable with
+///   flutter run -d macos --dart-define=WAKIE_DEMO=true
+const bool _kDemoMask = bool.fromEnvironment('WAKIE_DEMO');
+final Map<String, String> _demoEmailAliases = {};
+String _demoEmail(String real) => _demoEmailAliases.putIfAbsent(
+    real, () => 'wakieDemo${_demoEmailAliases.length + 1}@gmail.com');
+
 /// Account subtitle: "email · Plan", dropping the redundant provider name
 /// (the row's icon + title already say the provider). Shows whichever halves
 /// the provider exposes — email-only, plan-only, or "—" when neither.
@@ -1293,7 +1306,10 @@ String _subtitle(
   String? pick(String? a, String? b) => (a != null && a.isNotEmpty)
       ? a
       : ((b != null && b.isNotEmpty) ? b : null);
-  final email = pick(pf.email, fallbackEmail);
+  final rawEmail = pick(pf.email, fallbackEmail);
+  final email = (_kDemoMask && rawEmail != null && rawEmail.isNotEmpty)
+      ? _demoEmail(rawEmail)
+      : rawEmail;
   final plan = pick(pf.plan, fallbackPlan);
   final parts = <String>[
     ?email,
