@@ -26,7 +26,7 @@ Plus a bot that games the 5-hour reset window while you sleep.
 ## 🎥 Demo
 
 <div align="center">
-  <video src="./wakieDemo.mp4" width="100%" autoplay loop muted playsinline></video>
+  <video src="https://github.com/JinLeeGG/WakeyAI/raw/main/wakieDemo.mp4" width="100%" autoplay loop muted playsinline></video>
 </div>
 
 <br>
