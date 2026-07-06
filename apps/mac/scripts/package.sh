@@ -31,6 +31,23 @@ flutter build macos --release
 [ -x "$RUNNER" ] || { echo "✗ bundled runner missing at $RUNNER"; exit 1; }
 
 say "Signing nested code (Developer ID + hardened runtime)…"
+# Sparkle ships its helpers pre-signed by the Sparkle project (no secure
+# timestamp, not our Developer ID) — notarization rejects those. Re-sign the
+# nested pieces inside-out BEFORE the framework wrapper, or the framework's
+# seal covers stale inner signatures. (Skipped cleanly if Sparkle isn't
+# bundled.)
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE" ]; then
+  for nested in \
+    "$SPARKLE/Versions/Current/XPCServices/Downloader.xpc" \
+    "$SPARKLE/Versions/Current/XPCServices/Installer.xpc" \
+    "$SPARKLE/Versions/Current/Autoupdate" \
+    "$SPARKLE/Versions/Current/Updater.app"; do
+    [ -e "$nested" ] && codesign --force --options runtime --timestamp \
+      --sign "$IDENTITY" "$nested"
+  done
+fi
+
 # Inside-out: frameworks and dylibs first, then the AOT runner (its own
 # executable-memory entitlement), then the app itself last.
 while IFS= read -r -d '' item; do
