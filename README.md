@@ -38,15 +38,13 @@
 
 > **TL;DR** — Wakie games Claude's 5-hour reset window for you automatically, and tracks how hard you're hammering every AI subscription you pay for. 100% local. No account, no server, no telemetry.
 
-Claude Code has a usage limit. Not a daily one — a rolling 5-hour window. The clock starts on your first message and resets five hours later. Sounds harmless. It isn't, once you actually lean on the thing all day.
+Every AI coding subscription has the same trap: a rolling 5-hour usage window that starts on your first message. Sit down to grind at 10am, and the window anchors to 10:00 — so it resets at 3pm, dead center of your afternoon. You hit the ceiling at 2:40, halfway through something gnarly, and now you're just... waiting. Watching a clock while your train of thought evaporates.
 
-Here's the trap. Say I sit down to really grind at 10am. My first message anchors the window to 10:00, so it resets at 3pm — dead center of my afternoon. I hit the ceiling at 2:40, halfway through untangling something, and now I'm just... waiting. Watching a clock. My whole train of thought evaporating while I refresh a timer.
+My first fix was the dumb one: more accounts. Two Claude Pro, one Codex Plus — the poor man's Max plan. Except now I was juggling logins all day just to figure out which account had juice left.
 
-So I started cheating. I'd wake up and, before coffee, type `good morning` into the terminal. One throwaway message. That anchors the window early — to 7am instead of 10am — so it's already fresh by the time I'm actually working, and the resets land in the gaps instead of on top of me. Do it right and you can chain the windows so you're never the sucker waiting on the clock. The people who min-max this stuff on Reddit have fancier words for it. I just called it waking the session up.
+So I started cheating. Every morning, before coffee, I'd type `good morning` into the terminal — one throwaway message that anchors the window early, so the resets land in the gaps instead of on top of me. But typing "good morning" to a robot at 6:45am every single day is exactly the kind of dumb manual ritual I learned to code to get away from. So I wrote a bot to do it: wake the Mac, say hi, reset the window, go back to sleep. That's the name. Wakie.
 
-Problem is, typing "good morning" to a robot at 6:45am every single day is exactly the kind of dumb manual ritual I learned to code to get away from. So I wrote a bot to do it. It wakes the Mac from sleep on a schedule, says hi, resets the window, goes back to sleep. That's where the name comes from. Wakie.
-
-Then it kind of got away from me. I'm running Claude, Codex, and Antigravity at the same time — north of $200 a month across all of it — and I had no real idea how much of any of them I was actually burning. No dashboard. Just vibes, and the occasional "you've hit your limit" slap in the face at the worst possible moment. So I bolted usage tracking onto the wake bot. Then reset timers. Then a little menu-bar readout so I could stop guessing. And here we are.
+Then it got away from me. Between Claude, Codex, and Antigravity, I was burning real money with zero idea how much I was actually using — no dashboard, just vibes and the occasional "you've hit your limit" slap in the face. So I bolted on usage tracking. Then reset timers. Then a menu-bar readout showing every account and every window at a glance.
 
 That's the whole story. No roadmap deck, no mission statement, no "reimagining developer productivity." I was annoyed, I had a weekend, this exists now.
 
