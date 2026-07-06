@@ -50,13 +50,13 @@ I was annoyed, and this exists now.
 
 <br>
 
-## Your data never leaves your Mac
+## 🔒 Your data never leaves your Mac
 
-I'll be straight with you: I wouldn't install this app if I hadn't written it. It reads your local AI logs — prompt counts, reset timestamps, which accounts you're signed into. That's *exactly* the kind of stuff a sketchy closed-source menu-bar app would quietly ship off to some analytics endpoint.
+Wakie is designed with absolute privacy in mind. It needs to read your local AI logs to function, but it never sends that data anywhere. 
 
-Wakie can't. There is no backend, no telemetry, no "anonymous usage stats" — nothing phoning home except the signed check for app updates. It reads files on your disk, does the math on your machine, and draws a number in your menu bar. Kill your network and the tracking keeps working exactly the same. The one exception: the wake bot fires a single throwaway prompt through your own CLI on schedule — that call runs from your machine to your provider, on your account. Never to me. There's no "me" for it to reach.
-
-Don't take my word for it — that's why it's AGPL. Point Little Snitch at the app and watch it sit there with zero outbound connections of its own. And if you ever catch this thing opening a socket it has no business opening, open an issue with my name on it.
+- **100% Local:** There is no backend, no telemetry, and no "anonymous usage stats." It reads your logs locally and calculates usage right on your machine.
+- **Network-Free Tracking:** You can completely kill your network, and the usage tracking will continue to work flawlessly. (The only network call Wakie makes is firing the scheduled prompt through your own CLI to your AI provider, using your own account.)
+- **Verifiably Open:** Wakie is open-source under AGPL. You can review the code yourself or use tools like Little Snitch to verify that it makes zero outbound connections to us. There is no "us" for it to reach.
 
 <br>
 
