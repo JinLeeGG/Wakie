@@ -40,11 +40,9 @@
 
 Every AI coding subscription has the same trap: a rolling 5-hour usage window that starts on your first message. Sit down to grind at 10am, and the window anchors to 10:00 — so it resets at 3pm, dead center of your afternoon. You hit the ceiling at 2:40, halfway through something gnarly, and now you're just... waiting. Watching a clock while your train of thought evaporates.
 
-My first fix was the dumb one: more accounts. Two Claude Pro, one Codex Plus — the poor man's Max plan. Except now I was juggling logins all day just to figure out which account had juice left.
-
 So I started cheating. Every morning, before coffee, I'd type `good morning` into the terminal — one throwaway message that anchors the window early, so the resets land in the gaps instead of on top of me. But typing "good morning" to a robot at 6:45am every single day is exactly the kind of dumb manual ritual I learned to code to get away from. So I wrote a bot to do it: wake the Mac, say hi, reset the window, go back to sleep. That's the name. Wakie.
 
-Then it got away from me. Between Claude, Codex, and Antigravity, I was burning real money with zero idea how much I was actually using — no dashboard, just vibes and the occasional "you've hit your limit" slap in the face. So I bolted on usage tracking. Then reset timers. Then a menu-bar readout showing every account and every window at a glance.
+And like half the people reading this, I don't run one account. Two Claude Pro, one Codex Plus — the poor man's Max plan. Which meant juggling logins all day just to figure out which account had juice left, burning real money across Claude, Codex, and Antigravity with zero idea how much I was actually using. No dashboard, just vibes. So I bolted usage tracking onto the wake bot. Then reset timers. Then a menu-bar readout showing every account and every window at a glance.
 
 That's the whole story. No roadmap deck, no mission statement, no "reimagining developer productivity." I was annoyed, I had a weekend, this exists now.
 
