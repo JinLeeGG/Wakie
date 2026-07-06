@@ -27,7 +27,7 @@
 
 <br>
 
-## 🎥 Demo
+## Demo
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/1e53bf83-62b1-465a-8b42-5d5fb23c60d8" width="100%" autoplay loop muted playsinline></video>
@@ -35,7 +35,7 @@
 
 <br>
 
-## 📖 Why I built this
+## Why I built this
 
 > **TL;DR** — Wakie games Claude's 5-hour reset window for you automatically, and tracks how hard you're hammering every AI subscription you pay for. 100% local. No account, no server, no telemetry.
 
@@ -53,7 +53,7 @@ That's the whole story. No roadmap deck, no mission statement, no "reimagining d
 
 <br>
 
-## 🔒 Your data never leaves your Mac
+## Your data never leaves your Mac
 
 I'll be straight with you: I wouldn't install this app if I hadn't written it.
 
