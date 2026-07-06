@@ -94,15 +94,11 @@ Each one is a self-contained adapter in [`packages/core/lib/src/adapters`](packa
 curl -fsSL https://raw.githubusercontent.com/JinLeeGG/Wakie/main/deploy/install.sh | bash
 ```
 
-Yes, I know, `curl | bash`. If that makes you twitch — good instinct. [Read the script first](deploy/install.sh); it's about 30 lines and all it does is pull the notarized DMG and drop the app into `/Applications`.
-
 **Homebrew:**
 
 ```bash
 brew install --cask jinleegg/wakie/wakie
 ```
-
-**The paranoid way:** grab the DMG from [Releases](https://github.com/JinLeeGG/Wakie/releases), open it, drag Wakie to Applications. It's signed and notarized, so no right-click-open dance.
 
 **From source:**
 
