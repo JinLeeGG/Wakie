@@ -50,7 +50,7 @@ I was annoyed, and this exists now.
 
 <br>
 
-## 🔒 Your data never leaves your Mac
+## Your data never leaves your Mac
 
 Wakie is designed with absolute privacy in mind. It needs to read your local AI logs to function, but it never sends that data anywhere. 
 
