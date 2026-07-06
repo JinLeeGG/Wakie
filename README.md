@@ -4,8 +4,7 @@
 
 <br>
 
-**Local usage tracking for people who pay for too many AI subscriptions.**<br>
-Plus a bot that games the 5-hour reset window while you sleep.
+**Local usage tracking for every AI subscription you pay for** — plus a bot that games the 5-hour reset window while you sleep.
 
 <br>
 
@@ -13,15 +12,16 @@ Plus a bot that games the 5-hour reset window while you sleep.
 
 <br>
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0-5FD39A?style=flat-square)](LICENSE)
-![Platform](https://img.shields.io/badge/macOS-0B1120?style=flat-square&logo=apple&logoColor=white)
-![Flutter](https://img.shields.io/badge/Flutter-0B1120?style=flat-square&logo=flutter&logoColor=white)
-![Price](https://img.shields.io/badge/price-%240%2C%20forever-5FD39A?style=flat-square)
+![macOS](https://img.shields.io/badge/macOS-11131a?style=flat-square)
+&nbsp;[![AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-11131a?style=flat-square)](LICENSE)
+&nbsp;![free forever](https://img.shields.io/badge/free-forever-11131a?style=flat-square)
 
 <br>
 <br>
 
-[![Download for macOS](https://img.shields.io/badge/⬇%20%20Download%20for%20macOS-5FD39A?style=for-the-badge&labelColor=0B1120)](https://github.com/JinLeeGG/Wakie/releases/latest)
+[![Download for macOS](https://img.shields.io/badge/Download%20for%20macOS-FFC465?style=for-the-badge&logo=apple&logoColor=11131a)](https://github.com/JinLeeGG/Wakie/releases/latest)
+
+<sub>signed &amp; notarized · no account · works offline</sub>
 
 </div>
 
