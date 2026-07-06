@@ -21,6 +21,10 @@
 
 [![Download for macOS](https://img.shields.io/badge/Download%20for%20macOS-FFC465?style=for-the-badge&logo=apple&logoColor=11131a)](https://github.com/JinLeeGG/Wakie/releases/latest)
 
+`brew install --cask jinleegg/wakie/wakie`
+
+<sub>or `curl -fsSL https://raw.githubusercontent.com/JinLeeGG/Wakie/main/deploy/install.sh | bash`</sub>
+
 <sub>signed &amp; notarized · no account · works offline</sub>
 
 </div>
