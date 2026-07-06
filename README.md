@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/20c3e78d-fbf0-4ed6-b4ae-ee62350d5464
+
 <div align="center">
 
 <img width="1050" height="350" alt="Wakie" src="https://github.com/user-attachments/assets/3db2f5a5-e24b-4f9a-9a69-c61be22bddba" />
@@ -29,8 +33,12 @@
 
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/1e53bf83-62b1-465a-8b42-5d5fb23c60d8" width="100%" autoplay loop muted playsinline></video>
+  <video src="https://github.com/user-attachments/assets/6590d74c-603c-470f-ac9b-1dea7a5d4dec" width="100%" autoplay loop muted playsinline></video>
 </div>
+
+
+
+
 
 <br>
 
