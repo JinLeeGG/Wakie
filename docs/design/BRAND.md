@@ -1,4 +1,4 @@
-# WakieAI Brand — Logo & Wordmark v2
+# Wakie Brand — Logo & Wordmark v2
 
 Captured 2026-07-04 from the landing page (`apps/web/src/components/Hero.tsx`),
 saved here so the Mac app can adopt the same design. Supersedes the v1 marks

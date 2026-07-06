@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Sparkle update feed for WakieAI.
+  Sparkle update feed for Wakie.
 
   This file is the SEED. At release time the CI workflow (.github/workflows/
   release.yml) fetches the currently-published feed from GitHub Pages, prepends
@@ -9,15 +9,15 @@
   this seed stays minimal.
 
   Live URL (must match SUFeedURL in Info.plist and _feedUrl in lib/updater.dart):
-    https://jinleegg.github.io/WakeyAI/appcast.xml
+    https://jinleegg.github.io/Wakie/appcast.xml
 -->
 <rss version="2.0"
      xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
      xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
-    <title>WakieAI</title>
-    <link>https://jinleegg.github.io/WakeyAI/appcast.xml</link>
-    <description>WakieAI update feed</description>
+    <title>Wakie</title>
+    <link>https://jinleegg.github.io/Wakie/appcast.xml</link>
+    <description>Wakie update feed</description>
     <language>en</language>
     <!-- APPCAST:INSERT -->
     <!--
@@ -34,7 +34,7 @@
       <pubDate>Mon, 06 Jul 2026 09:00:00 +0000</pubDate>
       <description><![CDATA[ <ul><li>What changed…</li></ul> ]]></description>
       <enclosure
-        url="https://github.com/JinLeeGG/WakeyAI/releases/download/v1.0.1/WakieAI.dmg"
+        url="https://github.com/JinLeeGG/Wakie/releases/download/v1.0.1/Wakie.dmg"
         sparkle:edSignature="BASE64_SIGNATURE"
         length="12345678"
         type="application/octet-stream" />

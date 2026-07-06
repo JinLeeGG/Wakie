@@ -12,5 +12,5 @@ packages/*/pubspec.lock
 __pycache__/
 venv/
 .venv/
-.wakeyai/
+.wakie/
 .next/

@@ -21,8 +21,8 @@ jobs:
         working-directory: apps/mac
     env:
       IDENTITY: "Developer ID Application: Gyujin Lee (8GJTN3VYTJ)"
-      APP: build/macos/Build/Products/Release/wakieai.app
-      DMG: build/dist/WakieAI.dmg
+      APP: build/macos/Build/Products/Release/wakie.app
+      DMG: build/dist/Wakie.dmg
 
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
                      \( -name "*.framework" -o -name "*.dylib" \) -print0 2>/dev/null)
           codesign --force --options runtime --timestamp \
             --entitlements macos/scripts/runner.entitlements --sign "$IDENTITY" \
-            "$APP/Contents/Resources/wakieai_runner"
+            "$APP/Contents/Resources/wakie_runner"
           codesign --force --options runtime --timestamp \
             --entitlements macos/Runner/Release.entitlements --sign "$IDENTITY" "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -87,7 +87,7 @@ jobs:
           STAGE="$(mktemp -d)"
           cp -R "$APP" "$STAGE/"
           ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname WakieAI -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+          hdiutil create -volname Wakie -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
           rm -rf "$STAGE"
           codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 
@@ -125,7 +125,7 @@ jobs:
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/mac/build/dist/WakieAI.dmg
+          files: apps/mac/build/dist/Wakie.dmg
           generate_release_notes: true
 
       # ---- Update the appcast on GitHub Pages ----
@@ -140,7 +140,7 @@ jobs:
         run: |
           mkdir -p /tmp/site
           # Start from the live feed (seed template on the first ever run).
-          curl -fsSL https://jinleegg.github.io/WakeyAI/appcast.xml -o /tmp/site/appcast.xml \
+          curl -fsSL https://jinleegg.github.io/Wakie/appcast.xml -o /tmp/site/appcast.xml \
             || cp deploy/appcast.xml /tmp/site/appcast.xml
           python3 ../../deploy/append_appcast.py
 

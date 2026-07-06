@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:wakieai/models.dart';
-import 'package:wakieai/widgets/install_cli_modal.dart';
+import 'package:wakie/models.dart';
+import 'package:wakie/widgets/install_cli_modal.dart';
 
 Widget _host(InstallCliModal modal) => MaterialApp(
       debugShowCheckedModeBanner: false,

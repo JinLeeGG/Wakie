@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:wakieai_core/wakieai_core.dart' as core;
+import 'package:wakie_core/wakie_core.dart' as core;
 
 import 'models.dart';
 
@@ -12,7 +12,7 @@ import 'models.dart';
 typedef LoginRunner = Future<void> Function(String command);
 
 /// Creates an account's isolated config-home directory. Injected so tests
-/// never touch the real `~/.wakieai/accounts/` on disk.
+/// never touch the real `~/.wakie/accounts/` on disk.
 typedef DirEnsurer = Future<void> Function(String path);
 
 /// Deletes a removed account's isolated config-home directory. Injected so
@@ -154,7 +154,7 @@ Future<String> _realPrivateBrowserPrefix() async {
     }
     final flag = _privateWindowFlags[bundle];
     if (flag == null) return '';
-    final dir = await Directory.systemTemp.createTemp('wakieai_browser');
+    final dir = await Directory.systemTemp.createTemp('wakie_browser');
     final shim = File('${dir.path}/private_browser');
     await shim.writeAsString(
         '#!/bin/bash\nexec open -nb "$bundle" --args $flag "\$1"\n');
@@ -169,7 +169,7 @@ Future<String> _realPrivateBrowserPrefix() async {
 /// is an interactive TUI, not a browser-OAuth flow. Uses `open -a Terminal
 /// <script>` (Launch Services), which needs no "Automation" TCC grant.
 Future<void> _openTerminalWithScript(String command) async {
-  final dir = await Directory.systemTemp.createTemp('wakieai_login');
+  final dir = await Directory.systemTemp.createTemp('wakie_login');
   final script = File('${dir.path}/login.command');
   await script.writeAsString('#!/bin/zsh -l\n$command\n');
   final chmod = await Process.run('chmod', ['+x', script.path]);
@@ -215,7 +215,7 @@ Future<String?> _realConfigureDarkWake(
   final home = Platform.environment['HOME'];
   if (home == null) return 'No HOME directory.';
   final plistPath =
-      '$home/Library/LaunchAgents/${core.wakieaiLaunchAgentLabel}.plist';
+      '$home/Library/LaunchAgents/${core.wakieLaunchAgentLabel}.plist';
   final plist = File(plistPath);
 
   if (!enable) {
@@ -229,9 +229,9 @@ Future<String?> _realConfigureDarkWake(
 
   final runner = _resolveRunnerPath();
   if (runner == null) {
-    return 'Runner not found — rebuild the app to bundle wakieai_runner.';
+    return 'Runner not found — rebuild the app to bundle wakie_runner.';
   }
-  final logDir = Directory('$home/Library/Application Support/WakieAI/logs')
+  final logDir = Directory('$home/Library/Application Support/Wakie/logs')
     ..createSync(recursive: true);
   plist.parent.createSync(recursive: true);
   plist.writeAsStringSync(
@@ -265,11 +265,11 @@ Future<String?> _realConfigureDarkWake(
 /// Null if neither exists (a dev build before the runner is compiled).
 String? _resolveRunnerPath() {
   final macos = File(Platform.resolvedExecutable).parent; // .../Contents/MacOS
-  final bundled = File('${macos.parent.path}/Resources/wakieai_runner');
+  final bundled = File('${macos.parent.path}/Resources/wakie_runner');
   if (bundled.existsSync()) return bundled.path;
   final home = Platform.environment['HOME'];
   if (home == null) return null;
-  final dev = File('$home/Library/Application Support/WakieAI/wakieai_runner');
+  final dev = File('$home/Library/Application Support/Wakie/wakie_runner');
   return dev.existsSync() ? dev.path : null;
 }
 
@@ -281,7 +281,7 @@ Future<void> _realInstallLoginItem(bool enable) async {
   final home = Platform.environment['HOME'];
   if (home == null) return;
   final plist = File(
-    '$home/Library/LaunchAgents/${core.wakieaiLoginItemLabel}.plist',
+    '$home/Library/LaunchAgents/${core.wakieLoginItemLabel}.plist',
   );
   if (enable) {
     plist.parent.createSync(recursive: true);
@@ -366,10 +366,10 @@ class _Semaphore {
 
 /// Timestamped debug trace for live diagnosis (debug builds only).
 void _dbg(String message) =>
-    debugPrint('wakieai ${DateTime.now().toIso8601String().substring(11, 23)} '
+    debugPrint('wakie ${DateTime.now().toIso8601String().substring(11, 23)} '
         '$message');
 
-/// Bridges the WakieAI engine (`packages/core`) to the dashboard's view model.
+/// Bridges the Wakie engine (`packages/core`) to the dashboard's view model.
 ///
 /// Discovers logged-in accounts and reads each one's live `/usage`, mapping
 /// the raw core status into the [Account] rows the UI renders.
@@ -798,7 +798,7 @@ class Engine {
           .readStatus(account)
           .timeout(readTimeoutFor(account.id));
     } on TimeoutException {
-      debugPrint('wakieai: readStatus timed out for ${account.id}');
+      debugPrint('wakie: readStatus timed out for ${account.id}');
       return core.ProviderStatus.unknown;
     }
   }
@@ -832,7 +832,7 @@ class Engine {
 
   /// Removes an account (the row's Remove action). Persisted so the next
   /// discovery/refresh doesn't resurrect it, and its isolated config dir is
-  /// deleted so removed extras don't pile up under ~/.wakieai/accounts/.
+  /// deleted so removed extras don't pile up under ~/.wakie/accounts/.
   void removeAccount(String id) {
     final configHome =
         _live[id]?.$1.configHome ??
@@ -924,7 +924,7 @@ class Engine {
       await _prepareConfig(provider, configHome);
     } catch (e) {
       debugPrint(
-        'wakieai: addAccount could not create/prepare $configHome — $e',
+        'wakie: addAccount could not create/prepare $configHome — $e',
       );
       return "Couldn't create $configHome";
     }
@@ -963,7 +963,7 @@ class Engine {
           await _openTerminal('HOME="$configHome" agy');
       }
     } catch (e) {
-      debugPrint('wakieai: addAccount could not launch login — $e');
+      debugPrint('wakie: addAccount could not launch login — $e');
       return 'Added, but the login could not be launched. Try Update on the '
           'row, or sign in manually.';
     }
@@ -1010,7 +1010,7 @@ class Engine {
     try {
       await _installLoginItem(enabled);
     } catch (e) {
-      debugPrint('wakieai: login item install failed — $e');
+      debugPrint('wakie: login item install failed — $e');
     }
   }
 
@@ -1117,7 +1117,7 @@ class Engine {
             current,
             now: at,
           )) {
-            await _notify('WakieAI', alert.message);
+            await _notify('Wakie', alert.message);
           }
         }
         changed.add(

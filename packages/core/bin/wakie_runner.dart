@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 /// Headless one-shot runner (PRD §9.2, Phase 1 dark wake). Discovers
 /// logged-in accounts, reads each one's live usage, chains a fresh session
@@ -30,7 +30,7 @@ Future<void> main() async {
 
     final live = await discoverLiveAccounts(adapters, store);
     if (live.isEmpty) {
-      print('wakieai: no logged-in accounts found');
+      print('wakie: no logged-in accounts found');
       return;
     }
 
@@ -44,7 +44,7 @@ Future<void> main() async {
         _readPrepared(adapters, account).then((status) {
           store.cacheStatus(account.id, status);
           read.add((account, preflight, status));
-          print('wakieai: ${account.id} — '
+          print('wakie: ${account.id} — '
               'session ${status.session.usedPct ?? '?'}% used, '
               'weekly ${status.weekly.usedPct ?? '?'}% used');
         }),
@@ -57,22 +57,22 @@ Future<void> main() async {
       final alerts =
           evaluateAlerts(account.id, previous[account.id], current);
       for (final alert in alerts) {
-        print('wakieai: alert — ${alert.message}');
-        await showMacNotification('WakieAI', alert.message);
+        print('wakie: alert — ${alert.message}');
+        await showMacNotification('Wakie', alert.message);
       }
     }
 
-    print('wakieai: updated ${read.length}/${live.length} account(s)');
+    print('wakie: updated ${read.length}/${live.length} account(s)');
   } catch (e, st) {
-    stderr.writeln('wakieai: runner failed: $e\n$st');
+    stderr.writeln('wakie: runner failed: $e\n$st');
     exitCode = 1;
   } finally {
     // Whatever happened above, don't leave an unattended Mac awake all
     // night — but only if the user still hasn't touched it mid-pass.
     if (darkPass && await unattended()) {
-      print('wakieai: unattended wake — going back to sleep');
+      print('wakie: unattended wake — going back to sleep');
       final err = await systemSleep();
-      if (err != null) print('wakieai: could not re-sleep — $err');
+      if (err != null) print('wakie: could not re-sleep — $err');
     }
   }
 }

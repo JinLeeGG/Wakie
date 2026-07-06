@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Bakes the macOS app icon (AppIcon.appiconset) from the WakieAI orbit mark on
+/// Bakes the macOS app icon (AppIcon.appiconset) from the Wakie orbit mark on
 /// a dawn-gradient tile — the same brand as the tray icon and the landing page.
 /// Not a `_test.dart` file, so it runs only when invoked directly:
 ///   flutter test test/tools/gen_app_icon.dart

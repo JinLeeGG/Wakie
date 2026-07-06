@@ -1,6 +1,6 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wakieai/widgets/footer.dart';
+import 'package:wakie/widgets/footer.dart';
 
 void main() {
   test('the bar stays up until the LAST overlapping op finishes', () {

@@ -1,4 +1,4 @@
-/// WakieAI shared engine.
+/// Wakie shared engine.
 library;
 
 export 'src/account.dart';

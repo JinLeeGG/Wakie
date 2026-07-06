@@ -2,7 +2,7 @@ import 'account.dart';
 import 'preflight.dart';
 import 'status.dart';
 
-/// A provider adapter — the seam between WakieAI and one AI CLI (PRD §10.3).
+/// A provider adapter — the seam between Wakie and one AI CLI (PRD §10.3).
 ///
 /// Invariant (R0): official binaries only, tokens never extracted, prompt /
 /// response bodies never stored.

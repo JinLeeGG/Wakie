@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wakieai/models.dart';
-import 'package:wakieai/widgets/summary.dart';
+import 'package:wakie/models.dart';
+import 'package:wakie/widgets/summary.dart';
 
 void main() {
   group('parseAnchorTime', () {

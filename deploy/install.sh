@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# curl-install: fetch the latest notarized WakieAI DMG from GitHub Releases and
+# curl-install: fetch the latest notarized Wakie DMG from GitHub Releases and
 # drop the app into /Applications. Because the DMG is signed + notarized +
 # stapled, Gatekeeper passes with no right-click dance.
 #
-#   curl -fsSL https://raw.githubusercontent.com/JinLeeGG/WakeyAI/main/deploy/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/JinLeeGG/Wakie/main/deploy/install.sh | bash
 #
 # After install, the app self-updates via Sparkle — this script is only for the
 # very first install.
 set -euo pipefail
 
-REPO="JinLeeGG/WakeyAI"
-APP="WakieAI.app"
-DMG_NAME="WakieAI.dmg"
+REPO="JinLeeGG/Wakie"
+APP="Wakie.app"
+DMG_NAME="Wakie.dmg"
 
 say() { printf '\033[1;33m▸ %s\033[0m\n' "$*"; }
 
@@ -29,4 +29,4 @@ say "Installing to /Applications…"
 rm -rf "/Applications/$APP"
 cp -R "$mnt/$APP" /Applications/
 
-say "Done. Launch WakieAI from /Applications (it lives in the menu bar)."
+say "Done. Launch Wakie from /Applications (it lives in the menu bar)."

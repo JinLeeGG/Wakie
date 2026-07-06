@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
   final now = DateTime(2026, 6, 1, 15, 0); // Mon Jun 1, 3:00pm

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WakeyAI — Notifications</title>
+<title>Wakie — Notifications</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
     animation:noti-in .6s cubic-bezier(.2,.85,.2,1) both}
   @keyframes noti-in{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
 
-  /* app icon tile (this is also WakieAI's app icon — filled navy tile, unlike the transparent in-app mark) */
+  /* app icon tile (this is also Wakie's app icon — filled navy tile, unlike the transparent in-app mark) */
   .app-ico{width:40px;height:40px;border-radius:10px;flex:none;position:relative;display:grid;place-items:center;
     background:linear-gradient(150deg,#1b2250,#0c1030 78%);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 6px rgba(0,0,0,.45)}
@@ -105,7 +105,7 @@
 
   .foot{margin-top:34px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.35);text-align:center}
 
-  /* WakieAI mark (white ring + amber core) reused for icon */
+  /* Wakie mark (white ring + amber core) reused for icon */
   .mark circle.ring{fill:none;stroke:#fff;stroke-width:6}
   .mark circle.core{fill:#f6b23c}
 </style></head>
@@ -116,7 +116,7 @@
       <svg class="lg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>
       Notifications
     </div>
-    <h1 class="rise" style="animation-delay:.05s">How WakieAI reaches you</h1>
+    <h1 class="rise" style="animation-delay:.05s">How Wakie reaches you</h1>
     <p class="sub rise" style="animation-delay:.1s">The app runs quietly in the background, so notifications are how you learn what happened while you were away — a calm morning summary when all is well, and a nudge with a one-tap fix when something needs you.</p>
 
     <!-- in context -->
@@ -124,14 +124,14 @@
       <div class="sec-h">In context · top-right of the screen</div>
       <div class="context">
         <div class="mbar">
-          <span class="wk"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="7"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>WakieAI</span>
+          <span class="wk"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="7"/><circle cx="50" cy="50" r="22" fill="#f6b23c"/></svg>Wakie</span>
           <span>100%</span><span>7:02 AM</span>
         </div>
         <div class="drop">
           <div class="noti ok">
             <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
             <div class="nbody">
-              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">now</span></div>
+              <div class="ntop"><span class="napp">Wakie</span><span class="ntime">now</span></div>
               <div class="ntitle">Good morning — everything's warm</div>
               <div class="nmsg"><b>4 sessions</b> refreshed overnight. Next wake at <b>6:55 AM</b>.</div>
             </div>
@@ -151,7 +151,7 @@
           <div class="noti ok">
             <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
             <div class="nbody">
-              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">7:00 AM</span></div>
+              <div class="ntop"><span class="napp">Wakie</span><span class="ntime">7:00 AM</span></div>
               <div class="ntitle">Good morning — everything's warm</div>
               <div class="nmsg"><b>4 sessions</b> refreshed overnight. Next wake at <b>6:55 AM</b>.</div>
             </div>
@@ -163,7 +163,7 @@
           <div class="noti warn">
             <div class="app-ico"><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
             <div class="nbody">
-              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">2m ago</span></div>
+              <div class="ntop"><span class="napp">Wakie</span><span class="ntime">2m ago</span></div>
               <div class="ntitle">Codex is running low</div>
               <div class="nmsg"><b>12% left</b> this session · resets at <b>4:30 AM</b>.</div>
               <div class="nact"><button class="nbtn primary">Refresh now</button><button class="nbtn ghost">Later</button></div>
@@ -176,7 +176,7 @@
           <div class="noti crit">
             <div class="app-ico"><span class="pip"></span><svg class="mark" viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="38"/><circle class="core" cx="50" cy="50" r="22"/></svg></div>
             <div class="nbody">
-              <div class="ntop"><span class="napp">WakieAI</span><span class="ntime">9m ago</span></div>
+              <div class="ntop"><span class="napp">Wakie</span><span class="ntime">9m ago</span></div>
               <div class="ntitle">Claude · Personal needs a reconnect</div>
               <div class="nmsg">The session <b>expired</b> while you were away — reconnect to keep it warm.</div>
               <div class="nact"><button class="nbtn primary">Reconnect</button><button class="nbtn ghost">Later</button></div>
@@ -192,6 +192,6 @@
       </div>
     </div>
 
-    <div class="foot">WakieAI — notification spec</div>
+    <div class="foot">Wakie — notification spec</div>
   </div>
 </body></html>

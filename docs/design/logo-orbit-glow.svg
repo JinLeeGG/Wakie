@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" role="img" aria-label="WakieAI">
-  <!-- WakieAI orbit mark v2 (2026-07-04, from the landing page) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" role="img" aria-label="Wakie">
+  <!-- Wakie orbit mark v2 (2026-07-04, from the landing page) -->
   <!-- Tilted orbit ring + amber core with soft glow. For dark backgrounds. -->
   <defs>
     <filter id="core-glow" x="-100%" y="-100%" width="300%" height="300%">

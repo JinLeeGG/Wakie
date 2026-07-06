@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// WakieAI **orbit mark v2** — a tilted orbit ring around a glowing amber core
+/// Wakie **orbit mark v2** — a tilted orbit ring around a glowing amber core
 /// (docs/design/BRAND.md, captured from the landing page). The canonical brand
 /// mark; supersedes the old concentric ring+core SVG. Design space is 24×24,
 /// scaled to [size]. Built for dark surfaces (the ring is white @55%).

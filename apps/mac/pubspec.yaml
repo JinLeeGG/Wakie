@@ -1,4 +1,4 @@
-name: wakieai
+name: wakie
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -40,7 +40,7 @@ dependencies:
   # In-app auto-update via Sparkle (macOS). Feed is an appcast.xml on GitHub
   # Pages; DMGs live in GitHub Releases. See docs/RELEASE.md.
   auto_updater: ^1.0.0
-  wakieai_core:
+  wakie_core:
     path: ../../packages/core
 
 dev_dependencies:

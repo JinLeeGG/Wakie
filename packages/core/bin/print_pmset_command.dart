@@ -1,4 +1,4 @@
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 /// Prints the `sudo pmset` command for the morning anchor in the local
 /// store — for the user to run themselves (FR-UI-05: admin action, never

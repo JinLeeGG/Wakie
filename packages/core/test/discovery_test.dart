@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 /// Adapter stub whose detect() outcome is fixed per test.
 class _StubAdapter implements ProviderAdapter {
@@ -91,7 +91,7 @@ void main() {
           id: 'claude-work',
           provider: Provider.claude,
           label: 'work',
-          configHome: '/tmp/wakieai-claude-work',
+          configHome: '/tmp/wakie-claude-work',
           addedAt: DateTime(2026),
         ));
 
@@ -101,7 +101,7 @@ void main() {
       expect(live.map((e) => e.$1.id),
           containsAll(['claude-default', 'claude-work']));
       final extra = live.firstWhere((e) => e.$1.id == 'claude-work').$1;
-      expect(extra.configHome, '/tmp/wakieai-claude-work');
+      expect(extra.configHome, '/tmp/wakie-claude-work');
       expect(extra.label, 'work');
     });
 
@@ -117,7 +117,7 @@ void main() {
           id: 'claude-personal',
           provider: Provider.claude,
           label: 'personal',
-          configHome: '/tmp/wakieai-claude-personal',
+          configHome: '/tmp/wakie-claude-personal',
           addedAt: DateTime(2026),
         ));
 
@@ -137,7 +137,7 @@ void main() {
           id: 'claude-personal',
           provider: Provider.claude,
           label: 'personal',
-          configHome: '/tmp/wakieai-claude-personal',
+          configHome: '/tmp/wakie-claude-personal',
           addedAt: DateTime(2026),
         ));
 
@@ -158,14 +158,14 @@ void main() {
           id: 'claude-personal',
           provider: Provider.claude,
           label: 'personal',
-          configHome: '/tmp/wakieai-claude-personal',
+          configHome: '/tmp/wakie-claude-personal',
           addedAt: DateTime(2026),
         ))
         ..addExtraAccount(ExtraAccount(
           id: 'antigravity-extra',
           provider: Provider.antigravity,
           label: 'extra',
-          configHome: '/tmp/wakieai-agy-extra',
+          configHome: '/tmp/wakie-agy-extra',
           addedAt: DateTime(2026),
         ));
 
@@ -191,7 +191,7 @@ void main() {
           id: 'claude-work',
           provider: Provider.claude,
           label: 'work',
-          configHome: '/tmp/wakieai-claude-work',
+          configHome: '/tmp/wakie-claude-work',
           addedAt: DateTime(2026),
         ));
 
@@ -216,7 +216,7 @@ void main() {
           id: 'codex-work',
           provider: Provider.codex, // no adapter registered below
           label: 'work',
-          configHome: '/tmp/wakieai-codex-work',
+          configHome: '/tmp/wakie-codex-work',
           addedAt: DateTime(2026),
         ));
 

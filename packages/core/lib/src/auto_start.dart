@@ -68,8 +68,8 @@ Future<void> chainExpiredSessions(
     }
 
     log?.call(idle
-        ? 'wakieai: ${account.id} has no session window open — starting one'
-        : 'wakieai: ${account.id} session window lapsed at $resetAt — starting a new one');
+        ? 'wakie: ${account.id} has no session window open — starting one'
+        : 'wakie: ${account.id} session window lapsed at $resetAt — starting a new one');
     final adapter = adapters[account.provider]!;
     final outcome = await adapter.startSession(account);
     final fresh = outcome.ok ? await adapter.readStatus(account) : status;
@@ -82,7 +82,7 @@ Future<void> chainExpiredSessions(
       lastCheckedAt: DateTime.now(),
     ));
     log?.call(outcome.ok
-        ? 'wakieai: ${account.id} — new session started'
-        : 'wakieai: ${account.id} — session start failed: ${outcome.error}');
+        ? 'wakie: ${account.id} — new session started'
+        : 'wakie: ${account.id} — session start failed: ${outcome.error}');
   }
 }

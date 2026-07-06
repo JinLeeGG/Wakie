@@ -1,4 +1,4 @@
-# wakieai
+# wakie
 
 A new Flutter project.
 

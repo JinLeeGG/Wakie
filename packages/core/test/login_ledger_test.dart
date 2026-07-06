@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
   final t0 = DateTime.utc(2026, 7, 1, 9);

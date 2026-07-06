@@ -7,21 +7,21 @@
 #   • Paid Apple Developer Program membership.
 #   • A "Developer ID Application" certificate in the login keychain.
 #   • Notary credentials saved as a keychain profile:
-#       xcrun notarytool store-credentials "wakieai" \
+#       xcrun notarytool store-credentials "wakie" \
 #         --apple-id <id> --team-id 8GJTN3VYTJ --password <app-specific-pw>
 #
 # Run from apps/mac:  scripts/package.sh
 set -euo pipefail
 
 IDENTITY="Developer ID Application: Gyujin Lee (8GJTN3VYTJ)"
-NOTARY_PROFILE="wakieai"
+NOTARY_PROFILE="wakie"
 
-APP="build/macos/Build/Products/Release/wakieai.app"
-RUNNER="$APP/Contents/Resources/wakieai_runner"
+APP="build/macos/Build/Products/Release/wakie.app"
+RUNNER="$APP/Contents/Resources/wakie_runner"
 APP_ENT="macos/Runner/Release.entitlements"
 RUNNER_ENT="macos/scripts/runner.entitlements"
 DIST="build/dist"
-DMG="$DIST/WakieAI.dmg"
+DMG="$DIST/Wakie.dmg"
 
 say() { printf '\n\033[1;33m▸ %s\033[0m\n' "$*"; }
 
@@ -75,7 +75,7 @@ ln -s /Applications "$STAGE/Applications"
 # convert to the final compressed DMG so the flag is preserved.
 cp "$APP/Contents/Resources/AppIcon.icns" "$STAGE/.VolumeIcon.icns"
 RW="$(mktemp -u).dmg"
-hdiutil create -volname "WakieAI" -srcfolder "$STAGE" -ov -format UDRW "$RW" >/dev/null
+hdiutil create -volname "Wakie" -srcfolder "$STAGE" -ov -format UDRW "$RW" >/dev/null
 MOUNT="$(hdiutil attach "$RW" -nobrowse -noverify | grep -o '/Volumes/.*' | head -1)"
 SetFile -a C "$MOUNT"
 hdiutil detach "$MOUNT" -quiet

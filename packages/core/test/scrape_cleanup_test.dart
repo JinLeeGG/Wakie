@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
-  const root = '/Users/u/.wakieai/accounts';
+  const root = '/Users/u/.wakie/accounts';
 
   test('finds orphaned agy processes whose HOME is inside the sandbox', () {
     const ps = '''
@@ -29,7 +29,7 @@ void main() {
     // claude's script wrapper still belongs to the app (ppid 900 ≠ 1), and
     // the agy login window's shell is alive — neither is orphaned.
     const ps = '''
-  900     1 /Applications/wakieai.app/Contents/MacOS/wakieai HOME=/Users/u
+  900     1 /Applications/wakie.app/Contents/MacOS/wakie HOME=/Users/u
   901   900 script -q /dev/null claude
   902   901 claude CLAUDE_CONFIG_DIR=$root/claude-1 TERM=x
   910   905 agy HOME=$root/antigravity-1 TERM=x

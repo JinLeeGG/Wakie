@@ -31,7 +31,7 @@ class MainFlutterWindow: NSWindow {
 
     // Tray <-> window control channel.
     let channel = FlutterMethodChannel(
-      name: "wakieai/window",
+      name: "wakie/window",
       binaryMessenger: macOSWindowUtilsViewController.flutterViewController.engine.binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self = self else { return result(nil) }

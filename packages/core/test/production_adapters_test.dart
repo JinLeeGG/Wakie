@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
   group('resolveCli', () {
     late Directory tmp;
 
-    setUp(() => tmp = Directory.systemTemp.createTempSync('wakieai-cli'));
+    setUp(() => tmp = Directory.systemTemp.createTempSync('wakie-cli'));
     tearDown(() => tmp.deleteSync(recursive: true));
 
     test('finds a CLI on PATH and returns its absolute path', () {

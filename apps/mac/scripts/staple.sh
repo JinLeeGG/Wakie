@@ -8,8 +8,8 @@
 #   scripts/staple.sh <submission-id> # a specific one
 set -euo pipefail
 
-NOTARY_PROFILE="wakieai"
-DMG="build/dist/WakieAI.dmg"
+NOTARY_PROFILE="wakie"
+DMG="build/dist/Wakie.dmg"
 
 [ -f "$DMG" ] || { echo "✗ no DMG at $DMG — run scripts/package.sh first"; exit 1; }
 

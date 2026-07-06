@@ -368,7 +368,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "15.2.0"
-  wakieai_core:
+  wakie_core:
     dependency: "direct main"
     description:
       path: "../../packages/core"

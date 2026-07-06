@@ -16,7 +16,7 @@
 /// system state and `pmset`'s wake schedule needs admin (FR-UI-05).
 library;
 
-const wakieaiLaunchAgentLabel = 'ai.wakie.runner';
+const wakieLaunchAgentLabel = 'ai.wakie.runner';
 
 /// The LaunchAgent plist that runs [executablePath] once a day at
 /// [hour]:[minute] local time.
@@ -24,7 +24,7 @@ String launchAgentPlist({
   required String executablePath,
   required int hour,
   required int minute,
-  String label = wakieaiLaunchAgentLabel,
+  String label = wakieLaunchAgentLabel,
   String? stdoutPath,
   String? stderrPath,
 }) {
@@ -78,9 +78,9 @@ String pmsetDailyWakeCommandRaw({required int hour, required int minute}) {
 /// `sudo` — for the in-app admin prompt.
 const pmsetCancelCommandRaw = 'pmset repeat cancel';
 
-const wakieaiLoginItemLabel = 'ai.wakie.app';
+const wakieLoginItemLabel = 'ai.wakie.app';
 
-/// The LaunchAgent plist that opens the WakieAI app at login (the footer's
+/// The LaunchAgent plist that opens the Wakie app at login (the footer's
 /// "Launch at login" toggle). RunAtLoad-only — launchd starts it once per
 /// login session and never restarts it (no KeepAlive; quitting stays quit).
 String loginItemPlist({required String executablePath}) => '''
@@ -89,7 +89,7 @@ String loginItemPlist({required String executablePath}) => '''
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>$wakieaiLoginItemLabel</string>
+  <string>$wakieLoginItemLabel</string>
   <key>ProgramArguments</key>
   <array>
     <string>$executablePath</string>

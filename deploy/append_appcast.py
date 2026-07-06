@@ -13,7 +13,7 @@ MARKER = "<!-- APPCAST:INSERT -->"
 
 def item_xml(env: dict) -> str:
     repo, tag = env["REPO"], env["TAG"]
-    url = f"https://github.com/{repo}/releases/download/{tag}/WakieAI.dmg"
+    url = f"https://github.com/{repo}/releases/download/{tag}/Wakie.dmg"
     return f"""    <item>
       <title>{env['SHORT']}</title>
       <sparkle:version>{env['BUILD']}</sparkle:version>

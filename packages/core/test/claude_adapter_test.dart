@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 Account _account(String? home) => Account(
       id: 'a1',

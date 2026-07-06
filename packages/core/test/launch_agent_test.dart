@@ -1,18 +1,18 @@
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
   group('launchAgentPlist', () {
     test('embeds the executable path, label, and Hour/Minute only (daily recurrence)', () {
       final plist = launchAgentPlist(
-        executablePath: '/Users/x/Library/Application Support/WakieAI/wakieai_runner',
+        executablePath: '/Users/x/Library/Application Support/Wakie/wakie_runner',
         hour: 8,
         minute: 30,
       );
 
       expect(plist, contains('<string>ai.wakie.runner</string>'));
       expect(plist,
-          contains('<string>/Users/x/Library/Application Support/WakieAI/wakieai_runner</string>'));
+          contains('<string>/Users/x/Library/Application Support/Wakie/wakie_runner</string>'));
       expect(plist, contains('<key>Hour</key>\n    <integer>8</integer>'));
       expect(plist, contains('<key>Minute</key>\n    <integer>30</integer>'));
       // No Year/Month/Day keys — that's what makes it recur every day.
@@ -51,10 +51,10 @@ void main() {
   group('loginItemPlist', () {
     test('runs the app at load only (no calendar, no keep-alive)', () {
       final plist = loginItemPlist(
-          executablePath: '/Applications/WakieAI.app/Contents/MacOS/wakieai');
+          executablePath: '/Applications/Wakie.app/Contents/MacOS/wakie');
       expect(plist, contains('<string>ai.wakie.app</string>'));
       expect(plist,
-          contains('<string>/Applications/WakieAI.app/Contents/MacOS/wakieai</string>'));
+          contains('<string>/Applications/Wakie.app/Contents/MacOS/wakie</string>'));
       expect(plist, contains('<key>RunAtLoad</key>'));
       expect(plist, isNot(contains('StartCalendarInterval')));
       expect(plist, isNot(contains('KeepAlive')));

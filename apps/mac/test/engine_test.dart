@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wakieai/engine.dart';
-import 'package:wakieai/models.dart';
-import 'package:wakieai_core/wakieai_core.dart' as core;
+import 'package:wakie/engine.dart';
+import 'package:wakie/models.dart';
+import 'package:wakie_core/wakie_core.dart' as core;
 
 /// Adapter that reports a fixed login + usage, so we can assert the mapping
 /// from core status to the dashboard's view model.
@@ -691,7 +691,7 @@ void main() {
         id: 'claude-work',
         provider: core.Provider.claude,
         label: 'work',
-        configHome: '/tmp/wakieai-test-claude-work',
+        configHome: '/tmp/wakie-test-claude-work',
         addedAt: DateTime.now(), // recent — not past the sign-in timeout
       ));
     final adapter = _PendingClaude(const core.ProviderStatus(
@@ -854,7 +854,7 @@ void main() {
         id: 'claude-slow',
         provider: core.Provider.claude,
         label: 'slow',
-        configHome: '/tmp/wakieai-test-claude-slow',
+        configHome: '/tmp/wakie-test-claude-slow',
         addedAt: DateTime.now().subtract(const Duration(minutes: 20)),
       ));
     final adapter = _PendingClaude(const core.ProviderStatus());
@@ -878,7 +878,7 @@ void main() {
         id: 'claude-dup',
         provider: core.Provider.claude,
         label: 'dup',
-        configHome: '/tmp/wakieai-test-claude-dup',
+        configHome: '/tmp/wakie-test-claude-dup',
         addedAt: DateTime.now(), // recent — not past the sign-in timeout
       ));
     final adapter =

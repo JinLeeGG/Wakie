@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Xcode build phase: compiles the headless dark-wake runner
-# (packages/core/bin/wakieai_runner.dart) and bundles it at
-# Contents/Resources/wakieai_runner — the first place the app's
+# (packages/core/bin/wakie_runner.dart) and bundles it at
+# Contents/Resources/wakie_runner — the first place the app's
 # _resolveRunnerPath() looks — so the dark-wake toggle works out of the box
 # without scripts/install_dark_wake.sh (that script stays for core-only dev).
 #
@@ -11,14 +11,14 @@ set -euo pipefail
 
 CORE_DIR="$PROJECT_DIR/../../../packages/core"
 DART="$FLUTTER_ROOT/bin/dart"
-CACHE_BIN="$DERIVED_FILE_DIR/wakieai_runner"
-DEST="$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/wakieai_runner"
+CACHE_BIN="$DERIVED_FILE_DIR/wakie_runner"
+DEST="$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/wakie_runner"
 
 mkdir -p "$DERIVED_FILE_DIR"
 if [ ! -x "$CACHE_BIN" ] || [ -n "$(find "$CORE_DIR/bin" "$CORE_DIR/lib" \
     "$CORE_DIR/pubspec.yaml" -newer "$CACHE_BIN" -print -quit 2>/dev/null)" ]; then
   (cd "$CORE_DIR" && "$DART" pub get)
-  "$DART" compile exe "$CORE_DIR/bin/wakieai_runner.dart" -o "$CACHE_BIN"
+  "$DART" compile exe "$CORE_DIR/bin/wakie_runner.dart" -o "$CACHE_BIN"
 fi
 
 mkdir -p "$(dirname "$DEST")"

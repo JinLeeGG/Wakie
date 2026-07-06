@@ -1,5 +1,5 @@
-name: wakieai_core
-description: WakieAI shared engine — account model, provider adapters, status scraping.
+name: wakie_core
+description: Wakie shared engine — account model, provider adapters, status scraping.
 version: 0.1.0
 publish_to: 'none'
 

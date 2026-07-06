@@ -20,7 +20,7 @@ import '../status.dart';
 /// ```
 ///
 /// Antigravity reports two model groups (Gemini vs Claude/GPT), each with a
-/// weekly and a five-hour window — four meters in total. WakieAI's dashboard
+/// weekly and a five-hour window — four meters in total. Wakie's dashboard
 /// shows one session + one weekly meter, so each window collapses to its
 /// **most-constrained group** (least remaining): the meter never overstates the
 /// headroom you actually have before the nearest wall.

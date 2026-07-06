@@ -4,7 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wakieai/dashboard.dart';
+import 'package:wakie/dashboard.dart';
 
 /// UI smoke: hammer the dashboard — spam buttons, open/close modals, spin the
 /// wheel, fling the list, toggle switches, hover, fire shortcuts — and assert

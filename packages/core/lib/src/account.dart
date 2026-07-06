@@ -1,6 +1,6 @@
 import 'provider.dart';
 
-/// A managed account — WakieAI's core unit (PRD §4, §10.1).
+/// A managed account — Wakie's core unit (PRD §4, §10.1).
 ///
 /// `{provider, label, configHome, device}`. One provider can hold several
 /// accounts, each isolated by its own config home.

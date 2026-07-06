@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 ProcessResult _ok([String stdout = '']) => ProcessResult(0, 0, stdout, '');
 
 void main() {
   late Directory tmp;
-  setUp(() => tmp = Directory.systemTemp.createTempSync('wakieai_agy_test'));
+  setUp(() => tmp = Directory.systemTemp.createTempSync('wakie_agy_test'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
   test('creates an isolated keychain, then restores the global search list', () async {

@@ -1,4 +1,4 @@
-# Releasing WakieAI (auto-update pipeline)
+# Releasing Wakie (auto-update pipeline)
 
 Push a `vX.Y.Z` tag → GitHub Actions builds, Developer-ID signs, notarizes,
 DMGs, Sparkle-signs, publishes a Release, and updates the appcast on GitHub
@@ -71,7 +71,7 @@ run, or pre-create an empty `gh-pages` branch.)
 | `SPARKLE_ED_PRIVATE_KEY` | contents of `sparkle_private_key.pem` |
 
 ### 6. URLs (if you fork / rename)
-Three places hardcode `jinleegg.github.io/WakeyAI` and `JinLeeGG/WakeyAI`:
+Three places hardcode `jinleegg.github.io/Wakie` and `JinLeeGG/Wakie`:
 `Info.plist` (`SUFeedURL`), `lib/updater.dart` (`_feedUrl`), `deploy/appcast.xml`
 (`<link>`). Keep them in sync with your Pages URL.
 
@@ -91,7 +91,7 @@ from the CI run number, so it always increases — you only bump the `version:`
 string for the human-facing name.
 
 Watch the run in the Actions tab. On success there's a new GitHub Release with
-`WakieAI.dmg` and the appcast at `https://jinleegg.github.io/WakeyAI/appcast.xml`
+`Wakie.dmg` and the appcast at `https://jinleegg.github.io/Wakie/appcast.xml`
 gains an item. Existing installs pick it up on their next check (daily, or on
 launch).
 
@@ -99,27 +99,27 @@ launch).
 
 ## The three install channels
 
-**Direct download** — the notarized `WakieAI.dmg` on the Releases page.
+**Direct download** — the notarized `Wakie.dmg` on the Releases page.
 
 **curl** —
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JinLeeGG/WakeyAI/main/deploy/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JinLeeGG/Wakie/main/deploy/install.sh | bash
 ```
 
-**Homebrew cask** — in a tap repo (`JinLeeGG/homebrew-tap`), `Casks/wakieai.rb`:
+**Homebrew cask** — in a tap repo (`JinLeeGG/homebrew-tap`), `Casks/wakie.rb`:
 ```ruby
-cask "wakieai" do
+cask "wakie" do
   version "1.0.1"
-  sha256 "<shasum -a 256 WakieAI.dmg>"
-  url "https://github.com/JinLeeGG/WakeyAI/releases/download/v#{version}/WakieAI.dmg"
-  name "WakieAI"
+  sha256 "<shasum -a 256 Wakie.dmg>"
+  url "https://github.com/JinLeeGG/Wakie/releases/download/v#{version}/Wakie.dmg"
+  name "Wakie"
   desc "Menu-bar tracker + auto-starter for AI CLI subscriptions"
-  homepage "https://github.com/JinLeeGG/WakeyAI"
+  homepage "https://github.com/JinLeeGG/Wakie"
   auto_updates true   # ← Sparkle owns updates; brew won't fight it
-  app "WakieAI.app"
+  app "Wakie.app"
 end
 ```
-`brew install jinleegg/tap/wakieai`. Because of `auto_updates true`, Homebrew
+`brew install jinleegg/tap/wakie`. Because of `auto_updates true`, Homebrew
 installs once and then **defers to Sparkle** for updates (no version drift).
 
 > All three converge on the same Sparkle feed — however a user installs, updates

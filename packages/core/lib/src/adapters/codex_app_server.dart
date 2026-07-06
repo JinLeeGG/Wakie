@@ -60,7 +60,7 @@ Future<Map<String, dynamic>?> readCodexRateLimits({
     'id': 1,
     'method': 'initialize',
     'params': {
-      'clientInfo': {'name': 'wakieai', 'version': '0.1.0'},
+      'clientInfo': {'name': 'wakie', 'version': '0.1.0'},
     },
   });
   await proc.stdin.flush();
@@ -128,7 +128,7 @@ Future<Map<String, dynamic>?> readCodexAccount({
     'id': 1,
     'method': 'initialize',
     'params': {
-      'clientInfo': {'name': 'wakieai', 'version': '0.1.0'},
+      'clientInfo': {'name': 'wakie', 'version': '0.1.0'},
     },
   });
   await proc.stdin.flush();

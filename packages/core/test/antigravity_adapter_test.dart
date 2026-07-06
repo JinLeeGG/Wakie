@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 Account _account(String? home) => Account(
       id: 'a1',
@@ -82,7 +82,7 @@ GEMINI MODELS
     });
     // configHome with no login keychain → must NOT capture (no OAuth browser).
     final status =
-        await adapter.readStatus(_account('/tmp/wakieai-agy-no-keychain'));
+        await adapter.readStatus(_account('/tmp/wakie-agy-no-keychain'));
     expect(captured, isFalse);
     expect(status.weekly.isKnown, isFalse);
   });
@@ -92,13 +92,13 @@ GEMINI MODELS
     // An extra account's token lives in its own login keychain; with no such
     // keychain present, detect must report notLoggedIn (never a false "ok").
     final adapter = AntigravityAdapter(capture: (_) async => '');
-    final pf = await adapter.detect(_account('/tmp/wakieai-agy-no-keychain'));
+    final pf = await adapter.detect(_account('/tmp/wakie-agy-no-keychain'));
     expect(pf.state, PreflightState.notLoggedIn);
   });
 
   test('antigravityLogEmail reads the newest authentication, not the first',
       () async {
-    final dir = await Directory.systemTemp.createTemp('wakieai_agy_log');
+    final dir = await Directory.systemTemp.createTemp('wakie_agy_log');
     addTearDown(() => dir.delete(recursive: true));
     // Older log: signed in as A. Newer log: re-authenticated as B — the
     // account was switched, so B is the current identity.
@@ -117,9 +117,9 @@ GEMINI MODELS
   });
 
   test('antigravityLogEmail is null with no logs or no auth lines', () async {
-    expect(antigravityLogEmail('/tmp/wakieai-agy-missing-logdir'), isNull);
+    expect(antigravityLogEmail('/tmp/wakie-agy-missing-logdir'), isNull);
 
-    final dir = await Directory.systemTemp.createTemp('wakieai_agy_log');
+    final dir = await Directory.systemTemp.createTemp('wakie_agy_log');
     addTearDown(() => dir.delete(recursive: true));
     File('${dir.path}/cli-1.log')
         .writeAsStringSync('I0704 nothing about authentication here\n');

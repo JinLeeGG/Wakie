@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 /// Public appcast feed, served from GitHub Pages. It lists every released
 /// version with its EdDSA signature; the actual DMGs live as GitHub Release
 /// assets. The CI release workflow appends to this file. See docs/RELEASE.md.
-const _feedUrl = 'https://jinleegg.github.io/WakeyAI/appcast.xml';
+const _feedUrl = 'https://jinleegg.github.io/Wakie/appcast.xml';
 
 /// How often Sparkle re-checks in the background (seconds). Sparkle enforces a
 /// 1h floor; daily is plenty for a menu-bar utility.
@@ -27,6 +27,6 @@ Future<void> initAutoUpdater() async {
     await autoUpdater.setScheduledCheckInterval(_checkInterval);
     await autoUpdater.checkForUpdates(inBackground: true);
   } catch (e) {
-    debugPrint('wakieai: auto-update init failed: $e');
+    debugPrint('wakie: auto-update init failed: $e');
   }
 }

@@ -8,7 +8,7 @@ import 'brand.dart';
 
 /// The empty-dashboard hero: the three providers' real app icons (extracted
 /// from their .icns — see assets/icons/*_app.png) floating quietly over a
-/// faint starfield, with the WakieAI wordmark below. Each icon drifts a few
+/// faint starfield, with the Wakie wordmark below. Each icon drifts a few
 /// pixels on its own slow rhythm; hovering lifts it with a warm glow and
 /// names it, clicking opens Add Account. Calm on purpose: this screen idles
 /// on screen, so nothing here should demand attention.

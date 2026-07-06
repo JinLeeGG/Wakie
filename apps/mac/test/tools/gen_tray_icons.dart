@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wakieai/tray_icon.dart';
+import 'package:wakie/tray_icon.dart';
 
 /// Bakes the menu-bar icon PNGs the tray loads at runtime, from
 /// [TrayIconPainter]. Not a `_test.dart` file, so it runs only when invoked

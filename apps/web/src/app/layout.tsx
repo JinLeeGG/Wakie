@@ -15,7 +15,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WakieAI — All your AI. Always awake.",
+  title: "Wakie — All your AI. Always awake.",
   description:
     "The AI usage cockpit for your Mac. Track every subscription's limits and resets in one dashboard — local-first, no login.",
 };

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<!-- The engine spawns official CLIs (claude/codex/agy) and reads the login
-	     Keychain, which the App Sandbox forbids. WakieAI ships as a local,
+	     Keychain, which the App Sandbox forbids. Wakie ships as a local,
 	     non-sandboxed helper app (DMG) per PRD §9.2/§16; App Store would instead
 	     need a separate non-sandboxed LaunchAgent helper. -->
 	<key>com.apple.security.app-sandbox</key>

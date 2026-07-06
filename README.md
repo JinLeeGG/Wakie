@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/design/app-icon.svg" width="104" height="104" alt="WakieAI">
+<img src="docs/design/app-icon.svg" width="104" height="104" alt="Wakie">
 
-# WakieAI
+# Wakie
 
 ### One tier's price. Every subscription, at full usage.
 
@@ -18,7 +18,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 
 <br>
 
-<img src="docs/design/screenshots/dashboard.png" width="880" alt="WakieAI dashboard">
+<img src="docs/design/screenshots/dashboard.png" width="880" alt="Wakie dashboard">
 
 </div>
 
@@ -41,7 +41,7 @@ A macOS menu-bar app that keeps your logged-in AI subscriptions **warm, tracked,
 
 Power users get more out of AI by running **several cheaper subscriptions** instead of one $200 top tier. The catch is that juggling them is tedious — which account still has budget, when each rolling window resets, and when to switch. You end up opening every CLI or web app just to check.
 
-**WakieAI is a multi-account AI usage orchestrator.** A background app on your Mac cycles through your logged-in AI CLIs (Claude, Codex, Antigravity), reads each account's session and weekly usage, and lays it out in one dashboard. It wakes the machine from sleep on a schedule to keep sessions fresh, and nudges you the moment an account runs low or needs a reconnect — each nudge with a one-tap fix.
+**Wakie is a multi-account AI usage orchestrator.** A background app on your Mac cycles through your logged-in AI CLIs (Claude, Codex, Antigravity), reads each account's session and weekly usage, and lays it out in one dashboard. It wakes the machine from sleep on a schedule to keep sessions fresh, and nudges you the moment an account runs low or needs a reconnect — each nudge with a one-tap fix.
 
 The result: **one tier's price, every subscription at full usage** — without babysitting any of them.
 
@@ -142,8 +142,8 @@ Each read path is split into a **pure parser** (screen-text or JSON → status),
 **Run the Mac app (Phase 0)**
 
 ```bash
-git clone https://github.com/JohnLee/WakeyAI.git
-cd WakeyAI/apps/mac
+git clone https://github.com/JohnLee/Wakie.git
+cd Wakie/apps/mac
 flutter run -d macos          # menu-bar app: auto-detects logged-in CLIs, reads live /usage
 ```
 
@@ -170,7 +170,7 @@ apps/phone        # Flutter iOS/Android remote (Phase 2)
 ## Privacy & security
 
 - **Local-only by default.** CLI OAuth tokens and all prompt/response content stay on your Mac, in each CLI's own config home and the macOS keychain.
-- **No credential proxy.** WakieAI drives each provider's *official* login — it never sees or forwards your passwords.
+- **No credential proxy.** Wakie drives each provider's *official* login — it never sees or forwards your passwords.
 - **No content leaves the device.** Prompts and responses are never stored or transmitted.
 - **Phase-2 relay is metadata-only.** It carries usage numbers, pairing info, and a **fixed command enum** (no arbitrary execution) — protected by row-level security and TLS. The blast radius of a compromised relay is limited to {start session · wake · read status}.
 
@@ -179,7 +179,7 @@ apps/phone        # Flutter iOS/Android remote (Phase 2)
 ## FAQ
 
 <details>
-<summary><b>Does WakieAI reset or extend my quota?</b></summary><br>
+<summary><b>Does Wakie reset or extend my quota?</b></summary><br>
 No. It <i>starts</i> the rolling usage window and reads how much is left — usage is still consumed normally. It never resets, extends, or bypasses limits.
 </details>
 
@@ -190,7 +190,7 @@ No. It rides on each CLI's existing subscription login. There are no API keys an
 
 <details>
 <summary><b>Is this against provider Terms of Service?</b></summary><br>
-WakieAI runs each provider's official CLI on your own machine, under your own login — it is not a proxy or a shared service. Automated, periodic prompting fitting each provider's ToS is an explicit assumption we monitor; adapters can be paused if a provider's terms change.
+Wakie runs each provider's official CLI on your own machine, under your own login — it is not a proxy or a shared service. Automated, periodic prompting fitting each provider's ToS is an explicit assumption we monitor; adapters can be paused if a provider's terms change.
 </details>
 
 <details>
@@ -217,7 +217,7 @@ No. The Mac app is fully standalone (Phase 0–1). The iPhone app (Phase 2) is a
 ## Repository
 
 ```
-WakeyAI/
+Wakie/
 ├── CLAUDE.md              # engineering behavior guidelines
 ├── docs/
 │   ├── PRD.md             # product requirements — source of truth

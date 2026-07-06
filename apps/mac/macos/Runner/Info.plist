@@ -39,7 +39,7 @@
 	<key>SUPublicEDKey</key>
 	<string>REPLACE_WITH_YOUR_SPARKLE_ED_PUBLIC_KEY</string>
 	<key>SUFeedURL</key>
-	<string>https://jinleegg.github.io/WakeyAI/appcast.xml</string>
+	<string>https://jinleegg.github.io/Wakie/appcast.xml</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUAutomaticallyUpdate</key>

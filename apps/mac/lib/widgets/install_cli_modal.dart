@@ -29,7 +29,7 @@ import '../theme.dart';
     };
 
 /// Shown when the user tries to add an account whose provider CLI isn't
-/// installed: WakieAI reads usage through the official CLI, so the login
+/// installed: Wakie reads usage through the official CLI, so the login
 /// can't even start. Quiet and actionable — the install command (copyable)
 /// and a button to the official install page, in the ConfirmModal style.
 class InstallCliModal extends StatefulWidget {
@@ -158,10 +158,10 @@ class _InstallCliModalState extends State<InstallCliModal>
             const SizedBox(height: 12),
             Text(
               widget.provider == Provider.anti
-                  ? 'WakieAI reads usage through the official agy CLI, which '
+                  ? 'Wakie reads usage through the official agy CLI, which '
                       'ships with the Antigravity app. Install it, then add '
                       'this account again.'
-                  : 'WakieAI reads usage through the official CLI. Install '
+                  : 'Wakie reads usage through the official CLI. Install '
                       'it, then add this account again.',
               style: sans(12.5, color: T.t3, height: 1.5),
             ),

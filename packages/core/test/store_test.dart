@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:wakieai_core/wakieai_core.dart';
+import 'package:wakie_core/wakie_core.dart';
 
 void main() {
   late Directory tmp;
 
-  setUp(() => tmp = Directory.systemTemp.createTempSync('wakieai_store_test'));
+  setUp(() => tmp = Directory.systemTemp.createTempSync('wakie_store_test'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
   String path() => '${tmp.path}/store.json';
@@ -135,7 +135,7 @@ void main() {
       id: 'claude-work',
       provider: Provider.claude,
       label: 'work',
-      configHome: '/Users/x/.wakieai/claude-work',
+      configHome: '/Users/x/.wakie/claude-work',
       addedAt: DateTime.utc(2026, 6, 1),
     ));
 
@@ -148,7 +148,7 @@ void main() {
       id: 'claude-work',
       provider: Provider.claude,
       label: 'work-relabeled',
-      configHome: '/Users/x/.wakieai/claude-work',
+      configHome: '/Users/x/.wakie/claude-work',
       addedAt: DateTime.utc(2026, 6, 1),
     ));
     reloaded = Store.load(path());

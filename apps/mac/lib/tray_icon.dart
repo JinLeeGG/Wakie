@@ -16,7 +16,7 @@ enum TrayState { idle, working, attention }
 /// the spin reads smooth rather than stepping.
 const trayWorkFrames = 24;
 
-/// Draws the WakieAI status-bar icon on a 100×100 canvas — used by the asset
+/// Draws the Wakie status-bar icon on a 100×100 canvas — used by the asset
 /// generator (test/tools/gen_tray_icons.dart) to bake the PNGs the tray loads.
 /// Colored (not a template) so the amber core survives; the ring is near-white
 /// to sit with the system glyphs on a dark menu bar.

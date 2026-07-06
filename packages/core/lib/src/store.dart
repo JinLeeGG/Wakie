@@ -81,14 +81,14 @@ class Store {
 
   static String defaultPath() {
     final home = Platform.environment['HOME'] ?? '.';
-    return '$home/.wakieai/store.json';
+    return '$home/.wakie/store.json';
   }
 
   /// Where a new [ExtraAccount]'s isolated `configHome` should live
-  /// (FR-UI-04) — sibling to [defaultPath] under the same `~/.wakieai/` root.
+  /// (FR-UI-04) — sibling to [defaultPath] under the same `~/.wakie/` root.
   static String defaultAccountsDir() {
     final home = Platform.environment['HOME'] ?? '.';
-    return '$home/.wakieai/accounts';
+    return '$home/.wakie/accounts';
   }
 
   factory Store.memory() =>
