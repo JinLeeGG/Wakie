@@ -6,8 +6,11 @@
 name: release
 
 on:
-  push:
-    tags: ['v*']
+  # Auto-release on version tags is disabled until the signing/notary secrets
+  # are configured (see docs/RELEASE.md). Releases are cut manually with
+  # apps/mac/scripts/package.sh for now; re-enable by uncommenting these two:
+  # push:
+  #   tags: ['v*']
   workflow_dispatch: # manual runs (won't publish a Release unless a tag exists)
 
 permissions:
